@@ -53,6 +53,16 @@ public class SpBomItem extends BaseEntity {
      */
     private String operTyper;
 
+    /**
+     * 关联子BOM的id（子项为组件/半成品时指向sp_bom.id）
+     */
+    private String childBomId;
+
+    /**
+     * 子项物料类型 FG/PG/COMP/PART
+     */
+    private String itemMatType;
+
     public String getBomHeadId() {
         return bomHeadId;
     }
@@ -109,6 +119,22 @@ public class SpBomItem extends BaseEntity {
         this.operTyper = operTyper;
     }
 
+    public String getChildBomId() {
+        return childBomId;
+    }
+
+    public void setChildBomId(String childBomId) {
+        this.childBomId = childBomId;
+    }
+
+    public String getItemMatType() {
+        return itemMatType;
+    }
+
+    public void setItemMatType(String itemMatType) {
+        this.itemMatType = itemMatType;
+    }
+
     @Override
     public String toString() {
         return "SpBomItem{" +
@@ -119,6 +145,8 @@ public class SpBomItem extends BaseEntity {
                 ", itemNum=" + itemNum +
                 ", itemUnit=" + itemUnit +
                 ", operTyper=" + operTyper +
+                ", childBomId=" + childBomId +
+                ", itemMatType=" + itemMatType +
                 "}";
     }
 }

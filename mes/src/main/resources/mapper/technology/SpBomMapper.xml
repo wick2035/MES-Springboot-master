@@ -2,4 +2,15 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.wangziyang.mes.technology.mapper.SpBomMapper">
 
+    <select id="listAvailableBoms" resultType="com.wangziyang.mes.technology.entity.SpBom">
+        SELECT id, bom_code, materiel_code, materiel_desc, version_number, state, bom_level
+        FROM sp_bom
+        WHERE is_deleted = '0'
+          AND state = 'pass'
+          <if test="bomLevel != null">
+              AND bom_level = #{bomLevel}
+          </if>
+        ORDER BY bom_level, materiel_code
+    </select>
+
 </mapper>

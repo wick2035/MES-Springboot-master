@@ -59,12 +59,19 @@
             position: relative;
             z-index: 1;
             width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
             min-height: 100vh;
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 430px;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
             align-items: center;
+            justify-items: center;
             gap: 72px;
             padding: 56px clamp(28px, 7vw, 112px);
+        }
+
+        .login-shell > .brand-panel {
+            justify-self: start;
         }
 
         .brand-panel {
@@ -147,6 +154,7 @@
         .login-panel {
             position: relative;
             width: 100%;
+            max-width: 430px;
             border: 1px solid rgba(226, 232, 240, 0.2);
             border-radius: 8px;
             padding: 34px;
@@ -306,19 +314,30 @@
             letter-spacing: 0;
         }
 
-        @media (max-width: 960px) {
+        @media (max-width: 1180px) {
             body {
                 background-attachment: scroll;
             }
 
             .login-shell {
                 grid-template-columns: 1fr;
+                justify-items: center;
                 gap: 34px;
                 padding: 36px 22px;
             }
 
+            .login-shell > .brand-panel {
+                justify-self: center;
+                text-align: center;
+            }
+
             .brand-panel {
                 max-width: 100%;
+            }
+
+            .signal-row {
+                margin-left: auto;
+                margin-right: auto;
             }
 
             .brand-title {

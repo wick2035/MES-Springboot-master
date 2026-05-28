@@ -53,6 +53,22 @@ public class SpBom extends BaseEntity {
     private String factory;
 
     /**
+     * BOM层级: 0=成品BOM 1=半成品BOM 2=组件BOM
+     */
+    @TableField(value = "bom_level")
+    private Integer bomLevel;
+
+    /**
+     * 定版标识: draft=草稿 locked=已定版
+     */
+    private String lockStatus;
+
+    /**
+     * 有效性: 有效/无效
+     */
+    private String validity;
+
+    /**
      * 状态(00:删除;01:正常;02:禁用)
      */
     @TableField(value = "is_deleted")
@@ -114,6 +130,29 @@ public class SpBom extends BaseEntity {
         this.factory = factory;
     }
 
+    public Integer getBomLevel() {
+        return bomLevel;
+    }
+
+    public void setBomLevel(Integer bomLevel) {
+        this.bomLevel = bomLevel;
+    }
+
+    public String getLockStatus() {
+        return lockStatus;
+    }
+
+    public void setLockStatus(String lockStatus) {
+        this.lockStatus = lockStatus;
+    }
+
+    public String getValidity() {
+        return validity;
+    }
+
+    public void setValidity(String validity) {
+        this.validity = validity;
+    }
 
     @Override
     public String toString() {
@@ -125,6 +164,7 @@ public class SpBom extends BaseEntity {
                 ", versionNumber=" + versionNumber +
                 ", state=" + state +
                 ", factory=" + factory +
+                ", bomLevel=" + bomLevel +
                 "}";
     }
 

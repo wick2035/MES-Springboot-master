@@ -64,6 +64,12 @@ public class SpMaterileController extends BaseController {
         return "basedata/materile/list";
     }
 
+    @ApiOperation("物料选择弹窗")
+    @GetMapping("/select-ui")
+    public String selectUI() {
+        return "basedata/materile/select";
+    }
+
 
     /**
      * 物料管理修改界面

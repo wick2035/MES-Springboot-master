@@ -7,6 +7,15 @@ spring:
     type: ehcache
     ehcache:
       config: classpath:config/ehcache.xml
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 50MB
+
+mes:
+  file:
+    upload-path: D:/mes/upload
+    access-prefix: /upload
 
 swagger:
   controller: com.wangziyang.mes

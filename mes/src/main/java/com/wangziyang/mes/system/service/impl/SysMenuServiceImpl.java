@@ -8,10 +8,13 @@ import com.wangziyang.mes.system.entity.SysMenu;
 import com.wangziyang.mes.system.mapper.SysMenuMapper;
 import com.wangziyang.mes.system.service.ISysMenuService;
 import com.wangziyang.mes.system.vo.TreeVO;
+import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -152,5 +155,93 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
             menus.add(tree);
         }
         return TreeUtil.buildList(menus, "0");
+    }
+
+    @Override
+    public List<TreeVO<SysMenu>> listMenuTreeWithRoleCheck(String roleId) throws Exception {
+        List<SysMenuDTO> assignedMenus = sysMenuMapper.listByRoleId(roleId);
+        Set<String> assignedIds = assignedMenus.stream()
+                .map(SysMenuDTO::getId)
+                .collect(Collectors.toSet());
+
+        QueryWrapper<SysMenu> qw = new QueryWrapper<>();
+        qw.orderByAsc("grade", "sort_num");
+        List<SysMenu> allMenus = sysMenuMapper.selectList(qw);
+
+        List<TreeVO<SysMenu>> menus = new ArrayList<>();
+        for (SysMenu m : allMenus) {
+            TreeVO<SysMenu> tree = new TreeVO<>();
+            tree.setId(m.getId());
+            tree.setPid(m.getParentId());
+            tree.setCode(m.getCode());
+            tree.setName(m.getName());
+            tree.setUrl(m.getUrl());
+            tree.setIcon(m.getIcon());
+            tree.setType(m.getType());
+            tree.setPermission(m.getPermission());
+            tree.setChecked(assignedIds.contains(m.getId()));
+            menus.add(tree);
+        }
+        return TreeUtil.buildList(menus, "0");
+    }
+
+    @Override
+    public Map<String, Object> listIndexMenuTreeByRoleMenuIds(Set<String> allowedMenuIds) throws Exception {
+        Map<String, Object> result = new LinkedHashMap<>(4);
+
+        Map<String, String> clearInfo = new HashMap<>(2);
+        clearInfo.put("clearUrl", "json/clear.json");
+
+        Map<String, String> homeInfo = new HashMap<>(4);
+        homeInfo.put("name", "首页");
+        homeInfo.put("icon", "fa fa-home");
+        homeInfo.put("url", "admin/welcome-ui");
+
+        Map<String, String> logoInfo = new HashMap<>(4);
+        logoInfo.put("name", "黑科制造MES");
+        logoInfo.put("image", "/image/logo.png");
+        logoInfo.put("url", "");
+
+        QueryWrapper<SysMenu> qw = new QueryWrapper<>();
+        qw.orderByAsc("sort_num");
+        List<SysMenu> allMenus = sysMenuMapper.selectList(qw);
+
+        // 只保留目录节点(url为'#'或空)或已授权的菜单
+        List<SysMenu> filteredMenus = new ArrayList<>();
+        for (SysMenu m : allMenus) {
+            String url = m.getUrl();
+            boolean isDir = url == null || url.isEmpty() || "#".equals(url);
+            if (isDir || allowedMenuIds.contains(m.getId())) {
+                filteredMenus.add(m);
+            }
+        }
+
+        Map<String, Object> menuInfo = new LinkedHashMap<>(8);
+        List<TreeVO<SysMenu>> menus = new ArrayList<>();
+        for (SysMenu m : filteredMenus) {
+            TreeVO<SysMenu> tree = new TreeVO<>();
+            tree.setId(m.getId());
+            tree.setPid(m.getParentId());
+            tree.setCode(m.getCode());
+            tree.setName(m.getName());
+            tree.setUrl(m.getUrl());
+            tree.setIcon(m.getIcon());
+            tree.setType(m.getType());
+            tree.setPermission(m.getPermission());
+            tree.setTarget("_self");
+            menus.add(tree);
+        }
+        List<TreeVO<SysMenu>> treeVOS = TreeUtil.buildList(menus, "0");
+        for (TreeVO<SysMenu> mTree : treeVOS) {
+            if (CollectionUtils.isNotEmpty(mTree.getChildren())) {
+                menuInfo.put(mTree.getCode(), mTree);
+            }
+        }
+
+        result.put("clearInfo", clearInfo);
+        result.put("homeInfo", homeInfo);
+        result.put("logoInfo", logoInfo);
+        result.put("menuInfo", menuInfo);
+        return result;
     }
 }

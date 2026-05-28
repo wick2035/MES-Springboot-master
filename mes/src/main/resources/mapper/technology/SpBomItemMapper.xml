@@ -2,4 +2,14 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.wangziyang.mes.technology.mapper.SpBomItemMapper">
 
+    <select id="listByBomHeadId" resultType="com.wangziyang.mes.technology.entity.SpBomItem">
+        SELECT id, bom_head_id, materiel_item_code, materiel_item_desc,
+               line_no, item_num, item_unit, oper_typer,
+               child_bom_id, item_mat_type,
+               create_time, create_username, update_time, update_username
+        FROM sp_bom_item
+        WHERE bom_head_id = #{bomHeadId}
+        ORDER BY CAST(line_no AS UNSIGNED)
+    </select>
+
 </mapper>

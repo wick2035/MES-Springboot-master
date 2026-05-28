@@ -2,8 +2,13 @@ package com.wangziyang.mes.system.controller.admin;
 
 import com.wangziyang.mes.common.BaseController;
 import com.wangziyang.mes.common.Result;
+import com.wangziyang.mes.system.dto.SysMenuDTO;
+import com.wangziyang.mes.system.dto.SysRoleDTO;
+import com.wangziyang.mes.system.dto.SysUserDTO;
 import com.wangziyang.mes.system.service.ISysMenuService;
 import io.swagger.annotations.ApiOperation;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.shiro.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +16,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 系统登录
@@ -63,7 +70,26 @@ public class SysLoginController extends BaseController {
     @GetMapping("/list/index/menu/tree")
     @ResponseBody
     public Result tree() throws Exception {
-        Map<String, Object> result = sysMenuService.listIndexMenuTree();
+        SysUserDTO user = (SysUserDTO) SecurityUtils.getSubject().getPrincipal();
+        // 超级管理员(admin角色)或无角色分配时，返回全量菜单保持兼容
+        if (CollectionUtils.isEmpty(user.getSysRoleDTOs())) {
+            return Result.success(sysMenuService.listIndexMenuTree());
+        }
+        boolean isAdmin = user.getSysRoleDTOs().stream()
+                .anyMatch(r -> "admin".equals(r.getCode()));
+        if (isAdmin) {
+            return Result.success(sysMenuService.listIndexMenuTree());
+        }
+        // 收集当前用户所有角色下已授权的菜单ID
+        Set<String> allowedMenuIds = new HashSet<>();
+        for (SysRoleDTO role : user.getSysRoleDTOs()) {
+            if (CollectionUtils.isNotEmpty(role.getSysMenuDtos())) {
+                for (SysMenuDTO menu : role.getSysMenuDtos()) {
+                    allowedMenuIds.add(menu.getId());
+                }
+            }
+        }
+        Map<String, Object> result = sysMenuService.listIndexMenuTreeByRoleMenuIds(allowedMenuIds);
         return Result.success(result);
     }
 

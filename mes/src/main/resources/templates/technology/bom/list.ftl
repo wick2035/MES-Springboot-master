@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>系统角色列表</title>
+    <title>工艺BOM管理</title>
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -38,13 +38,16 @@
         <@shiro.hasPermission name="user:add">
             <button class="layui-btn layui-btn-sm" lay-event="add"><i class="layui-icon">&#xe61f;</i>添加</button>
         </@shiro.hasPermission>
-        <button class="layui-btn layui-btn-sm" lay-event="getCheckData">获取选中行数据</button>
     </div>
 </script>
 
 <!--行操作模板-->
 <script type="text/html" id="js-record-table-toolbar-right">
-    <a class="layui-btn layui-btn-xs" lay-event="edit"><i class="layui-icon layui-icon-edit"></i>编辑</a>
+    <a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="tree"><i class="layui-icon layui-icon-tree"></i>查看树</a>
+    {{# if(d.lockStatus !== 'locked'){ }}
+        <a class="layui-btn layui-btn-xs" lay-event="edit"><i class="layui-icon layui-icon-edit"></i>编辑</a>
+        <a class="layui-btn layui-btn-xs" style="background:#5FB878;" lay-event="lock"><i class="layui-icon layui-icon-ok"></i>定版</a>
+    {{# } }}
     <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete"><i class="layui-icon layui-icon-delete"></i>删除</a>
 </script>
 
@@ -54,8 +57,9 @@
         var form = layui.form,
             table = layui.table,
             spLayer = layui.spLayer,
-            spLayui = layui.spLayui,
             spTable = layui.spTable;
+
+        var bomLevelLabels = { 0: '成品BOM', 1: '半成品BOM', 2: '组件BOM' };
 
         // 表格及数据初始化
         var tableIns = spTable.render({
@@ -64,19 +68,46 @@
                 [{
                     type: 'radio'
                 }, {
-                    field: 'bomCode', title: 'bom编号'
+                    field: 'bomCode', title: 'BOM编号', width: 120
                 }, {
-                    field: 'materielCode', title: '物料编号'
+                    field: 'materielCode', title: '物料编号', width: 120
                 }, {
-                    field: 'materielDesc', title: '物料名称'
+                    field: 'materielDesc', title: '物料名称', width: 160
                 }, {
-                    field: 'versionNumber', title: '版本号'
+                    field: 'versionNumber', title: '版本号', width: 60, align: 'center'
                 }, {
-                    field: 'factory', title: '所属工厂'
+                    field: 'bomLevel', title: 'BOM层级', width: 90,
+                    templet: function (d) {
+                        return bomLevelLabels[d.bomLevel] || '-';
+                    }
+                }, {
+                    field: 'validity', title: '有效性', width: 70, align: 'center',
+                    templet: function (d) {
+                        return d.validity === '有效'
+                            ? '<span style="color:#5FB878;">有效</span>'
+                            : '<span style="color:#FF7200;">无效</span>';
+                    }
+                }, {
+                    field: 'lockStatus', title: '定版标识', width: 80, align: 'center',
+                    templet: function (d) {
+                        return d.lockStatus === 'locked'
+                            ? '<span style="color:#FF7200;font-weight:bold;">已定版</span>'
+                            : '<span style="color:#9E9E9E;">草稿</span>';
+                    }
+                }, {
+                    field: 'state', title: '审核状态', width: 75, align: 'center',
+                    templet: function (d) {
+                        return d.state === 'pass'
+                            ? '<span style="color:#5FB878;">已审核</span>'
+                            : '<span style="color:#FF7200;">草稿</span>';
+                    }
+                }, {
+                    field: 'factory', title: '所属工厂', width: 80
                 }, {
                     field: 'remark', title: '备注'
                 }, {
-                    field: 'deleted', title: '状态', templet: function (d) {
+                    field: 'deleted', title: '状态', width: 65,
+                    templet: function (d) {
                         return spConfig.isDeletedDict[d.deleted];
                     }
                 }, {
@@ -85,109 +116,94 @@
                     title: '操作',
                     toolbar: '#js-record-table-toolbar-right',
                     unresize: true,
-                    width: 150
+                    width: 210
                 }]
             ],
-            done: function (res, curr, count) {
-            }
+            done: function () {}
         });
 
-        /*
-         * 数据表格中form表单元素是动态插入,所以需要更新渲染下
-         * http://www.layui.com/doc/modules/form.html#render
-         */
-        $(function () {
-            form.render();
-        });
+        $(function () { form.render(); });
 
-        /**
-         * 搜索按钮事件
-         */
+        // 搜索
         form.on('submit(js-search-filter)', function (data) {
-            tableIns.reload({
-                where: data.field,
-                page: {
-                    // 重新从第 1 页开始
-                    curr: 1
-                }
-            });
-
-            // 阻止表单跳转。如果需要表单跳转，去掉这段即可。
+            tableIns.reload({ where: data.field, page: { curr: 1 } });
             return false;
         });
 
-        /**
-         * 头工具栏事件
-         */
+        // 头工具栏
         table.on('toolbar(js-record-table-filter)', function (obj) {
-
-            if (obj.event === 'getCheckData') {
-                var checkStatus = table.checkStatus(obj.config.id);
-                var data = checkStatus.data;  //获取选中行数据
-                layer.alert(JSON.stringify(data));
-            }
-
-            // 批量删除
-            if (obj.event === 'deleteBatch') {
-                var checkStatus = table.checkStatus('record-table'),
-                    data = checkStatus.data;
-                if (data.length > 0) {
-                    layer.confirm('确认要删除吗？', function (index) {
-
-                    });
-                } else {
-                    layer.msg("请先选择需要删除的数据！");
-                }
-            }
-            // 添加
             if (obj.event === 'add') {
-                var index = spLayer.open({
-                    title: '添加',
-                    area: ['70%', '90%'],
-                    content: '${request.contextPath}/technology/bom/add-or-update-ui'
+                spLayer.open({
+                    title: '添加BOM',
+                    area: ['90%', '90%'],
+                    content: '${request.contextPath}/technology/bom/add-or-update-ui',
+                    end: function () { tableIns.reload(); }
                 });
-                //新开一个TAB标签 url  标题名称 图标
-                //spLayui.createTableItem('/technology/bom/add-or-update-ui?mpi=bom-1','BOM信息','fa fa-dropbox');
             }
         });
 
-        /**
-         * 监听行工具事件
-         */
+        // 行工具
         table.on('tool(js-record-table-filter)', function (obj) {
             var data = obj.data;
 
-            // 编辑
-            if (obj.event === 'edit') {
+            if (obj.event === 'tree') {
                 spLayer.open({
-                    title: '编辑',
-                    area: ['80%', '90%'],
-                    // 请求url参数
-                    spWhere: {id: data.id},
-                    content: '${request.contextPath}/technology/bom/add-or-update-ui'
+                    title: 'BOM树: ' + data.bomCode,
+                    area: ['90%', '85%'],
+                    spWhere: { id: data.id },
+                    content: '${request.contextPath}/technology/bom/tree-ui',
+                    btn: ['关闭'],
+                    yes: function (index) { layer.close(index); }
                 });
             }
 
-            // 删除
+            if (obj.event === 'edit') {
+                if (data.lockStatus === 'locked') {
+                    layer.msg('该BOM已定版，不允许编辑', { icon: 2 });
+                    return;
+                }
+                spLayer.open({
+                    title: '编辑BOM',
+                    area: ['90%', '90%'],
+                    spWhere: { id: data.id },
+                    content: '${request.contextPath}/technology/bom/add-or-update-ui',
+                    end: function () { tableIns.reload(); }
+                });
+            }
+
+            if (obj.event === 'lock') {
+                layer.confirm('确认对BOM【' + data.bomCode + '】进行定版操作？定版后不可编辑。', function (index) {
+                    spUtil.ajax({
+                        url: '${request.contextPath}/technology/bom/lock',
+                        type: 'POST',
+                        showLoading: true,
+                        serializable: false,
+                        data: { id: data.id },
+                        success: function (res) {
+                            if (res.code === 0) {
+                                layer.msg('定版成功', { icon: 1 });
+                                tableIns.reload();
+                            } else {
+                                layer.msg(res.msg || '定版失败', { icon: 2 });
+                            }
+                            layer.close(index);
+                        }
+                    });
+                });
+            }
+
             if (obj.event === 'delete') {
                 layer.confirm('确认要删除吗？', function (index) {
                     spUtil.ajax({
                         url: '${request.contextPath}/technology/bom/delete',
                         async: false,
                         type: 'POST',
-                        // 是否显示 loading
                         showLoading: true,
-                        // 是否序列化参数
                         serializable: false,
-                        // 参数
-                        data: {
-                            id: data.id
-                        },
-                        success: function (data) {
+                        data: { id: data.id },
+                        success: function () {
                             tableIns.reload();
                             layer.close(index);
-                        },
-                        error: function () {
                         }
                     });
                 });
