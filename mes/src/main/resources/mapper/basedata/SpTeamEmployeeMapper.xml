@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.basedata.mapper.SpTeamEmployeeMapper">
+
+    <resultMap id="BaseResultMap" type="com.wangziyang.mes.basedata.entity.SpTeamEmployee">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="team_id" property="teamId" jdbcType="VARCHAR"/>
+        <result column="user_id" property="userId" jdbcType="VARCHAR"/>
+        <result column="remark" property="remark" jdbcType="VARCHAR"/>
+        <result column="is_deleted" property="deleted" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="create_username" property="createUsername" jdbcType="VARCHAR"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="update_username" property="updateUsername" jdbcType="VARCHAR"/>
+        <result column="user_name" property="userName" jdbcType="VARCHAR"/>
+        <result column="username" property="username" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!--按班组分页查询成员，联表回显用户姓名 / 用户名-->
+    <select id="pageByTeam" resultMap="BaseResultMap">
+        SELECT
+            te.id,
+            te.team_id,
+            te.user_id,
+            te.remark,
+            te.is_deleted,
+            te.create_time,
+            te.create_username,
+            te.update_time,
+            te.update_username,
+            u.name AS user_name,
+            u.username AS username
+        FROM sp_team_employee te
+        LEFT JOIN sp_sys_user u ON te.user_id = u.id
+        WHERE te.is_deleted = '0'
+          AND te.team_id = #{teamId}
+        ORDER BY te.create_time
+    </select>
+
+</mapper>

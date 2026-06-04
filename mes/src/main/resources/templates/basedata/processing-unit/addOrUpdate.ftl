@@ -13,9 +13,9 @@
                 <label class="layui-form-label sp-required">单元编号</label>
                 <div class="layui-input-inline">
                     <input type="text" id="js-unitCode" name="unitCode" lay-verify="required"
-                           autocomplete="off" class="layui-input" value="${result.unitCode!''}" readonly>
+                           autocomplete="off" class="layui-input" value="${result.unitCode!''}">
                 </div>
-                <div class="layui-form-mid layui-word-aux">由系统自动生成</div>
+                <div class="layui-form-mid layui-word-aux">默认自动生成，可手动修改（需唯一）</div>
             </div>
             <div class="layui-form-item">
                 <label class="layui-form-label sp-required">单元名称</label>
@@ -30,6 +30,22 @@
                     <select name="unitType" lay-verify="required">
                         <option value="person" <#if (result.unitType!'') == 'person'>selected</#if>>人员作业单元</option>
                         <option value="device" <#if (result.unitType!'') == 'device'>selected</#if>>设备作业单元</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label sp-required">日标准产能(小时)</label>
+                <div class="layui-input-inline">
+                    <input type="number" step="0.5" min="0" name="stdCapacity" lay-verify="required"
+                           autocomplete="off" class="layui-input" value="${(result.stdCapacity!8.0)?c}">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label sp-required">是否有线边库</label>
+                <div class="layui-input-inline">
+                    <select name="hasEdgeWarehouse" lay-verify="required">
+                        <option value="N" <#if (result.hasEdgeWarehouse!'N') == 'N'>selected</#if>>否</option>
+                        <option value="Y" <#if (result.hasEdgeWarehouse!'') == 'Y'>selected</#if>>是</option>
                     </select>
                 </div>
             </div>

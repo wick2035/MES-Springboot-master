@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.basedata.mapper.SpEquipmentGroupDeviceMapper">
+
+    <resultMap id="BaseResultMap" type="com.wangziyang.mes.basedata.entity.SpEquipmentGroupDevice">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="group_id" property="groupId" jdbcType="VARCHAR"/>
+        <result column="equipment_id" property="equipmentId" jdbcType="VARCHAR"/>
+        <result column="remark" property="remark" jdbcType="VARCHAR"/>
+        <result column="is_deleted" property="deleted" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="create_username" property="createUsername" jdbcType="VARCHAR"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="update_username" property="updateUsername" jdbcType="VARCHAR"/>
+        <result column="equipment_code" property="equipmentCode" jdbcType="VARCHAR"/>
+        <result column="equipment_name" property="equipmentName" jdbcType="VARCHAR"/>
+        <result column="equipment_status" property="equipmentStatus" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!--按编组分页查询设备，联表回显设备编号/名称/状态-->
+    <select id="pageByGroup" resultMap="BaseResultMap">
+        SELECT
+            gd.id,
+            gd.group_id,
+            gd.equipment_id,
+            gd.remark,
+            gd.is_deleted,
+            gd.create_time,
+            gd.create_username,
+            gd.update_time,
+            gd.update_username,
+            e.equipment_code AS equipment_code,
+            e.equipment_name AS equipment_name,
+            e.status         AS equipment_status
+        FROM sp_equipment_group_device gd
+        LEFT JOIN sp_equipment e ON gd.equipment_id = e.id
+        WHERE gd.is_deleted = '0'
+          AND gd.group_id = #{groupId}
+        ORDER BY gd.create_time
+    </select>
+
+    <!--设备选择弹窗数据源：生产设备 + 关联工艺路线编号（多个逗号拼接）-->
+    <select id="pageEquipmentForSelect" resultType="java.util.Map">
+        SELECT
+            e.id          AS equipmentId,
+            e.equipment_code AS equipmentCode,
+            e.equipment_name AS equipmentName,
+            e.status      AS status,
+            GROUP_CONCAT(DISTINCT pr.route_code) AS processNames
+        FROM sp_equipment e
+        LEFT JOIN sp_process_equipment_rel rel ON rel.equipment_id = e.id
+        LEFT JOIN sp_process_route pr ON pr.id = rel.route_id AND pr.is_deleted = '0'
+        WHERE e.is_deleted = '0'
+        <if test="codeLike != null and codeLike != ''">
+            AND e.equipment_code LIKE CONCAT('%', #{codeLike}, '%')
+        </if>
+        <if test="nameLike != null and nameLike != ''">
+            AND e.equipment_name LIKE CONCAT('%', #{nameLike}, '%')
+        </if>
+        GROUP BY e.id, e.equipment_code, e.equipment_name, e.status
+        ORDER BY e.equipment_code
+    </select>
+
+</mapper>

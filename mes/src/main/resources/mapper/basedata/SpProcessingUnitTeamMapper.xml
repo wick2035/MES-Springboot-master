@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.basedata.mapper.SpProcessingUnitTeamMapper">
+
+    <resultMap id="BaseResultMap" type="com.wangziyang.mes.basedata.entity.SpProcessingUnitTeam">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="unit_id" property="unitId" jdbcType="VARCHAR"/>
+        <result column="team_id" property="teamId" jdbcType="VARCHAR"/>
+        <result column="remark" property="remark" jdbcType="VARCHAR"/>
+        <result column="is_deleted" property="deleted" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="create_username" property="createUsername" jdbcType="VARCHAR"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="update_username" property="updateUsername" jdbcType="VARCHAR"/>
+        <result column="team_code" property="teamCode" jdbcType="VARCHAR"/>
+        <result column="team_name" property="teamName" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!--按加工单元分页查询已绑定班组，联表回显班组代码 / 名称-->
+    <select id="pageByUnit" resultMap="BaseResultMap">
+        SELECT
+            ut.id,
+            ut.unit_id,
+            ut.team_id,
+            ut.remark,
+            ut.is_deleted,
+            ut.create_time,
+            ut.create_username,
+            ut.update_time,
+            ut.update_username,
+            t.team_code AS team_code,
+            t.team_name AS team_name
+        FROM sp_processing_unit_team ut
+        LEFT JOIN sp_team t ON ut.team_id = t.id
+        WHERE ut.is_deleted = '0'
+          AND ut.unit_id = #{unitId}
+        ORDER BY ut.create_time
+    </select>
+
+</mapper>

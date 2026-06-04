@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wangziyang.mes.basedata.entity.SpProcessingUnit;
 import com.wangziyang.mes.basedata.mapper.SpProcessingUnitMapper;
 import com.wangziyang.mes.basedata.service.ISpProcessingUnitService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -26,5 +27,19 @@ public class SpProcessingUnitServiceImpl extends ServiceImpl<SpProcessingUnitMap
             }
         }
         return PREFIX + String.format("%06d", next);
+    }
+
+    @Override
+    public boolean isUnitCodeDuplicate(String unitCode, String excludeId) {
+        if (StringUtils.isEmpty(unitCode)) {
+            return false;
+        }
+        QueryWrapper<SpProcessingUnit> qw = new QueryWrapper<>();
+        qw.eq("unit_code", unitCode);
+        qw.ne("is_deleted", "1");
+        if (StringUtils.isNotEmpty(excludeId)) {
+            qw.ne("id", excludeId);
+        }
+        return count(qw) > 0;
     }
 }
