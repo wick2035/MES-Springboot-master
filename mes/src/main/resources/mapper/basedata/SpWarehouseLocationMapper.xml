@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.basedata.mapper.SpWarehouseLocationMapper">
+
+    <resultMap id="BaseResultMap" type="com.wangziyang.mes.basedata.entity.SpWarehouseLocation">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="warehouse_id" property="warehouseId" jdbcType="VARCHAR"/>
+        <result column="location_code" property="locationCode" jdbcType="VARCHAR"/>
+        <result column="group_no" property="groupNo" jdbcType="INTEGER"/>
+        <result column="row_no" property="rowNo" jdbcType="INTEGER"/>
+        <result column="layer_no" property="layerNo" jdbcType="INTEGER"/>
+        <result column="column_no" property="columnNo" jdbcType="INTEGER"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="is_deleted" property="deleted" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="create_username" property="createUsername" jdbcType="VARCHAR"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="update_username" property="updateUsername" jdbcType="VARCHAR"/>
+        <result column="warehouse_code" property="warehouseCode" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!--按库房分页查询库位，联表回显所属库房编码-->
+    <select id="pageByWarehouse" resultMap="BaseResultMap">
+        SELECT
+            wl.id,
+            wl.warehouse_id,
+            wl.location_code,
+            wl.group_no,
+            wl.row_no,
+            wl.layer_no,
+            wl.column_no,
+            wl.status,
+            wl.is_deleted,
+            wl.create_time,
+            wl.create_username,
+            wl.update_time,
+            wl.update_username,
+            w.warehouse_code AS warehouse_code
+        FROM sp_warehouse_location wl
+        LEFT JOIN sp_warehouse w ON wl.warehouse_id = w.id
+        WHERE wl.is_deleted = '0'
+          AND wl.warehouse_id = #{warehouseId}
+        ORDER BY wl.group_no, wl.row_no, wl.layer_no, wl.column_no
+    </select>
+
+</mapper>
