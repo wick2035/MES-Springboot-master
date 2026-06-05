@@ -17,6 +17,45 @@ public class spMaterileReq  extends BasePageReq {
     private String materielDescLike;
 
     /**
+     * 物料类型（精确）
+     */
+    private String matType;
+
+    /**
+     * 物料来源（精确）
+     */
+    private String matSource;
+
+    /**
+     * 状态（精确）0正常 1删除 2禁用
+     */
+    private String deleted;
+
+    public String getMatType() {
+        return this.matType;
+    }
+
+    public void setMatType(String matType) {
+        this.matType = matType;
+    }
+
+    public String getMatSource() {
+        return this.matSource;
+    }
+
+    public void setMatSource(String matSource) {
+        this.matSource = matSource;
+    }
+
+    public String getDeleted() {
+        return this.deleted;
+    }
+
+    public void setDeleted(String deleted) {
+        this.deleted = deleted;
+    }
+
+    /**
      * 获取 模糊查询物料编号
      *
      * @return materielLike 模糊查询物料编号

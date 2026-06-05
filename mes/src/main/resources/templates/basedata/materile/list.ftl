@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>系统角色列表</title>
+    <title>物料信息定义</title>
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -15,40 +15,61 @@
         <form id="js-search-form" class="layui-form" lay-filter="js-q-form-filter">
             <div class="layui-form-item">
                 <div class="layui-inline">
-                    <label class="layui-form-label">物料编号</label>
+                    <label class="layui-form-label">物料编码</label>
                     <div class="layui-input-inline">
-                        <input type="materiel" name="materiel" autocomplete="off" class="layui-input">
+                        <input type="text" name="materielLike" autocomplete="off" class="layui-input">
                     </div>
                 </div>
                 <div class="layui-inline">
                     <label class="layui-form-label">物料名称</label>
                     <div class="layui-input-inline">
-                        <input type="materielDesc" name="materielDesc" autocomplete="off" class="layui-input">
+                        <input type="text" name="materielDescLike" autocomplete="off" class="layui-input">
                     </div>
                 </div>
                 <div class="layui-inline">
-                    <a class="layui-btn" lay-submit lay-filter="js-search-filter"><i
-                                class="layui-icon layui-icon-search layuiadmin-button-btn"></i></a>
+                    <label class="layui-form-label">物料类型</label>
+                    <div class="layui-input-inline">
+                        <select name="matType" id="js-q-matType"><option value="">全部</option></select>
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <label class="layui-form-label">物料来源</label>
+                    <div class="layui-input-inline">
+                        <select name="matSource" id="js-q-matSource"><option value="">全部</option></select>
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <label class="layui-form-label">状态</label>
+                    <div class="layui-input-inline">
+                        <select name="deleted">
+                            <option value="">全部</option>
+                            <option value="0">正常</option>
+                            <option value="2">禁用</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <a class="layui-btn" lay-submit lay-filter="js-search-filter"><i class="layui-icon layui-icon-search"></i>查询</a>
+                    <button type="reset" class="layui-btn layui-btn-primary">重置</button>
                 </div>
             </div>
         </form>
+
+        <!--操作按钮栏-->
+        <div class="layui-btn-container" style="margin-bottom: 10px;">
+            <@shiro.hasPermission name="user:add">
+                <button class="layui-btn layui-btn-sm" id="js-btn-add"><i class="layui-icon">&#xe61f;</i>新增</button>
+            </@shiro.hasPermission>
+            <button class="layui-btn layui-btn-sm" id="js-btn-import"><i class="layui-icon">&#xe67c;</i>导入</button>
+            <a class="layui-btn layui-btn-primary layui-btn-sm" href="${request.contextPath}/basedata/materile/import-template">
+                <i class="layui-icon">&#xe601;</i>下载模板
+            </a>
+        </div>
 
         <!--表格-->
         <table class="layui-hide" id="js-record-table" lay-filter="js-record-table-filter"></table>
     </div>
 </div>
-
-<!--表格头操作模板-->
-<script type="text/html" id="js-record-table-toolbar-top">
-    <div class="layui-btn-container">
-        <button class="layui-btn layui-btn-danger layui-btn-sm" lay-event="deleteBatch"><i
-                    class="layui-icon">&#xe640;</i>批量删除
-        </button>
-        <@shiro.hasPermission name="user:add">
-            <button class="layui-btn layui-btn-sm" lay-event="add"><i class="layui-icon">&#xe61f;</i>添加</button>
-        </@shiro.hasPermission>
-    </div>
-</script>
 
 <!--行操作模板-->
 <script type="text/html" id="js-record-table-toolbar-right">
@@ -58,137 +79,174 @@
 
 <!--js逻辑-->
 <script>
-    layui.use(['form', 'table', 'spLayer', 'spTable'], function () {
+    layui.use(['form', 'table', 'layer', 'upload', 'spLayer', 'spTable'], function () {
         var form = layui.form,
             table = layui.table,
+            layer = layui.layer,
+            upload = layui.upload,
             spLayer = layui.spLayer,
             spTable = layui.spTable;
 
+        var contextPath = '${request.contextPath}';
+
+        // ---- 加载字典为 {value:name} 映射（同步），用于列展示与查询下拉 ----
+        function loadDict(type, selectId) {
+            var map = {};
+            spUtil.ajax({
+                url: contextPath + '/basedata/dict/list/' + type,
+                async: false, type: 'GET', serializable: false, data: {},
+                success: function (res) {
+                    $.each(res.data, function (i, item) {
+                        map[item.value] = item.name;
+                        if (selectId) {
+                            $('#' + selectId).append(new Option(item.name, item.value));
+                        }
+                    });
+                }
+            });
+            return map;
+        }
+
+        var matTypeMap = loadDict('material_type', 'js-q-matType');
+        var matSourceMap = loadDict('material_source', 'js-q-matSource');
+        var textureMap = loadDict('material_texture', null);
+        var unitMap = loadDict('ORDER_UNIT', null);
+        form.render('select');
+
+        function dictName(map, v) {
+            return (v != null && map[v] != null) ? map[v] : (v || '');
+        }
+
         // 表格及数据初始化
         var tableIns = spTable.render({
-            url: '${request.contextPath}/basedata/materile/page',
+            elem: '#js-record-table',
+            url: contextPath + '/basedata/materile/page',
+            toolbar: false,
             cols: [
                 [{
-                    type: 'checkbox'
+                    field: 'materiel', title: '物料编码', width: 110
                 }, {
-                    field: 'materiel', title: '物料编码'
+                    field: 'materielDesc', title: '物料名称', width: 130
                 }, {
-                    field: 'materielDesc', title: '物料描述'
+                    field: 'matType', title: '物料类型', width: 90, templet: function (d) {
+                        return dictName(matTypeMap, d.matType);
+                    }
                 }, {
-                    field: 'productGroup', title: '产品组'
+                    field: 'unit', title: '计量单位', width: 90, templet: function (d) {
+                        return dictName(unitMap, d.unit);
+                    }
                 }, {
-                    field: 'size', title: '尺寸'
+                    field: 'model', title: '规格/型号', width: 110
                 }, {
-                    field: 'flowDesc', title: '流程描述'
+                    field: 'texture', title: '材质', width: 80, templet: function (d) {
+                        return dictName(textureMap, d.texture);
+                    }
                 }, {
-                    field: 'model', title: '型号'
+                    field: 'leadTime', title: '物料需求提前期(天)', width: 140
                 }, {
-                    field: 'deleted', title: '状态', templet: function (d) {
+                    field: 'safetyStock', title: '安全库存', width: 90
+                }, {
+                    field: 'matSource', title: '物料来源', width: 90, templet: function (d) {
+                        return dictName(matSourceMap, d.matSource);
+                    }
+                }, {
+                    field: 'deleted', title: '状态', width: 80, templet: function (d) {
                         return spConfig.isDeletedDict[d.deleted];
                     }
+                }, {
+                    field: 'updateTime', title: '更新时间', width: 160
+                }, {
+                    field: 'remark', title: '备注信息', width: 120
                 }, {
                     fixed: 'right',
                     field: 'operate',
                     title: '操作',
                     toolbar: '#js-record-table-toolbar-right',
                     unresize: true,
-                    width: 150
+                    width: 130
                 }]
             ],
             done: function (res, curr, count) {
             }
         });
 
-        /*
-         * 数据表格中form表单元素是动态插入,所以需要更新渲染下
-         * http://www.layui.com/doc/modules/form.html#render
-         */
         $(function () {
             form.render();
         });
 
-        /**
-         * 搜索按钮事件
-         */
+        // 搜索
         form.on('submit(js-search-filter)', function (data) {
-            tableIns.reload({
-                where: data.field,
-                page: {
-                    // 重新从第 1 页开始
-                    curr: 1
-                }
-            });
-
-            // 阻止表单跳转。如果需要表单跳转，去掉这段即可。
+            tableIns.reload({where: data.field, page: {curr: 1}});
             return false;
         });
 
-        /**
-         * 头工具栏事件
-         */
-        table.on('toolbar(js-record-table-filter)', function (obj) {
-            var checkStatus = table.checkStatus(obj.config.id);
-
-            // 批量删除
-            if (obj.event === 'deleteBatch') {
-                var checkStatus = table.checkStatus('record-table'),
-                    data = checkStatus.data;
-                if (data.length > 0) {
-                    layer.confirm('确认要删除吗？', function (index) {
-
-                    });
-                } else {
-                    layer.msg("请先选择需要删除的数据！");
+        // 新增
+        $('#js-btn-add').on('click', function () {
+            spLayer.open({
+                title: '新增物料',
+                area: ['900px', '90%'],
+                content: contextPath + '/basedata/materile/add-or-update-ui',
+                reload: false,
+                spCallback: function (res) {
+                    if (res && res.code === 0) {
+                        tableIns.reload();
+                    }
                 }
-            }
+            });
+        });
 
-            // 添加
-            if (obj.event === 'add') {
-                var index = spLayer.open({
-                    title: '添加',
-                    area: ['90%', '90%'],
-                    content: '${request.contextPath}/basedata/materile/add-or-update-ui'
-                });
+        // 导入（layui upload 绑定到「导入」按钮）
+        upload.render({
+            elem: '#js-btn-import',
+            url: contextPath + '/basedata/materile/import',
+            accept: 'file',
+            exts: 'xls|xlsx',
+            field: 'file',
+            auto: true,
+            before: function () {
+                layer.load(2);
+            },
+            done: function (res) {
+                layer.closeAll('loading');
+                if (res.code === 0) {
+                    layer.alert(res.msg || '导入完成', {title: '导入结果'});
+                    tableIns.reload();
+                } else {
+                    layer.msg(res.msg || '导入失败');
+                }
+            },
+            error: function () {
+                layer.closeAll('loading');
+                layer.msg('导入请求失败');
             }
         });
 
-        /**
-         * 监听行工具事件
-         */
+        // 行工具：编辑/删除
         table.on('tool(js-record-table-filter)', function (obj) {
             var data = obj.data;
-
-            // 编辑
             if (obj.event === 'edit') {
                 spLayer.open({
-                    title: '编辑',
-                    area: ['90%', '90%'],
-                    // 请求url参数
+                    title: '编辑物料',
+                    area: ['900px', '90%'],
                     spWhere: {id: data.id},
-                    content: '${request.contextPath}/basedata/materile/add-or-update-ui'
+                    content: contextPath + '/basedata/materile/add-or-update-ui',
+                    reload: false,
+                    spCallback: function (res) {
+                        if (res && res.code === 0) {
+                            tableIns.reload();
+                        }
+                    }
                 });
             }
-
-            // 删除
             if (obj.event === 'delete') {
-                layer.confirm('确认要删除吗？', function (index) {
+                layer.confirm('确认要删除物料【' + (data.materielDesc || data.materiel) + '】吗？', function (index) {
                     spUtil.ajax({
-                        url: '${request.contextPath}/basedata/materile/delete',
-                        async: false,
-                        type: 'POST',
-                        // 是否显示 loading
-                        showLoading: true,
-                        // 是否序列化参数
-                        serializable: false,
-                        // 参数
-                        data: {
-                            id: data.id
-                        },
-                        success: function (data) {
+                        url: contextPath + '/basedata/materile/delete',
+                        async: false, type: 'POST', showLoading: true, serializable: false,
+                        data: {id: data.id},
+                        success: function () {
                             tableIns.reload();
                             layer.close(index);
-                        },
-                        error: function () {
                         }
                     });
                 });

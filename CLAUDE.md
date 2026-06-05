@@ -52,3 +52,5 @@ Java 11 · Spring Boot · MyBatis-Plus · Druid · MySQL · Redis · EhCache · 
 - 改完代码后用上面的 `compile` 命令编译验证（IDE 启动也可）。
 - 数据库结构变更：新增 `scripts/sql/*-upgrade-*.sql` 并执行，不要直接改库结构而不留脚本。
 - 提交信息、注释、UI 文案以中文为主，跟随现有风格。
+- git 不出现claude任何内容（例如不出现Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+）

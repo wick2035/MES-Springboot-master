@@ -59,6 +59,36 @@ public class SpMaterile extends BaseEntity {
     private String model;
 
     /**
+     * 物料来源 SELF自制 OUT外购
+     */
+    private String matSource;
+
+    /**
+     * 材质
+     */
+    private String texture;
+
+    /**
+     * 物料需求提前期(天)，至少1
+     */
+    private Integer leadTime;
+
+    /**
+     * 安全库存
+     */
+    private Integer safetyStock;
+
+    /**
+     * 物料图片，多张逗号分隔的相对路径
+     */
+    private String imageUrls;
+
+    /**
+     * 备注信息
+     */
+    private String remark;
+
+    /**
      * 状态(00:删除;01:正常;02:禁用)
      */
     @TableField(value = "is_deleted")
@@ -257,5 +287,53 @@ public class SpMaterile extends BaseEntity {
      */
     public void setFlowDesc(String flowDesc) {
         this.flowDesc = flowDesc;
+    }
+
+    public String getMatSource() {
+        return this.matSource;
+    }
+
+    public void setMatSource(String matSource) {
+        this.matSource = matSource;
+    }
+
+    public String getTexture() {
+        return this.texture;
+    }
+
+    public void setTexture(String texture) {
+        this.texture = texture;
+    }
+
+    public Integer getLeadTime() {
+        return this.leadTime;
+    }
+
+    public void setLeadTime(Integer leadTime) {
+        this.leadTime = leadTime;
+    }
+
+    public Integer getSafetyStock() {
+        return this.safetyStock;
+    }
+
+    public void setSafetyStock(Integer safetyStock) {
+        this.safetyStock = safetyStock;
+    }
+
+    public String getImageUrls() {
+        return this.imageUrls;
+    }
+
+    public void setImageUrls(String imageUrls) {
+        this.imageUrls = imageUrls;
+    }
+
+    public String getRemark() {
+        return this.remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
     }
 }
