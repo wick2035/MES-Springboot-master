@@ -17,10 +17,10 @@
         .bom-items-table input.layui-input { height: 28px; font-size: 12px; padding: 0 4px; }
         .bom-items-table select { height: 28px; font-size: 12px; border: 1px solid #d2d2d2; border-radius: 2px; width: 100%; }
         .bom-badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 11px; color: #fff; }
-        .badge-FG   { background: #FF7200; }
+        .badge-FG   { background: #D97706; }
         .badge-PG   { background: #1E9FFF; }
         .badge-COMP { background: #16BAAA; }
-        .badge-PART { background: #9E9E9E; }
+        .badge-PART { background: #98A2B3; }
         .bom-items-table .btn-xs { padding: 0 6px; height: 24px; line-height: 24px; font-size: 11px; }
         .pick-btn { padding: 0 6px; height: 26px; line-height: 26px; font-size: 11px; margin-right: 2px; }
         .item-cell-flex { display: flex; align-items: center; }
@@ -118,7 +118,7 @@
 
         <!-- 已定版提示 -->
         <#if (result??) && (result.lockStatus)?? && result.lockStatus == 'locked'>
-        <div style="margin-top:12px; padding:10px 16px; background:#fff3e0; border:1px solid #FF7200; border-radius:4px; color:#FF7200; font-size:13px;">
+        <div style="margin-top:12px; padding:10px 16px; background:#FFFAEB; border:1px solid #D97706; border-radius:4px; color:#D97706; font-size:13px;">
             <i class="layui-icon layui-icon-about"></i>
             该BOM已定版，处于只读状态，无法修改。如需更新请创建新版本BOM。
         </div>

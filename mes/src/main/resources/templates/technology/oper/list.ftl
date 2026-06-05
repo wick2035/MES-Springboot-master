@@ -52,7 +52,7 @@
             url: '${request.contextPath}/technology/oper/page',
             toolbar: '#js-record-table-toolbar-top',
             cols: [[
-                {field: 'oper', title: '工序编号', width: 130, style: 'color:#FF5722'},
+                {field: 'oper', title: '工序编号', width: 130, style: 'color:#2563EB'},
                 {field: 'operDesc', title: '工序名称'},
                 {field: 'unitName', title: '加工单元名称'},
                 {field: 'operHours', title: '工序工时(h)', width: 110},

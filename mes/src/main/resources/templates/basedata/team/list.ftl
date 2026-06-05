@@ -12,13 +12,13 @@
             font-weight: bold;
             font-size: 14px;
             padding: 8px 4px;
-            border-left: 3px solid #FF5722;
+            border-left: 3px solid #2563EB;
             padding-left: 8px;
             margin: 6px 0;
             background: #f7f7f7;
         }
         .sp-section { margin-bottom: 10px; }
-        #js-current-team { color: #FF5722; }
+        #js-current-team { color: #2563EB; }
     </style>
 </head>
 <body>
@@ -131,7 +131,7 @@
                 [{
                     field: 'teamCode', title: '班组代码', width: 160,
                     templet: function (d) {
-                        return '<a style="color:#FF5722;" href="javascript:void(0);">' + d.teamCode + '</a>';
+                        return '<a style="color:#2563EB;" href="javascript:void(0);">' + d.teamCode + '</a>';
                     }
                 }, {
                     field: 'teamName', title: '班组名称', width: 200

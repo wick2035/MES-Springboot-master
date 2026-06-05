@@ -61,21 +61,18 @@
                     </dd>
                 </dl>
             </li>
-            <li class="layui-nav-item splayui-select-bgcolor mobile layui-hide-xs">
-                <a href="javascript:;" data-bgcolor="配色方案"><i class="fa fa-ellipsis-v"></i></a>
-            </li>
         </ul>
     </div>
-    <form class="layui-form" style=" display: flex; flex-direction: column;">
-        <div class="layui-side layui-bg-black" style="display: flex; flex-direction: column;">
-            <div style="height: 94% ; display: flex;">
+    <form class="layui-form splayui-side-form">
+        <div class="layui-side layui-bg-black splayui-side-form">
+            <div class="splayui-side-inner">
                 <div class="layui-side-scroll layui-left-menu">
                 </div>
             </div>
 
-            <div layui-left-menu style="display: flex; height: 6% ;margin-right: 4px;">
-                <i class="layui-icon layui-icon-search" style=" width: 30px;margin-top: 5px;font-size:24px ;"></i>
-                <input name="search" type="text" placeholder="搜索..." class="layui-input layui-input-search"
+            <div layui-left-menu class="splayui-side-search">
+                <i class="layui-icon layui-icon-search"></i>
+                <input name="search" type="text" placeholder="搜索菜单..." class="layui-input layui-input-search"
                        autocomplete="off">
             </div>
             <button class="layui-btn layui-hide" lay-submit lay-filter="js-search-filter">搜索</button>

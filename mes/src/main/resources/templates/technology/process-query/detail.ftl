@@ -12,9 +12,9 @@
             flex: 1; text-align: center; padding: 8px 4px; cursor: pointer; border-bottom: 2px solid transparent;
             font-size: 13px; color: #666;
         }
-        .step-tab.active { color:#FF5722; border-bottom-color:#FF5722; font-weight: bold; }
+        .step-tab.active { color:#2563EB; border-bottom-color:#2563EB; font-weight: bold; }
         .panel { padding: 16px 24px; }
-        .panel-title { font-size: 14px; color:#FF7200; font-weight: bold; margin-bottom: 12px; border-left: 3px solid #FF7200; padding-left:8px; }
+        .panel-title { font-size: 14px; color:#D97706; font-weight: bold; margin-bottom: 12px; border-left: 3px solid #D97706; padding-left:8px; }
         .img-grid { display:flex; flex-wrap:wrap; gap:10px; }
         .img-grid img { width: 160px; height: 120px; object-fit: cover; border: 1px solid #ddd; cursor: pointer; }
         .ro-input { background: #f5f5f5; }

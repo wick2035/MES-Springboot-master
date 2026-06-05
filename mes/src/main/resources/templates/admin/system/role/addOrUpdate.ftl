@@ -12,9 +12,7 @@
 <div class="splayui-container">
     <div class="splayui-main">
         <#-- 基本信息标题 -->
-        <div style="padding: 10px 0 6px 0; font-size:14px; color:#333; border-bottom:1px solid #eee; margin-bottom:12px;">
-            <i class="layui-icon" style="color:#FF5722;">&#xe608;</i>&nbsp;基本信息
-        </div>
+        <div class="sp-section-title">基本信息</div>
         <form class="layui-form splayui-form">
             <div class="layui-row layui-col-space10">
                 <!-- 左列 -->
@@ -59,7 +57,7 @@
                             <input type="text" name="code" lay-verify="required" autocomplete="off"
                                    class="layui-input"
                                    value="${(result.code)!}"
-                                   <#if (result.id)?? && result.id != "">readonly style="background:#f5f5f5;"</#if>>
+                                   <#if (result.id)?? && result.id != "">readonly</#if>>
                         </div>
                     </div>
                     <div class="layui-form-item">

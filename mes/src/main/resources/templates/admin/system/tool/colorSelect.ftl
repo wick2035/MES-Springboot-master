@@ -18,8 +18,8 @@
             <div class="layui-form-item">
                 <label class="layui-form-label">颜色选择器</label>
                 <div class="layui-input-inline">
-                    <input type="hidden" name="test_color" value="#1aa094">
-                    <span class="layui-btn layui-btn-primary test-select-color" style="padding:0 12px;min-width:45px;background-color: #1aa094;"></span>
+                    <input type="hidden" name="test_color" value="#2563EB">
+                    <span class="layui-btn layui-btn-primary test-select-color" style="padding:0 12px;min-width:45px;background-color: #2563EB;"></span>
                 </div>
             </div>
         </form>
@@ -39,7 +39,7 @@
 <script>
     $(function () {
         $('.test-select-color').paigusu({
-            color: '#1aa094',//初始色  支持两种配置方案
+            color: '#2563EB',//初始色  支持两种配置方案
         }, function (event, obj) {
             $(event).css('background-color', '#' + obj.hex);
             $('input[name="test_color"]').val('#' + obj.hex);

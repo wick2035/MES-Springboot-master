@@ -9,7 +9,7 @@
         .edit-completed { color: #16BAAA; font-weight: bold; }
         .edit-pending { color: #999; }
         .edit-editing { color: #1E9FFF; }
-        .edit-btn { background-color: #FF5722; color: #fff; padding: 4px 12px; border: none; border-radius: 3px; cursor: pointer; }
+        .edit-btn { background-color: #2563EB; color: #fff; padding: 4px 12px; border: none; border-radius: 3px; cursor: pointer; }
     </style>
 </head>
 <body>

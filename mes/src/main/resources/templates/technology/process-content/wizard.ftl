@@ -16,21 +16,21 @@
             width: 32px; height: 32px; border-radius:50%; background:#ccc; color:#fff;
             display:flex; align-items:center; justify-content:center; font-weight:bold; flex-shrink:0;
         }
-        .step-circle.active { background:#FF5722; }
+        .step-circle.active { background:#2563EB; }
         .step-circle.done   { background:#16BAAA; }
         .step-label { margin-left:8px; font-size:13px; color:#666; }
-        .step-label.active { color:#FF5722; font-weight: bold; }
+        .step-label.active { color:#2563EB; font-weight: bold; }
         .step-line { flex: 1; height: 2px; background: #ddd; margin: 0 4px; }
         .step-line.done { background:#16BAAA; }
 
         .panel { padding: 16px 20px; }
-        .panel-title { font-size: 14px; color:#FF7200; font-weight: bold; margin-bottom: 12px; border-left: 3px solid #FF7200; padding-left:8px; }
+        .panel-title { font-size: 14px; color:#D97706; font-weight: bold; margin-bottom: 12px; border-left: 3px solid #D97706; padding-left:8px; }
         .img-preview-list { display:flex; gap:10px; flex-wrap:wrap; margin-top: 8px; }
         .img-preview-item { position: relative; }
         .img-preview-item img { width: 120px; height: 90px; object-fit: cover; border: 1px solid #ddd; }
         .img-preview-item .del-btn {
             position: absolute; top: -8px; right: -8px; width: 20px; height: 20px;
-            background: #ff5722; color: #fff; border-radius: 50%; text-align: center;
+            background: #2563EB; color: #fff; border-radius: 50%; text-align: center;
             line-height: 20px; cursor: pointer; font-size: 12px;
         }
         .attach-item { padding: 6px 10px; background:#f0f0f0; border-radius:3px; margin: 4px 0; }

@@ -1,39 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>你的资源掉了！</title>
-    <meta name="viewpoint" content="width=device-width,initial-scale=1">
-    <link rel="stylesheet" href="${request.contextPath}/css/404.css" />
-    <script src="http://www.jq22.com/jquery/jquery-1.10.2.js"></script>
+    <meta charset="UTF-8">
+    <title>404 · 页面走丢了</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <#include "${request.contextPath}/common/common.ftl">
+    <style>html, body { height: 100%; }</style>
 </head>
 <body>
-<div class="code">
-    <p>ERROR 404</p>
-</div>
-<div class="road">
-    <div class="shadow">
-        <div class="shelt">
-            <div class="head">
-                <div class="eyes">
-                    <div class="lefteye">
-                        <div class="eyeball"></div>
-                        <div class="eyebrow"></div>
-                    </div>
-                    <div class="righteye">
-                        <div class="eyeball"></div>
-                        <div class="eyebrow"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="hat"></div>
-        <div class="bubble">
-            <a href="index.html">功能开发中！</a>
+<div class="sp-error">
+    <div class="sp-error-card">
+        <div class="sp-error-code">404</div>
+        <div class="sp-error-title">页面走丢了</div>
+        <p class="sp-error-desc">抱歉，您访问的页面不存在或已被移动。<br>请检查地址是否正确，或返回首页继续操作。</p>
+        <div class="sp-error-actions">
+            <a class="layui-btn" href="${request.contextPath}/admin"><i class="layui-icon layui-icon-home"></i> 返回首页</a>
+            <a class="layui-btn layui-btn-primary" href="javascript:history.back();">返回上一页</a>
         </div>
     </div>
-    <p>修身正心，齐家治国</p>
 </div>
 </body>
-<script type="text/javascript" src="${request.contextPath}/js/layuimodule/404.js" ></script>
 </html>

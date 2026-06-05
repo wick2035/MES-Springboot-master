@@ -62,10 +62,10 @@
     <a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="authMenu" title="授权菜单">
         <i class="layui-icon layui-icon-ok-circle"></i>授权菜单
     </a>
-    <a class="layui-btn layui-btn-xs" lay-event="dataScope" title="数据权限" style="background:#009688;">
+    <a class="layui-btn layui-btn-xs" lay-event="dataScope" title="数据权限">
         <i class="layui-icon layui-icon-spread-left"></i>数据权限
     </a>
-    <a class="layui-btn layui-btn-xs" lay-event="assignUser" title="分配用户" style="background:#5FB878;">
+    <a class="layui-btn layui-btn-xs" lay-event="assignUser" title="分配用户" style="background:#16A34A;">
         <i class="layui-icon layui-icon-username"></i>分配用户
     </a>
 </script>
@@ -91,7 +91,7 @@
                 }, {
                     field: 'name', title: '角色名称', width: 120,
                     templet: function (d) {
-                        return '<a style="color:#FF5722;" href="javascript:void(0);">' + d.name + '</a>';
+                        return '<a style="color:#2563EB;" href="javascript:void(0);">' + d.name + '</a>';
                     }
                 }, {
                     field: 'code', title: '角色编码', width: 150

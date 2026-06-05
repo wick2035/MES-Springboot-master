@@ -8,7 +8,7 @@
 <body>
 <div class="splayui-container">
     <div class="splayui-main">
-        <h3 style="color:#FF5722; margin-bottom:15px;"><i>基本信息</i></h3>
+        <h3 style="color:#2563EB; margin-bottom:15px;"><i>基本信息</i></h3>
         <form class="layui-form splayui-form" lay-filter="formTest">
             <div class="layui-row">
                 <div class="layui-col-md6">

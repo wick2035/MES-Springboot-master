@@ -12,13 +12,13 @@
             font-weight: bold;
             font-size: 14px;
             padding: 8px 4px;
-            border-left: 3px solid #FF5722;
+            border-left: 3px solid #2563EB;
             padding-left: 8px;
             margin: 6px 0;
             background: #f7f7f7;
         }
         .sp-section { margin-bottom: 10px; }
-        #js-current-warehouse { color: #FF5722; }
+        #js-current-warehouse { color: #2563EB; }
     </style>
 </head>
 <body>
@@ -125,7 +125,7 @@
                 [{
                     field: 'warehouseCode', title: '库房编码', width: 140,
                     templet: function (d) {
-                        return '<a style="color:#FF5722;" href="javascript:void(0);">' + d.warehouseCode + '</a>';
+                        return '<a style="color:#2563EB;" href="javascript:void(0);">' + d.warehouseCode + '</a>';
                     }
                 }, {
                     field: 'warehouseName', title: '库房名称', width: 180

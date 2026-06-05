@@ -24,8 +24,8 @@
             display: inline-block; padding: 1px 8px; border-radius: 10px;
             font-size: 11px; color: #fff;
         }
-        .lock-draft  { background: #9E9E9E; }
-        .lock-locked { background: #FF7200; }
+        .lock-draft  { background: #98A2B3; }
+        .lock-locked { background: #D97706; }
 
         .bom-main-wrap {
             display: flex;
@@ -43,7 +43,7 @@
             flex-shrink: 0;
         }
         .bom-left-panel .layui-tree-entry { cursor: pointer; }
-        .bom-left-panel .layui-tree-entry:hover { background: #f0f7ff; }
+        .bom-left-panel .layui-tree-entry:hover { background: #EFF4FF; }
         .bom-left-panel .bom-tree-active > .layui-tree-entry { background: #e5f3ff; }
 
         /* 右侧表格面板 */
@@ -64,9 +64,9 @@
         #js-right-table-wrap { flex: 1; overflow: auto; }
 
         /* 节点类型颜色 */
-        .nt-product { color: #FF7200; font-weight: bold; }
+        .nt-product { color: #D97706; font-weight: bold; }
         .nt-part    { color: #16BAAA; }
-        .nt-mat     { color: #9E9E9E; }
+        .nt-mat     { color: #98A2B3; }
     </style>
 </head>
 <body>

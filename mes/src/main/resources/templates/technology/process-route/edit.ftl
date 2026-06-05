@@ -10,7 +10,7 @@
     <div class="splayui-main">
         <#if parentRoute??>
             <fieldset class="layui-elem-field layui-field-title" style="margin-top: 10px;">
-                <legend style="color:#FF7200;">上级工艺</legend>
+                <legend style="color:#D97706;">上级工艺</legend>
             </fieldset>
             <div class="layui-form-item">
                 <label class="layui-form-label">工艺编号</label>
@@ -25,7 +25,7 @@
         </#if>
 
         <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
-            <legend style="color:#FF7200;">当前工艺信息</legend>
+            <legend style="color:#D97706;">当前工艺信息</legend>
         </fieldset>
         <form class="layui-form" lay-filter="formCurrent">
             <div class="layui-form-item">

@@ -9,17 +9,12 @@
           content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <#include "${request.contextPath}/common/common.ftl">
     <style>
-        .sp-section-title {
-            color: #FF5722;
-            font-weight: bold;
-            margin: 10px 0 12px 18px;
-        }
         .sp-img-box {
             display: inline-block;
             position: relative;
             margin: 6px;
-            border: 1px solid #e6e6e6;
-            border-radius: 4px;
+            border: 1px solid var(--sp-border);
+            border-radius: var(--sp-radius-sm);
             padding: 2px;
         }
         .sp-img-box img {
@@ -27,12 +22,13 @@
             height: 90px;
             object-fit: cover;
             display: block;
+            border-radius: 3px;
         }
         .sp-img-del {
             position: absolute;
             top: -8px;
             right: -8px;
-            background: #FF5722;
+            background: var(--sp-danger);
             color: #fff;
             border-radius: 50%;
             width: 18px;
@@ -55,7 +51,7 @@
                         <label class="layui-form-label sp-required">物料编码</label>
                         <div class="layui-input-inline">
                             <input type="text" name="materiel" readonly autocomplete="off"
-                                   class="layui-input" style="background:#f2f2f2;" value="${result.materiel!''}">
+                                   class="layui-input sp-readonly" value="${result.materiel!''}">
                         </div>
                         <div class="layui-form-mid layui-word-aux">系统自动生成</div>
                     </div>

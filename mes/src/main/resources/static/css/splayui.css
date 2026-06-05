@@ -1,40 +1,19 @@
+@charset "utf-8";
 /**
-配色方案（如有需要，请自行配置）
+ * splayui.css —— 后台外壳（顶栏 / 侧边菜单 / 标签页）
+ * 浅色 · 精密工业风 · 工业蓝。设计令牌见 theme.css。
+ * 仅在 admin/index.ftl 引入，统一接管整个应用外壳的外观。
  */
-/**头部-配色*/
+
+/* ============================================================
+   顶栏 Header
+   ============================================================ */
 .layui-layout-admin .layui-header {
-    background-color: #23262e !important;
+    background-color: var(--sp-header-bg) !important;
+    border-bottom: 1px solid var(--sp-border);
+    box-shadow: var(--sp-shadow-sm);
 }
 
-.layui-header > ul > .layui-nav-item.layui-this,
-.splayui-tool i:hover {
-    background-color: #197971 !important;
-}
-
-/**logo-配色*/
-.layui-layout-admin .layui-logo {
-    background-color: #243346 !important;
-}
-
-/**左侧-配色*/
-.layui-side.layui-bg-black,
-.layui-side.layui-bg-black > .layui-left-menu > ul {
-    background-color: #2f4056 !important;
-}
-
-.layui-left-menu .layui-nav .layui-nav-child a:hover:not(.layui-this) {
-    background-color: #3b3f4b;
-}
-
-/**左侧菜单选中-配色*/
-.layui-layout-admin .layui-nav-tree .layui-this,
-.layui-layout-admin .layui-nav-tree .layui-this > a,
-.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this,
-.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this a {
-    background-color: #1aa094 !important;
-}
-
-/**头部样式 */
 .layui-layout-admin .header {
     position: fixed;
     left: 0;
@@ -48,8 +27,17 @@
     height: 60px !important;
 }
 
+/* 头部菜单项文字 */
+.layui-header .layui-nav-item a {
+    color: var(--sp-text-secondary);
+}
+
+.layui-header .layui-nav-item a:hover {
+    color: var(--sp-primary);
+}
+
 .layui-header-menu > .layui-nav-item {
-    color: #1b1d21;
+    color: var(--sp-text-secondary);
     height: 60px !important;
     line-height: 60px !important;
 }
@@ -59,34 +47,68 @@
     line-height: 60px !important;
 }
 
+/* 头部活动项 / 工具 hover */
+.layui-header > ul > .layui-nav-item.layui-this,
+.splayui-tool i:hover {
+    background-color: var(--sp-primary-tint) !important;
+    color: var(--sp-primary) !important;
+}
+
+.layui-nav-item.layui-this {
+    background-color: var(--sp-primary-tint);
+}
+
+/* 右上角 B站按钮：作为幽灵小按钮 */
+.layui-header .layui-nav-item button.fa-github-alt {
+    height: 30px;
+    line-height: 28px;
+    padding: 0 12px;
+    margin-top: 15px;
+    border: 1px solid var(--sp-border-strong);
+    border-radius: var(--sp-radius);
+    background: var(--sp-surface);
+    color: var(--sp-text-secondary);
+    font-family: var(--sp-font);
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.layui-header .layui-nav-item button.fa-github-alt:hover {
+    border-color: var(--sp-primary-border);
+    color: var(--sp-primary);
+    background: var(--sp-primary-tint);
+}
+
 .layui-layout-left {
     left: 295px !important;
 }
 
 .layui-nav.layui-layout-left.layui-header-menu.mobile.layui-hide-xs {
-    font-weight: bold;
+    font-weight: 600;
     transition: all 0.2s;
 }
 
-/**头部样式（缩放） */
 .splayui-admin .layui-layout-left.layui-header-menu.layui-hide-xs {
     left: 155px !important;
 }
 
-/**logo演示（通用） */
+/* ============================================================
+   Logo
+   ============================================================ */
 .layui-layout-admin .layui-logo {
-    font-weight: bold;
-    color: #ffffff !important;
+    background-color: var(--sp-header-bg) !important;
+    border-right: 1px solid var(--sp-border);
+    font-weight: 600;
+    color: var(--sp-text) !important;
     height: 60px !important;
     line-height: 60px !important;
     overflow: hidden;
-    line-height: 64px;
     transition: all 0.2s !important;
 }
 
 .layui-layout-admin .layui-logo img {
     display: inline-block;
-    height: 30px;
+    height: 28px;
     vertical-align: middle;
 }
 
@@ -99,14 +121,14 @@
 .layui-layout-admin .layui-logo h1 {
     display: inline-block;
     margin: 0 0 0 12px;
-    color: #dadde2;
-    font-weight: 600;
-    font-size: 20px;
-    font-family: Avenir, Helvetica Neue, Arial, Helvetica, sans-serif;
+    color: var(--sp-text);
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: .3px;
+    font-family: var(--sp-font);
     vertical-align: middle;
 }
 
-/**logo演示（缩放） */
 .splayui-admin .layui-layout-admin .layui-logo {
     width: 60px !important;
 }
@@ -115,7 +137,9 @@
     display: none;
 }
 
-/**缩放工具（通用） */
+/* ============================================================
+   折叠工具 Fold tool
+   ============================================================ */
 .splayui-tool {
     position: absolute !important;
     top: 0;
@@ -124,85 +148,95 @@
     height: 100%;
     line-height: 60px;
     text-align: center;
-    color: #ffffff !important;
+    color: var(--sp-text-secondary) !important;
     transition: all 0.2s;
 }
 
-/**缩放工具（缩放） */
 .splayui-admin .splayui-tool {
     left: 95px !important;
 }
 
 .splayui-tool i {
     display: block;
-    color: #fff;
+    color: var(--sp-text-secondary);
     width: 32px;
     height: 32px;
     line-height: 32px;
-    border-radius: 3px;
+    border-radius: var(--sp-radius);
     text-align: center;
-    margin-top: 15px;
+    margin-top: 14px;
     cursor: pointer;
+    transition: all .15s ease;
 }
 
-/**tab选项卡 */
+/* ============================================================
+   顶部标签页 Tabs
+   ============================================================ */
 .layui-tab-title li cite {
     font-style: normal;
     padding-left: 5px;
 }
 
 #top_tabs_box > .layui-tab-title {
-    color: #acafb1;
-}
-
-#top_tabs_box > .layui-tab-title li:hover {
-    color: #000000;
-    background-color: #e7ebed;
-}
-
-#top_tabs_box .layui-tab-close {
-    font-size: 12px !important;
-    width: 14px !important;
-    height: 14px !important;
-    line-height: 16px !important;
-}
-
-#top_tabs_box .layui-tab-close:hover {
-    border-radius: 4em;
-    background: #ff5722;
-}
-
-#top_tabs_box > .layui-tab-title > .layui-this > i:first-child {
-    color: #009688;
+    color: var(--sp-text-secondary);
+    background-color: var(--sp-surface);
 }
 
 #top_tabs_box > .layui-tab-title li {
-    border-right: 1px solid #e2e2e2;
-    font-size: 12.5px !important;
+    border-right: 1px solid var(--sp-border);
+    font-size: 13px !important;
+    transition: background-color .12s ease, color .12s ease;
+}
+
+#top_tabs_box > .layui-tab-title li:hover {
+    color: var(--sp-primary);
+    background-color: var(--sp-primary-tint);
 }
 
 #top_tabs_box > .layui-tab-title .layui-this {
-    color: #000000;
+    color: var(--sp-primary);
+    background-color: var(--sp-primary-tint);
+    box-shadow: inset 0 -2px 0 var(--sp-primary);
+}
+
+#top_tabs_box > .layui-tab-title > .layui-this > i:first-child {
+    color: var(--sp-primary);
 }
 
 .layui-tab-title .layui-this:after {
     border: none;
 }
 
+#top_tabs_box .layui-tab-close {
+    font-size: 12px !important;
+    width: 16px !important;
+    height: 16px !important;
+    line-height: 16px !important;
+    border-radius: 4em;
+    transition: all .12s ease;
+}
+
+#top_tabs_box .layui-tab-close:hover {
+    border-radius: 4em;
+    background: var(--sp-danger);
+    color: #fff;
+}
+
 #top_tabs_box {
     padding-right: 138px;
-    height: 34px;
-    border-bottom: 1px solid #e2e2e2;
+    height: 38px;
+    background-color: var(--sp-surface);
+    border-bottom: 1px solid var(--sp-border);
 }
 
 #top_tabs_box > .layui-tab-title,
 #top_tabs_box > .closeBox {
-    height: 35px !important;
+    height: 38px !important;
 }
 
 #top_tabs_box > .layui-tab-title > li,
 #top_tabs_box > .closeBox > li {
-    line-height: 35px !important;
+    line-height: 38px !important;
 }
 
 #top_tabs {
@@ -210,28 +244,40 @@
     border-bottom: none;
 }
 
-/**多窗口页面操作下拉**/
+/* 页面操作下拉 */
 .closeBox {
     position: absolute;
     right: 15px;
-    background-color: #fff !important;
-    color: #000;
-    border-left: 1px solid #e2e2e2;
-    border-bottom: 1px solid #e2e2e2;
+    background-color: var(--sp-surface) !important;
+    color: var(--sp-text);
+    border-left: 1px solid var(--sp-border);
+    border-bottom: 1px solid var(--sp-border);
     padding: 0 10px !important;
 }
 
 .closeBox .layui-nav-item {
-    line-height: 40px;
+    line-height: 38px;
 }
 
 .closeBox .layui-nav-item > a,
 .closeBox .layui-nav-item > a:hover {
-    color: #000;
+    color: var(--sp-text-secondary);
+}
+
+.closeBox .layui-nav-item > a:hover {
+    color: var(--sp-primary);
 }
 
 .closeBox .layui-nav-child {
-    top: 40px;
+    top: 42px;
+    border: 1px solid var(--sp-border);
+    border-radius: var(--sp-radius);
+    box-shadow: var(--sp-shadow);
+}
+
+.closeBox .layui-nav-child dd a:hover {
+    background-color: var(--sp-primary-tint);
+    color: var(--sp-primary);
 }
 
 .closeBox .layui-nav-bar {
@@ -246,33 +292,44 @@
 }
 
 .closeBox a span.layui-nav-more {
-    border-color: #333 transparent transparent;
+    border-color: var(--sp-text-muted) transparent transparent;
 }
 
 .closeBox a span.layui-nav-more.layui-nav-mored {
-    border-color: transparent transparent #333;
+    border-color: transparent transparent var(--sp-text-muted);
 }
 
-/**左侧菜单栏 (通用) */
-.layui-side.layui-bg-black {
-    transition: all 0.2s;
-}
-
+/* ============================================================
+   左侧菜单 Sidebar
+   ============================================================ */
+.layui-side.layui-bg-black,
 .layui-side.layui-bg-black > .layui-left-menu > ul {
+    background-color: var(--sp-sidebar-bg) !important;
     transition: all 0.2s;
+}
+
+.layui-side.layui-bg-black {
+    border-right: 1px solid var(--sp-border);
 }
 
 .layui-side.layui-bg-black
 > .layui-left-menu
 > ul
 > .layui-nav-item:first-child {
-    border-top: 1px solid #4b5461;
+    border-top: none;
 }
 
+/* 菜单文字与图标 */
 .layui-left-menu .layui-nav .layui-nav-item a {
-    height: 40px;
-    line-height: 40px;
+    height: 42px;
+    line-height: 42px;
     padding-right: 30px;
+    color: var(--sp-text-secondary);
+    transition: color .12s ease, background-color .12s ease;
+}
+
+.layui-left-menu .layui-nav .layui-nav-item a:hover {
+    color: var(--sp-primary);
 }
 
 .layui-left-menu .layui-nav .layui-nav-item > a {
@@ -280,15 +337,60 @@
     padding-bottom: 5px;
 }
 
+.layui-left-menu .layui-nav .layui-nav-item a i {
+    color: var(--sp-text-muted);
+}
+
+.layui-left-menu .layui-nav .layui-nav-item a:hover i {
+    color: var(--sp-primary);
+}
+
+/* 子菜单层背景透明（继承侧栏底色） */
+.layui-left-menu .layui-nav .layui-nav-child,
 .layui-left-menu .layui-nav .layui-nav-child .layui-nav-child {
-    background: 0 0 !important;
+    background: transparent !important;
+}
+
+/* 父级展开态轻微高亮 */
+.layui-left-menu .layui-nav .layui-nav-itemed > a {
+    color: var(--sp-text);
 }
 
 .layui-left-menu .layui-nav .layui-nav-more {
     right: 15px;
+    border-color: var(--sp-text-muted) transparent transparent;
 }
 
-/**左侧菜单栏 (正常) */
+.layui-left-menu .layui-nav .layui-nav-mored {
+    border-color: transparent transparent var(--sp-text-muted);
+}
+
+/* 子菜单 hover */
+.layui-left-menu .layui-nav .layui-nav-child a:hover:not(.layui-this) {
+    background-color: var(--sp-primary-tint);
+    color: var(--sp-primary);
+}
+
+/* 选中态：蓝色浅底药丸 + 左侧 3px 强调条 + 蓝字 */
+.layui-layout-admin .layui-nav-tree .layui-this,
+.layui-layout-admin .layui-nav-tree .layui-this > a,
+.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this,
+.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this a {
+    background-color: var(--sp-primary-tint) !important;
+    color: var(--sp-primary) !important;
+    font-weight: 500;
+}
+
+.layui-layout-admin .layui-nav-tree .layui-this {
+    box-shadow: inset 3px 0 0 var(--sp-primary);
+}
+
+.layui-layout-admin .layui-nav-tree .layui-this a i,
+.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this a i {
+    color: var(--sp-primary) !important;
+}
+
+/* 左侧菜单缩进（正常态） */
 .splayui-all .layui-nav-itemed .layui-nav-child a,
 .splayui-all .layui-left-menu .layui-nav .layui-nav-child a {
     padding-left: 35px;
@@ -324,10 +426,10 @@ a {
 .layui-nav
 .layui-nav-itemed
 > .layui-nav-child {
-    padding: 5px 0;
+    padding: 4px 0;
 }
 
-/**左侧菜单栏（缩放） */
+/* 左侧菜单（缩放态 60px） */
 .splayui-admin .layui-side.layui-bg-black,
 .splayui-admin .layui-left-menu,
 .splayui-admin .layui-left-menu > ul,
@@ -345,29 +447,64 @@ a {
 }
 
 .splayui-admin .layui-left-menu .layui-nav .layui-nav-item a {
-    height: 40px;
-    line-height: 40px;
+    height: 42px;
+    line-height: 42px;
     padding-right: 0px !important;
 }
 
-/**内容主体（通用） */
+/* ============================================================
+   侧边底部搜索框
+   ============================================================ */
+.layui-side [layui-left-menu] {
+    border-top: 1px solid var(--sp-border);
+    background-color: var(--sp-sidebar-bg);
+    align-items: center;
+}
+
+.layui-side [layui-left-menu] .layui-icon-search {
+    color: var(--sp-text-muted);
+}
+
+.layui-input-search {
+    border: 1px solid var(--sp-border-strong) !important;
+    border-radius: var(--sp-radius) !important;
+    background-color: var(--sp-surface) !important;
+    height: 34px !important;
+    line-height: 34px !important;
+}
+
+.layui-input-search:focus {
+    border-color: var(--sp-primary) !important;
+    box-shadow: var(--sp-ring);
+}
+
+/* ============================================================
+   内容主体 Body
+   ============================================================ */
 .layui-layout-admin .layui-body {
     overflow: hidden;
     bottom: 0px !important;
     top: 60px !important;
+    background-color: var(--sp-bg);
     transition: all 0.2s;
 }
 
-/**内容主体（缩放） */
 .splayui-admin .layui-layout-admin .layui-body {
     left: 60px !important;
 }
 
-/**选择配色方案 */
+.layui-layout-admin .layui-side {
+    top: 60px !important;
+}
+
+/* ============================================================
+   配色方案选择面板（保留样式，菜单入口已下线）
+   ============================================================ */
 .splayui-color .color-title {
     padding: 10px 0 10px 20px;
-    border-bottom: 1px solid #d9dada;
+    border-bottom: 1px solid var(--sp-border);
     margin-bottom: 8px;
+    color: var(--sp-text);
 }
 
 .splayui-color .color-content {
@@ -387,10 +524,11 @@ a {
     height: 50px;
     margin: 0 15px 15px 0;
     padding: 2px 2px 4px 2px;
-    background-color: #f2f2f2;
+    background-color: var(--sp-surface-2);
     cursor: pointer;
     font-size: 12px;
-    color: #666;
+    color: var(--sp-text-secondary);
+    border-radius: var(--sp-radius-sm);
 }
 
 .splayui-color .color-content li.layui-this:after,
@@ -400,7 +538,7 @@ a {
     padding: 4px;
     top: -5px;
     left: -5px;
-    border-color: #d8d8d8;
+    border-color: var(--sp-primary-border);
     opacity: 1;
 }
 
@@ -412,20 +550,18 @@ a {
     left: 50%;
     width: 1px;
     height: 0;
-    border: 1px solid #f2f2f2;
+    border: 1px solid var(--sp-border);
     transition: all 0.3s;
     -webkit-transition: all 0.3s;
     opacity: 0;
 }
 
-/**其它 */
+/* ============================================================
+   其它 Misc
+   ============================================================ */
 .layui-tab-item {
     width: 100% !important;
     height: 100% !important;
-}
-
-.layui-nav-item.layui-this {
-    background-color: #1b1d21;
 }
 
 .layui-width-height {
@@ -455,37 +591,57 @@ a {
     height: 0 !important;
 }
 
-.layui-layout-admin .layui-side {
-    top: 60px !important;
-}
-
 .layui-tab-card {
-    box-shadow: 0px 0px 0px #888888;
+    box-shadow: none;
     border-bottom: 0;
 }
 
 .clildFrame.layui-tab-content {
-    top: 35px;
+    top: 38px;
     position: absolute;
     bottom: 0px;
     width: 100%;
     padding: 0;
+    background-color: var(--sp-bg);
+}
+
+/* 外壳内联布局收敛（取代 index.ftl 内联 style） */
+.splayui-side-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.splayui-side-inner {
+    height: 94%;
+    display: flex;
+}
+
+.splayui-side-search {
+    display: flex;
+    height: 6%;
+    margin-right: 4px;
+}
+
+.splayui-side-search .layui-icon-search {
+    width: 30px;
+    margin-top: 5px;
+    font-size: 22px;
 }
 
 * {
     touch-action: pan-y;
 }
 
-/**
- 手机自适应样式
-*/
+/* ============================================================
+   手机自适应
+   ============================================================ */
 @media screen and (max-width: 768px) {
     #top_tabs_box {
         border-bottom: 0px !important;
     }
 
     .layui-layout-admin .layui-body .layui-tab-item.layui-show {
-        border-top: 1px solid #e2e2e2;
+        border-top: 1px solid var(--sp-border);
     }
 
     .splayui-admin .splayui-tool {

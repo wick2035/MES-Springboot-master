@@ -18,7 +18,7 @@
             border-radius: 4px; margin-bottom: 6px; cursor: pointer;
             transition: background 0.15s;
         }
-        .role-item:hover { background: #f0f7ff; }
+        .role-item:hover { background: #EFF4FF; }
         .role-item.checked { background: #e5f3ff; border-color: #1E9FFF; }
         .role-item input[type=checkbox] { margin-right: 10px; }
         .role-name { font-weight: bold; color: #333; }

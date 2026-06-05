@@ -48,7 +48,7 @@
     <a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="assignRole" title="分配角色">
         <i class="layui-icon layui-icon-username"></i>分配角色
     </a>
-    <a class="layui-btn layui-btn-xs" lay-event="resetPassword" title="重置密码" style="background:#009688;">
+    <a class="layui-btn layui-btn-xs" lay-event="resetPassword" title="重置密码">
         <i class="layui-icon layui-icon-password"></i>重置密码
     </a>
     <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="disable" title="禁用/启用">

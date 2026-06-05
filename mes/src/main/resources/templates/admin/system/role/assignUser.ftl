@@ -84,8 +84,8 @@
             var div = document.createElement('div');
             div.className = 'user-item';
             div.dataset.id = u.id;
-            div.innerHTML = '<i class="layui-icon layui-icon-username" style="color:#009688;"></i> ' +
-                u.name + ' <span style="color:#aaa;font-size:11px;">(' + u.username + ')</span>';
+            div.innerHTML = '<i class="layui-icon layui-icon-username" style="color:var(--sp-primary);"></i> ' +
+                u.name + ' <span style="color:var(--sp-text-muted);font-size:11px;">(' + u.username + ')</span>';
             div.onclick = function () { this.classList.toggle('selected'); };
             container.appendChild(div);
         });

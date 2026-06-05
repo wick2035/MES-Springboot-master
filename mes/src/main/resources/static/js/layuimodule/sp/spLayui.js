@@ -104,20 +104,9 @@ layui.define(["element", "jquery"], function (exports) {
          * 初始化背景色
          */
         this.initBgColor = function () {
-            var bgcolorId = sessionStorage.getItem('splayuiBgcolorId');
-            if (bgcolorId == null || bgcolorId == undefined || bgcolorId == '') {
-                bgcolorId = spLayui.config('BgColorDefault');
-            }
-            var bgcolorData = spLayui.bgColorConfig(bgcolorId);
-            var styleHtml = '.layui-layout-admin .layui-header{background-color:' + bgcolorData.headerRight + '!important;}\n' +
-                '.layui-header>ul>.layui-nav-item.layui-this,.splayui-tool i:hover{background-color:' + bgcolorData.headerRightThis + '!important;}\n' +
-                '.layui-layout-admin .layui-logo {background-color:' + bgcolorData.headerLogo + '!important;}\n' +
-                '.layui-side.layui-bg-black,.layui-side.layui-bg-black>.layui-left-menu>ul {background-color:' + bgcolorData.menuLeft + '!important;}\n' +
-                '.layui-left-menu .layui-nav .layui-nav-child a:hover:not(.layui-this) {background-color:' + bgcolorData.menuLeftHover + ';}\n' +
-                '.layui-layout-admin .layui-nav-tree .layui-this, .layui-layout-admin .layui-nav-tree .layui-this>a, .layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this, .layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this a {\n' +
-                '    background-color: ' + bgcolorData.menuLeftThis + ' !important;\n' +
-                '}';
-            $('#splayui-bg-color').html(styleHtml);
+            // 浅色工业主题（Industrial Light）由 splayui.css 统一接管，
+            // 不再注入动态深色皮肤；清空以兼容历史缓存的内联样式。
+            $('#splayui-bg-color').html('');
         };
 
         /**

@@ -46,7 +46,7 @@
     <a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="tree"><i class="layui-icon layui-icon-tree"></i>查看树</a>
     {{# if(d.lockStatus !== 'locked'){ }}
         <a class="layui-btn layui-btn-xs" lay-event="edit"><i class="layui-icon layui-icon-edit"></i>编辑</a>
-        <a class="layui-btn layui-btn-xs" style="background:#5FB878;" lay-event="lock"><i class="layui-icon layui-icon-ok"></i>定版</a>
+        <a class="layui-btn layui-btn-xs" style="background:var(--sp-success);border-color:var(--sp-success);" lay-event="lock"><i class="layui-icon layui-icon-ok"></i>定版</a>
     {{# } }}
     <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete"><i class="layui-icon layui-icon-delete"></i>删除</a>
 </script>
@@ -84,22 +84,22 @@
                     field: 'validity', title: '有效性', width: 70, align: 'center',
                     templet: function (d) {
                         return d.validity === '有效'
-                            ? '<span style="color:#5FB878;">有效</span>'
-                            : '<span style="color:#FF7200;">无效</span>';
+                            ? '<span class="sp-badge sp-badge-success">有效</span>'
+                            : '<span class="sp-badge sp-badge-warn">无效</span>';
                     }
                 }, {
                     field: 'lockStatus', title: '定版标识', width: 80, align: 'center',
                     templet: function (d) {
                         return d.lockStatus === 'locked'
-                            ? '<span style="color:#FF7200;font-weight:bold;">已定版</span>'
-                            : '<span style="color:#9E9E9E;">草稿</span>';
+                            ? '<span class="sp-badge sp-badge-info">已定版</span>'
+                            : '<span class="sp-badge sp-badge-muted">草稿</span>';
                     }
                 }, {
                     field: 'state', title: '审核状态', width: 75, align: 'center',
                     templet: function (d) {
                         return d.state === 'pass'
-                            ? '<span style="color:#5FB878;">已审核</span>'
-                            : '<span style="color:#FF7200;">草稿</span>';
+                            ? '<span class="sp-badge sp-badge-success">已审核</span>'
+                            : '<span class="sp-badge sp-badge-muted">草稿</span>';
                     }
                 }, {
                     field: 'factory', title: '所属工厂', width: 80

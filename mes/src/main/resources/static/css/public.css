@@ -1,36 +1,50 @@
+@charset "utf-8";
+/**
+ * public.css —— 通用页面容器与表单
+ * 浅色 · 精密工业风。设计令牌见 theme.css。
+ */
+
 html {
-    background-color: #ffffff;
+    background-color: var(--sp-bg);
 }
 
 body {
-    margin: 0 0 0 0;
-    background: #f2f2f2;
+    margin: 0;
+    background: var(--sp-bg);
+    color: var(--sp-text);
 }
 
+/* 业务页外层容器：白色卡片 + 发丝线 + 克制阴影 */
 .splayui-container {
-    border: 1px solid #f2f2f2;
-    border-radius: 5px;
-    background-color: #ffffff;
+    border: 1px solid var(--sp-border);
+    border-radius: var(--sp-radius);
+    background-color: var(--sp-surface);
+    box-shadow: var(--sp-shadow-sm);
 }
 
 .splayui-main {
-    margin: 10px 10px 10px 10px;
+    margin: 12px;
+    padding: 4px 14px 14px;
 }
 
-/**必填红点 */
+/* 查询条 / 操作按钮栏之间的分隔感 */
+.splayui-main > .layui-form + .layui-btn-container,
+.splayui-main > #js-search-form + .layui-btn-container {
+    padding-top: 6px;
+    margin-top: 2px;
+    border-top: 1px solid var(--sp-border);
+}
+
+/* 必填红点 */
 .splayui-form .layui-form-item .sp-required:after {
     content: "*";
-    color: red;
+    color: var(--sp-danger);
     position: absolute;
     margin-left: 4px;
     font-weight: bold;
     line-height: 1.8em;
     top: 6px;
     right: 5px;
-}
-
-.splayui-form .layui-form-item > .layui-form-label {
-    /*width: 120px !important;*/
 }
 
 .splayui-form > .layui-form-item > .layui-input-block {
@@ -41,8 +55,13 @@ body {
     display: inline-block;
     margin-top: 10px;
     line-height: 10px;
-    font-size: 10px;
-    color: #a29c9c;
+    font-size: 12px;
+    color: var(--sp-text-muted);
+}
+
+/* 表单分区上下间距 */
+.splayui-form .layui-form-item {
+    margin-bottom: 16px;
 }
 
 .box-between {

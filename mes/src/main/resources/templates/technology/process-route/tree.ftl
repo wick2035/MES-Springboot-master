@@ -7,10 +7,10 @@
     <style>
         .pr-toolbar { padding: 8px 12px; background: #f8f8f8; border-bottom: 1px solid #e2e2e2; }
         .pr-lock-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 12px; color: #fff; }
-        .lock-draft { background: #9E9E9E; }
-        .lock-locked { background: #FF7200; }
+        .lock-draft { background: #98A2B3; }
+        .lock-locked { background: #D97706; }
         .gen-yes { color: #16BAAA; font-weight: bold; }
-        .layui-table .lock-icon { color: #FF7200; font-size: 16px; cursor: pointer; }
+        .layui-table .lock-icon { color: #D97706; font-size: 16px; cursor: pointer; }
         .layui-table .edit-icon { color: #16BAAA; font-size: 16px; cursor: pointer; }
     </style>
 </head>

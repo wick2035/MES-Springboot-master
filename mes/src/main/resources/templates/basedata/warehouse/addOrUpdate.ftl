@@ -59,7 +59,7 @@
             </div>
 
             <fieldset class="layui-elem-field layui-field-title" style="margin-top: 10px;">
-                <legend style="font-size:14px;color:#FF5722;">库房规格信息（保存后按 组×排×层×列 自动生成库位）</legend>
+                <legend style="font-size:14px;color:#2563EB;">库房规格信息（保存后按 组×排×层×列 自动生成库位）</legend>
             </fieldset>
             <div class="layui-row">
                 <div class="layui-col-xs6 layui-col-sm6 layui-col-md6">

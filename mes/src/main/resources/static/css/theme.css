@@ -1,0 +1,726 @@
+@charset "utf-8";
+/**
+ * theme.css —— 全局主题层（浅色 · 精密工业风 · 工业蓝）
+ * 统一覆盖 layui 默认皮肤；通过 common/common.ftl 在所有页面引入。
+ * 设计语言：圆角 4–6px · 间距紧凑 · 1px 发丝线 · 阴影克制 · 工业蓝 #2563EB
+ */
+
+/* ============================================================
+   1. 设计令牌 Design Tokens
+   ============================================================ */
+:root {
+    /* 品牌主色 */
+    --sp-primary: #2563EB;
+    --sp-primary-hover: #1D4ED8;
+    --sp-primary-active: #1E40AF;
+    --sp-primary-tint: #EFF4FF;       /* 选中/hover 浅底 */
+    --sp-primary-tint-2: #DCE7FB;     /* 略深浅底 */
+    --sp-primary-border: #BFD3F5;
+
+    /* 语义色 */
+    --sp-success: #16A34A;
+    --sp-warning: #D97706;
+    --sp-danger: #DC2626;
+    --sp-info: #2563EB;
+    --sp-success-tint: #ECFDF3;
+    --sp-warning-tint: #FFFAEB;
+    --sp-danger-tint: #FEF3F2;
+
+    /* 中性（石板灰阶） */
+    --sp-bg: #F4F6F9;                 /* 页面背景 */
+    --sp-surface: #FFFFFF;            /* 卡片/容器 */
+    --sp-surface-2: #FAFBFC;          /* 次级面（表头/只读） */
+    --sp-sidebar-bg: #F7F8FA;         /* 侧边 */
+    --sp-header-bg: #FFFFFF;          /* 顶栏 */
+    --sp-border: #E5E8EC;             /* 1px 发丝线 */
+    --sp-border-strong: #D5D9DF;
+    --sp-text: #1F2937;               /* 主文本 */
+    --sp-text-secondary: #5B6573;
+    --sp-text-muted: #98A2B3;
+
+    /* 形状 / 阴影 / 字体 */
+    --sp-radius: 6px;
+    --sp-radius-sm: 4px;
+    --sp-radius-lg: 8px;
+    --sp-shadow-sm: 0 1px 2px rgba(16, 24, 40, .05);
+    --sp-shadow: 0 1px 3px rgba(16, 24, 40, .08), 0 1px 2px rgba(16, 24, 40, .04);
+    --sp-shadow-lg: 0 8px 24px rgba(16, 24, 40, .12), 0 2px 6px rgba(16, 24, 40, .06);
+    --sp-ring: 0 0 0 3px rgba(37, 99, 235, .12);
+    --sp-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei",
+        "PingFang SC", "Hiragino Sans GB", Roboto, Arial, sans-serif;
+}
+
+/* ============================================================
+   2. 基础 Base
+   ============================================================ */
+html {
+    background-color: var(--sp-bg);
+}
+
+body {
+    font-family: var(--sp-font);
+    color: var(--sp-text);
+    background-color: var(--sp-bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.layui-layout-body,
+.layui-elem-quote,
+.layui-card,
+.layui-form,
+.layui-table,
+.layui-input,
+.layui-textarea,
+.layui-btn,
+.layui-form-select dl {
+    font-family: var(--sp-font);
+}
+
+/* 精致滚动条（webkit） */
+::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #CdD3DB;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: #AAB2BD;
+}
+::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+/* ============================================================
+   3. 按钮 Buttons
+   ============================================================ */
+.layui-btn {
+    height: 36px;
+    line-height: 36px;
+    border-radius: var(--sp-radius);
+    background-color: var(--sp-primary);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0 16px;
+    border: 1px solid transparent;
+    transition: background-color .15s ease, box-shadow .15s ease, border-color .15s ease, color .15s ease;
+}
+.layui-btn:hover {
+    background-color: var(--sp-primary-hover);
+    color: #fff;
+}
+.layui-btn:active {
+    background-color: var(--sp-primary-active);
+}
+
+/* 描边/幽灵按钮（重置、取消、下载模板等） */
+.layui-btn-primary {
+    background-color: var(--sp-surface);
+    border: 1px solid var(--sp-border-strong);
+    color: var(--sp-text-secondary);
+}
+.layui-btn-primary:hover {
+    background-color: var(--sp-primary-tint);
+    border-color: var(--sp-primary-border);
+    color: var(--sp-primary);
+}
+
+/* 常规（次要主色动作，如选择/上传） */
+.layui-btn-normal {
+    background-color: var(--sp-primary);
+}
+.layui-btn-normal:hover {
+    background-color: var(--sp-primary-hover);
+}
+
+.layui-btn-warm {
+    background-color: var(--sp-warning);
+}
+.layui-btn-warm:hover {
+    background-color: #B45309;
+}
+
+.layui-btn-danger {
+    background-color: var(--sp-danger);
+}
+.layui-btn-danger:hover {
+    background-color: #B91C1C;
+}
+
+.layui-btn-disabled,
+.layui-btn-disabled:hover,
+.layui-btn-disabled:active {
+    background-color: #F0F2F5 !important;
+    border-color: var(--sp-border) !important;
+    color: var(--sp-text-muted) !important;
+}
+
+/* 尺寸 */
+.layui-btn-lg {
+    height: 42px;
+    line-height: 42px;
+    padding: 0 22px;
+    font-size: 15px;
+}
+.layui-btn-sm {
+    height: 30px;
+    line-height: 30px;
+    padding: 0 12px;
+    font-size: 13px;
+    border-radius: var(--sp-radius-sm);
+}
+.layui-btn-xs {
+    height: 24px;
+    line-height: 24px;
+    padding: 0 9px;
+    font-size: 12px;
+    border-radius: var(--sp-radius-sm);
+}
+.layui-btn-radius {
+    border-radius: 999px;
+}
+.layui-btn + .layui-btn {
+    margin-left: 8px;
+}
+.layui-btn-container .layui-btn {
+    margin-right: 8px;
+    margin-bottom: 0;
+}
+/* 行内表格操作按钮（编辑/删除）间距与图标 */
+.layui-table .layui-btn-xs + .layui-btn-xs {
+    margin-left: 6px;
+}
+.layui-btn .layui-icon {
+    font-size: 13px;
+    margin-right: 3px;
+}
+
+/* ============================================================
+   4. 表单 Forms / Inputs
+   ============================================================ */
+.layui-input,
+.layui-textarea,
+.layui-select {
+    height: 36px;
+    line-height: 36px;
+    border: 1px solid var(--sp-border-strong);
+    border-radius: var(--sp-radius);
+    background-color: var(--sp-surface);
+    color: var(--sp-text);
+    font-size: 14px;
+    transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+.layui-textarea {
+    min-height: 90px;
+    line-height: 1.6;
+    padding: 8px 10px;
+}
+.layui-input:hover,
+.layui-textarea:hover,
+.layui-select:hover {
+    border-color: #B7C0CC;
+}
+.layui-input:focus,
+.layui-textarea:focus,
+.layui-select:focus {
+    border-color: var(--sp-primary) !important;
+    box-shadow: var(--sp-ring);
+}
+.layui-input::-webkit-input-placeholder,
+.layui-textarea::-webkit-input-placeholder {
+    color: var(--sp-text-muted);
+}
+
+.layui-form-label {
+    color: var(--sp-text-secondary);
+    font-weight: 500;
+    font-size: 14px;
+    padding: 9px 12px 9px 0;
+    text-align: right;
+}
+.layui-form-mid {
+    color: var(--sp-text-secondary);
+}
+.layui-word-aux,
+.layui-form-mid.layui-word-aux {
+    color: var(--sp-text-muted) !important;
+    font-size: 12px;
+}
+
+/* 下拉 select 面板 */
+.layui-form-select dl {
+    border: 1px solid var(--sp-border);
+    border-radius: var(--sp-radius);
+    box-shadow: var(--sp-shadow);
+    padding: 4px 0;
+}
+.layui-form-select dl dd {
+    border-radius: var(--sp-radius-sm);
+    margin: 0 4px;
+    padding: 0 6px;
+    transition: background-color .12s ease, color .12s ease;
+}
+.layui-form-select dl dd:hover {
+    background-color: var(--sp-primary-tint);
+}
+.layui-form-select dl dd.layui-this {
+    background-color: var(--sp-primary-tint);
+    color: var(--sp-primary);
+    font-weight: 500;
+}
+.layui-form-selected .layui-edge {
+    border-color: transparent transparent var(--sp-primary);
+}
+
+/* 复选框（默认皮肤为标签态） */
+.layui-form-checkbox[lay-skin=primary] i {
+    border-radius: var(--sp-radius-sm);
+}
+.layui-form-checkbox[lay-skin=primary]:hover i {
+    border-color: var(--sp-primary);
+}
+.layui-form-checked[lay-skin=primary] i {
+    border-color: var(--sp-primary) !important;
+    background-color: var(--sp-primary) !important;
+    color: #fff !important;
+}
+.layui-form-checkbox.layui-form-checked,
+.layui-form-checkbox.layui-form-checked i {
+    background-color: var(--sp-primary) !important;
+    color: #fff !important;
+}
+.layui-form-checkbox.layui-form-checked[lay-skin=tag] {
+    background-color: var(--sp-primary-tint) !important;
+    color: var(--sp-primary) !important;
+}
+
+/* 单选框 */
+.layui-form-radio > i:hover,
+.layui-form-radioed > i {
+    color: var(--sp-primary) !important;
+}
+
+/* 开关 */
+.layui-form-onswitch {
+    border-color: var(--sp-primary);
+    background-color: var(--sp-primary) !important;
+}
+
+/* 必填红点（兼容旧的 .sp-required） */
+.layui-form-item .sp-required:after,
+.splayui-form .layui-form-item .sp-required:after {
+    content: "*";
+    color: var(--sp-danger);
+}
+
+/* ============================================================
+   5. 表格 Table
+   ============================================================ */
+.layui-table,
+.layui-table-view {
+    color: var(--sp-text);
+    border-color: var(--sp-border);
+}
+.layui-table th,
+.layui-table-header,
+.layui-table thead tr {
+    background-color: var(--sp-surface-2) !important;
+}
+.layui-table th {
+    color: var(--sp-text-secondary);
+    font-weight: 600;
+    font-size: 13px;
+}
+.layui-table td,
+.layui-table th {
+    border-color: var(--sp-border);
+    padding: 9px 0;
+}
+.layui-table-cell {
+    line-height: 26px;
+}
+.layui-table[lay-even] tr:nth-child(even) {
+    background-color: var(--sp-surface-2);
+}
+.layui-table tbody tr:hover,
+.layui-table-hover,
+.layui-table tbody tr.layui-table-hover {
+    background-color: var(--sp-primary-tint) !important;
+}
+.layui-table-view {
+    border-radius: var(--sp-radius);
+    border: 1px solid var(--sp-border);
+}
+.layui-table-tool {
+    background-color: var(--sp-surface-2);
+    border-color: var(--sp-border);
+}
+.layui-table-page {
+    border-top: 1px solid var(--sp-border);
+}
+/* 表格内排序/工具图标 */
+.layui-table-sort .layui-edge {
+    border-color: transparent;
+}
+
+/* 分页 laypage */
+.layui-laypage a,
+.layui-laypage span {
+    border-radius: var(--sp-radius-sm);
+    border-color: var(--sp-border);
+    color: var(--sp-text-secondary);
+    margin: 0 3px;
+    transition: all .12s ease;
+}
+.layui-laypage a:hover {
+    color: var(--sp-primary);
+    border-color: var(--sp-primary-border);
+}
+.layui-laypage .layui-laypage-curr .layui-laypage-em {
+    background-color: var(--sp-primary);
+    border-radius: var(--sp-radius-sm);
+}
+.layui-laypage input:focus,
+.layui-laypage select:focus {
+    border-color: var(--sp-primary) !important;
+}
+.layui-laypage button {
+    border-radius: var(--sp-radius-sm);
+}
+
+/* ============================================================
+   6. 弹层 Layer / 模态框
+   ============================================================ */
+.layui-layer {
+    border-radius: var(--sp-radius-lg);
+    box-shadow: var(--sp-shadow-lg);
+}
+.layui-layer-title {
+    background-color: var(--sp-surface);
+    color: var(--sp-text);
+    font-weight: 600;
+    font-size: 15px;
+    border-bottom: 1px solid var(--sp-border);
+    border-radius: var(--sp-radius-lg) var(--sp-radius-lg) 0 0;
+    height: 48px;
+    line-height: 48px;
+    padding: 0 50px 0 18px;
+}
+.layui-layer-content {
+    color: var(--sp-text-secondary);
+}
+.layui-layer-btn {
+    padding: 12px 18px 18px;
+    border-top: 1px solid var(--sp-border);
+    text-align: right;
+}
+.layui-layer-btn .layui-layer-btn0 {
+    background-color: var(--sp-primary);
+    border-color: var(--sp-primary);
+    color: #fff;
+    border-radius: var(--sp-radius);
+    height: 34px;
+    line-height: 34px;
+    padding: 0 16px;
+}
+.layui-layer-btn .layui-layer-btn0:hover {
+    background-color: var(--sp-primary-hover);
+}
+.layui-layer-btn a {
+    border-radius: var(--sp-radius);
+    height: 34px;
+    line-height: 34px;
+    padding: 0 16px;
+    border: 1px solid var(--sp-border-strong);
+    background-color: var(--sp-surface);
+    color: var(--sp-text-secondary);
+    margin: 0 0 0 8px;
+}
+.layui-layer-btn a:hover {
+    border-color: var(--sp-primary-border);
+    color: var(--sp-primary);
+}
+.layui-layer-page .layui-layer-content {
+    background-color: var(--sp-surface);
+}
+/* iframe 弹窗内部为浅底 */
+.layui-layer-iframe {
+    border-radius: var(--sp-radius-lg);
+}
+/* 信息/确认弹窗图标行 */
+.layui-layer-dialog .layui-layer-content {
+    padding-top: 18px;
+    padding-bottom: 18px;
+}
+/* 提示气泡 tips */
+.layui-layer-tips .layui-layer-content {
+    border-radius: var(--sp-radius-sm);
+}
+/* loading 蒙层 */
+.layui-layer-shade {
+    background-color: rgba(15, 23, 42, .35) !important;
+}
+
+/* ============================================================
+   7. 日期控件 laydate
+   ============================================================ */
+.layui-laydate {
+    border-radius: var(--sp-radius);
+    box-shadow: var(--sp-shadow-lg);
+    border: 1px solid var(--sp-border);
+}
+.layui-laydate-header {
+    border-bottom: 1px solid var(--sp-border);
+}
+.layui-laydate .layui-this,
+.layui-laydate td.layui-this,
+.layui-laydate-content td.layui-this {
+    background-color: var(--sp-primary) !important;
+    color: #fff !important;
+}
+.layui-laydate .laydate-day-now {
+    color: var(--sp-primary);
+}
+.layui-laydate-footer span:hover {
+    color: var(--sp-primary);
+}
+.laydate-btns-confirm,
+.layui-laydate-footer span[lay-type=confirm] {
+    color: var(--sp-primary);
+}
+
+/* ============================================================
+   8. 卡片 / 折叠 / 引用 / 时间线
+   ============================================================ */
+.layui-card {
+    border-radius: var(--sp-radius);
+    box-shadow: var(--sp-shadow-sm);
+    border: 1px solid var(--sp-border);
+}
+.layui-card-header {
+    border-bottom: 1px solid var(--sp-border);
+    color: var(--sp-text);
+    font-weight: 600;
+    border-radius: var(--sp-radius) var(--sp-radius) 0 0;
+}
+.layui-collapse {
+    border-color: var(--sp-border);
+    border-radius: var(--sp-radius);
+}
+.layui-colla-title {
+    background-color: var(--sp-surface-2);
+    color: var(--sp-text);
+    border-top: 1px solid var(--sp-border);
+}
+.layui-elem-quote {
+    border-left: 4px solid var(--sp-primary);
+    background-color: var(--sp-primary-tint);
+    border-radius: 0 var(--sp-radius) var(--sp-radius) 0;
+    color: var(--sp-text-secondary);
+}
+.layui-elem-field {
+    border: 1px solid var(--sp-border);
+    border-radius: var(--sp-radius);
+}
+.layui-elem-field legend {
+    color: var(--sp-text);
+    font-weight: 600;
+}
+.layui-timeline-axis {
+    color: var(--sp-primary);
+}
+
+/* ============================================================
+   9. 页内 Tab（非顶部标签页；顶部由 splayui.css 接管）
+   ============================================================ */
+.layui-tab-brief > .layui-tab-title .layui-this {
+    color: var(--sp-primary);
+}
+.layui-tab-brief > .layui-tab-more li.layui-this:after,
+.layui-tab-brief > .layui-tab-title .layui-this:after {
+    border-bottom-color: var(--sp-primary);
+}
+
+/* ============================================================
+   10. 徽标 Badge / 状态色工具类
+   ============================================================ */
+.layui-badge {
+    border-radius: var(--sp-radius-sm);
+}
+.layui-bg-blue {
+    background-color: var(--sp-primary) !important;
+}
+.layui-bg-green {
+    background-color: var(--sp-success) !important;
+}
+.layui-bg-orange {
+    background-color: var(--sp-warning) !important;
+}
+.layui-bg-red {
+    background-color: var(--sp-danger) !important;
+}
+
+/* 文本色工具类 */
+.sp-text-primary { color: var(--sp-primary) !important; }
+.sp-text-success { color: var(--sp-success) !important; }
+.sp-text-warning { color: var(--sp-warning) !important; }
+.sp-text-danger  { color: var(--sp-danger) !important; }
+.sp-text-muted   { color: var(--sp-text-muted) !important; }
+
+/* ============================================================
+   11. 共享语义类（供逐页清理内联样式映射）
+   ============================================================ */
+/* 区块标题：左侧蓝色竖条 + 石板灰标题（取代散落的橙色 #FF5722 标题） */
+.sp-section-title {
+    position: relative;
+    margin: 18px 0 14px;
+    padding-left: 12px;
+    color: var(--sp-text);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
+}
+.sp-section-title:before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 1px;
+    width: 3px;
+    height: 16px;
+    border-radius: 2px;
+    background-color: var(--sp-primary);
+}
+.sp-section-title:first-child {
+    margin-top: 4px;
+}
+
+/* 只读输入底色（取代 style="background:#f2f2f2|#f5f5f5"；并自动覆盖所有 readonly 输入） */
+.sp-readonly,
+input.layui-input.sp-readonly,
+input.layui-input[readonly],
+textarea.layui-textarea[readonly] {
+    background-color: var(--sp-surface-2) !important;
+    color: var(--sp-text-secondary);
+    cursor: default;
+}
+
+/* 状态徽标 badge（取代 <span style="color:#5FB878">有效</span> 等） */
+.sp-badge {
+    display: inline-block;
+    padding: 1px 9px;
+    font-size: 12px;
+    line-height: 18px;
+    border-radius: 999px;
+    font-weight: 500;
+    background-color: #EEF1F5;
+    color: var(--sp-text-secondary);
+    white-space: nowrap;
+}
+.sp-badge-success { background-color: var(--sp-success-tint); color: var(--sp-success); }
+.sp-badge-warn    { background-color: var(--sp-warning-tint); color: var(--sp-warning); }
+.sp-badge-danger  { background-color: var(--sp-danger-tint);  color: var(--sp-danger); }
+.sp-badge-info    { background-color: var(--sp-primary-tint);  color: var(--sp-primary); }
+.sp-badge-muted   { background-color: #EEF1F5;               color: var(--sp-text-muted); }
+
+/* 通用工具间距类 */
+.sp-mt-0 { margin-top: 0 !important; }
+.sp-mb-10 { margin-bottom: 10px !important; }
+.sp-mr-18 { margin-right: 18px !important; }
+.sp-ml-18 { margin-left: 18px !important; }
+
+/* ============================================================
+   12. 杂项细节
+   ============================================================ */
+/* 上传组件预览框 */
+.layui-upload-drag {
+    border: 1px dashed var(--sp-border-strong);
+    border-radius: var(--sp-radius);
+    background-color: var(--sp-surface-2);
+}
+.layui-upload-drag:hover {
+    border-color: var(--sp-primary);
+}
+.layui-upload-drag .layui-icon {
+    color: var(--sp-primary);
+}
+/* 加载动画主色（部分场景） */
+.layui-anim-loading {
+    color: var(--sp-primary);
+}
+/* 输入提示 tip（addOrUpdate 中的 <tip>） */
+.splayui-form .layui-form-item > .layui-input-block > tip,
+.layui-input-block > tip {
+    color: var(--sp-text-muted);
+}
+
+/* ============================================================
+   13. 错误页 Error pages
+   ============================================================ */
+.sp-error {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--sp-bg);
+    padding: 24px;
+}
+.sp-error-card {
+    position: relative;
+    text-align: center;
+    max-width: 540px;
+    width: 100%;
+    padding: 48px 36px;
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 14px;
+    box-shadow: var(--sp-shadow-lg);
+    overflow: hidden;
+}
+.sp-error-card:before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(37, 99, 235, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37, 99, 235, .045) 1px, transparent 1px);
+    background-size: 30px 30px;
+    mask-image: radial-gradient(circle at 50% 0%, #000, transparent 70%);
+    -webkit-mask-image: radial-gradient(circle at 50% 0%, #000, transparent 70%);
+    pointer-events: none;
+}
+.sp-error-code {
+    position: relative;
+    font-size: 110px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #2563EB 0%, #1E3A8A 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.sp-error-title {
+    position: relative;
+    margin: 16px 0 8px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--sp-text);
+}
+.sp-error-desc {
+    position: relative;
+    margin: 0 0 26px;
+    font-size: 14px;
+    color: var(--sp-text-secondary);
+    line-height: 1.7;
+}
+.sp-error-actions {
+    position: relative;
+}
+.sp-error-actions .layui-btn {
+    min-width: 124px;
+}

@@ -12,13 +12,13 @@
             font-weight: bold;
             font-size: 14px;
             padding: 8px 4px;
-            border-left: 3px solid #FF5722;
+            border-left: 3px solid #2563EB;
             padding-left: 8px;
             margin: 6px 0;
             background: #f7f7f7;
         }
         .sp-section { margin-bottom: 10px; }
-        #js-current-unit { color: #FF5722; }
+        #js-current-unit { color: #2563EB; }
         #js-bind-tip { color: #FFB800; font-size: 12px; margin-left: 8px; }
     </style>
 </head>

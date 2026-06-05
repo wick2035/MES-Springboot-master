@@ -15,7 +15,7 @@
         h4{ font-size:18px;font-family:"Microsoft YaHei","Simsun",Arial; font-weight:normal; line-height:1; padding:0; margin:0;}
         .icons li{  margin:5px 0; text-align:center; height:120px; cursor:pointer;}
         .icons li i{ display:block; font-size:35px; margin:10px 0; line-height:60px; height:60px;}
-        .icons li:hover{ background:#2f4056; border-radius:5px; color:#fff;}
+        .icons li:hover{ background:var(--sp-primary); border-radius:var(--sp-radius); color:#fff;}
         .icons li:hover i{ font-size:50px;}
         .section{ padding:20px;}
         .section h4 span{ color:#0084e9;}
