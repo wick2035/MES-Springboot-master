@@ -826,6 +826,27 @@ layui.define(["element", "jquery"], function (exports) {
     });
 
     /**
+     * 全屏切换
+     */
+    $('body').on('click', '[data-fullscreen]', function () {
+        var doc = document, el = doc.documentElement;
+        var isFull = doc.fullscreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
+        if (!isFull) {
+            var req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+            if (req) req.call(el);
+        } else {
+            var exit = doc.exitFullscreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+            if (exit) exit.call(doc);
+        }
+    });
+    // 全屏状态切换图标（进入=收缩，退出=展开）
+    $(document).on('fullscreenchange webkitfullscreenchange msfullscreenchange', function () {
+        var isFull = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+        var $icon = $('[data-fullscreen] i');
+        $icon.attr('class', isFull ? 'fa fa-compress' : 'fa fa-arrows-alt');
+    });
+
+    /**
      * 选项卡操作
      */
     $('body').on('click', '[data-page-close]', function () {

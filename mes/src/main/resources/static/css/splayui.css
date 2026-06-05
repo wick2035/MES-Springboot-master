@@ -47,36 +47,145 @@
     line-height: 60px !important;
 }
 
-/* 头部活动项 / 工具 hover */
-.layui-header > ul > .layui-nav-item.layui-this,
+/* 折叠工具 hover */
 .splayui-tool i:hover {
     background-color: var(--sp-primary-tint) !important;
     color: var(--sp-primary) !important;
 }
 
-.layui-nav-item.layui-this {
+/* 模块横向导航：active = 蓝字 + 底部下划线指示器（取代满块 tint） */
+.layui-header-pc-menu > .layui-nav-item {
+    transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+
+.layui-header-pc-menu > .layui-nav-item > a {
+    padding: 0 18px;
+}
+
+.layui-header-pc-menu > .layui-nav-item:hover {
     background-color: var(--sp-primary-tint);
 }
 
-/* 右上角 B站按钮：作为幽灵小按钮 */
-.layui-header .layui-nav-item button.fa-github-alt {
-    height: 30px;
-    line-height: 28px;
-    padding: 0 12px;
-    margin-top: 15px;
-    border: 1px solid var(--sp-border-strong);
+.layui-header-pc-menu > .layui-nav-item.layui-this {
+    background-color: transparent;
+    box-shadow: inset 0 -2px 0 var(--sp-primary);
+}
+
+.layui-header-pc-menu > .layui-nav-item.layui-this > a,
+.layui-header-pc-menu > .layui-nav-item.layui-this > a i {
+    color: var(--sp-primary) !important;
+}
+
+/* ============================================================
+   顶栏右侧工具 / 用户区
+   ============================================================ */
+/* 工具：36px 圆角图标按钮（刷新 / 清理 / 全屏） */
+.layui-layout-right > .splayui-tools > a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin: 12px 2px;
+    padding: 0;
     border-radius: var(--sp-radius);
-    background: var(--sp-surface);
     color: var(--sp-text-secondary);
-    font-family: var(--sp-font);
-    cursor: pointer;
     transition: all .15s ease;
 }
 
-.layui-header .layui-nav-item button.fa-github-alt:hover {
-    border-color: var(--sp-primary-border);
+.layui-layout-right > .splayui-tools > a:hover {
+    background-color: var(--sp-primary-tint);
     color: var(--sp-primary);
-    background: var(--sp-primary-tint);
+}
+
+.layui-layout-right > .splayui-tools > a i {
+    font-size: 16px;
+    margin: 0;
+}
+
+/* 用户区：圆形头像 + 姓名 + 角色副标题 + caret */
+.splayui-setting > .sp-user {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    height: 60px;
+    padding: 0 14px 0 10px !important;
+    transition: background-color .15s ease;
+}
+
+.splayui-setting > .sp-user:hover,
+.splayui-setting.layui-this > .sp-user {
+    background-color: var(--sp-primary-tint);
+}
+
+.sp-user-avatar {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-image: linear-gradient(135deg, var(--sp-primary) 0%, #1E3A8A 100%);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 32px;
+    text-align: center;
+    text-transform: uppercase;
+    box-shadow: var(--sp-shadow-sm);
+}
+
+.sp-user-meta {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.25;
+    text-align: left;
+}
+
+.sp-user-name {
+    font-style: normal;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--sp-text);
+}
+
+.sp-user-role {
+    font-style: normal;
+    font-size: 12px;
+    color: var(--sp-text-muted);
+}
+
+.splayui-setting .sp-user .layui-nav-more {
+    position: static;
+    margin-left: 2px;
+    border-color: var(--sp-text-muted) transparent transparent;
+}
+
+/* 用户下拉菜单 */
+.splayui-setting .layui-nav-child {
+    top: 58px;
+    padding: 4px;
+    border: 1px solid var(--sp-border);
+    border-radius: var(--sp-radius);
+    box-shadow: var(--sp-shadow);
+}
+
+.splayui-setting .layui-nav-child dd a {
+    border-radius: var(--sp-radius-sm);
+    color: var(--sp-text-secondary);
+}
+
+.splayui-setting .layui-nav-child dd a:hover {
+    background-color: var(--sp-primary-tint);
+    color: var(--sp-primary);
+}
+
+.splayui-setting .layui-nav-child dd a i {
+    margin-right: 6px;
+    color: var(--sp-text-muted);
+}
+
+.splayui-setting .layui-nav-child dd a:hover i {
+    color: var(--sp-primary);
 }
 
 .layui-layout-left {
@@ -302,43 +411,58 @@
 /* ============================================================
    左侧菜单 Sidebar
    ============================================================ */
+/* 侧栏整体浅色：必须覆盖 layui 默认 .layui-nav 的深色底 #393D49。
+   注意 .layui-left-menu 是 .layui-side 的「孙级」(中间隔着 .splayui-side-inner)，
+   所以这里用后代选择器（空格），不能用直接子选择器（>），否则永远不命中、侧栏会保持深色。 */
 .layui-side.layui-bg-black,
-.layui-side.layui-bg-black > .layui-left-menu > ul {
+.layui-side.layui-bg-black .layui-left-menu,
+.layui-side.layui-bg-black .layui-nav,
+.layui-side.layui-bg-black .layui-nav-tree,
+.layui-side.layui-bg-black .layui-left-menu ul {
     background-color: var(--sp-sidebar-bg) !important;
     transition: all 0.2s;
 }
 
 .layui-side.layui-bg-black {
-    border-right: 1px solid var(--sp-border);
+    border-right: 1px solid var(--sp-border-strong);
+    box-shadow: 1px 0 0 rgba(16, 24, 40, .02), 4px 0 12px rgba(16, 24, 40, .035);
 }
 
-.layui-side.layui-bg-black
-> .layui-left-menu
-> ul
-> .layui-nav-item:first-child {
+.layui-side.layui-bg-black .layui-left-menu ul > .layui-nav-item:first-child {
     border-top: none;
 }
 
-/* 菜单文字与图标 */
+/* 菜单项：带左右留白的圆角药丸（学习参考图 Humaine / Medicare 观感） */
 .layui-left-menu .layui-nav .layui-nav-item a {
-    height: 42px;
-    line-height: 42px;
-    padding-right: 30px;
+    height: 40px;
+    line-height: 40px;
+    margin: 2px 8px;
+    padding-left: 12px;
+    padding-right: 28px;
+    border-radius: var(--sp-radius);
     color: var(--sp-text-secondary);
     transition: color .12s ease, background-color .12s ease;
 }
 
-.layui-left-menu .layui-nav .layui-nav-item a:hover {
+/* hover：浅蓝药丸 + 蓝字（首级与子级一致） */
+.layui-left-menu .layui-nav .layui-nav-item a:hover,
+.layui-left-menu .layui-nav .layui-nav-child a:hover:not(.layui-this) {
+    background-color: var(--sp-primary-tint);
     color: var(--sp-primary);
 }
 
 .layui-left-menu .layui-nav .layui-nav-item > a {
-    padding-top: 5px;
-    padding-bottom: 5px;
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
+/* 统一图标槽：定宽对齐、状态变色 */
 .layui-left-menu .layui-nav .layui-nav-item a i {
+    width: 16px;
+    text-align: center;
+    margin-right: 4px;
     color: var(--sp-text-muted);
+    transition: color .12s ease;
 }
 
 .layui-left-menu .layui-nav .layui-nav-item a:hover i {
@@ -351,43 +475,48 @@
     background: transparent !important;
 }
 
-/* 父级展开态轻微高亮 */
-.layui-left-menu .layui-nav .layui-nav-itemed > a {
-    color: var(--sp-text);
-}
-
-.layui-left-menu .layui-nav .layui-nav-more {
-    right: 15px;
-    border-color: var(--sp-text-muted) transparent transparent;
-}
-
-.layui-left-menu .layui-nav .layui-nav-mored {
-    border-color: transparent transparent var(--sp-text-muted);
-}
-
-/* 子菜单 hover */
-.layui-left-menu .layui-nav .layui-nav-child a:hover:not(.layui-this) {
-    background-color: var(--sp-primary-tint);
-    color: var(--sp-primary);
-}
-
-/* 选中态：蓝色浅底药丸 + 左侧 3px 强调条 + 蓝字 */
-.layui-layout-admin .layui-nav-tree .layui-this,
-.layui-layout-admin .layui-nav-tree .layui-this > a,
-.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this,
-.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this a {
-    background-color: var(--sp-primary-tint) !important;
-    color: var(--sp-primary) !important;
+/* 父级展开态：必须覆盖 layui 的 .layui-nav-itemed>a{color:#fff!important}，
+   否则一级展开后文字变白、在浅色侧栏上看不见。仅改文字色，保留 hover 浅蓝底 */
+.layui-left-menu .layui-nav .layui-nav-itemed > a,
+.layui-layout-admin .layui-nav-tree .layui-nav-itemed > a {
+    color: var(--sp-text) !important;
     font-weight: 500;
 }
 
-.layui-layout-admin .layui-nav-tree .layui-this {
-    box-shadow: inset 3px 0 0 var(--sp-primary);
+/* 折叠三角：默认向下（顶边着色） */
+.layui-left-menu .layui-nav .layui-nav-more {
+    right: 15px;
+    border-color: var(--sp-text-muted) transparent transparent transparent;
 }
 
-.layui-layout-admin .layui-nav-tree .layui-this a i,
-.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this a i {
+/* 展开三角：layui 树用 .layui-nav-itemed>a .layui-nav-more 翻转（底边 solid），
+   这里只改颜色让其指向上方；选择器需比折叠规则更具体才能生效 */
+.layui-left-menu .layui-nav .layui-nav-itemed > a .layui-nav-more {
+    border-color: transparent transparent var(--sp-text-muted) transparent;
+}
+
+/* 选中态：圆角药丸（落在 <a> 上，与左右留白对齐）+ 蓝字蓝图标 */
+.layui-layout-admin .layui-nav-tree .layui-this,
+.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this {
+    background-color: transparent !important;
+    box-shadow: none;
+}
+
+.layui-layout-admin .layui-nav-tree .layui-this > a,
+.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this > a {
+    background-color: var(--sp-primary-tint-2) !important;
     color: var(--sp-primary) !important;
+    font-weight: 600;
+}
+
+.layui-layout-admin .layui-nav-tree .layui-this > a i,
+.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this > a i {
+    color: var(--sp-primary) !important;
+}
+
+/* 左侧菜单顶部留白 */
+.layui-left-menu .layui-nav.layui-nav-tree {
+    padding-top: 6px !important;
 }
 
 /* 左侧菜单缩进（正常态） */
@@ -437,19 +566,29 @@ a {
     width: 60px !important;
 }
 
-.splayui-admin .layui-left-menu > ul li span:first-child {
-    display: none;
-}
-
-.splayui-admin .layui-left-menu > ul li span:last-child {
-    float: right;
-    right: 7px;
+/* 折叠态：直接按类名隐藏菜单文字（含被截断产生的省略号），只留图标。
+   不能用 span:first-child —— 文字 span 前面还有 <i> 图标，并非首子元素，旧规则因此失效。 */
+.splayui-admin .layui-left-menu .layui-left-nav {
+    display: none !important;
 }
 
 .splayui-admin .layui-left-menu .layui-nav .layui-nav-item a {
-    height: 42px;
-    line-height: 42px;
-    padding-right: 0px !important;
+    height: 40px;
+    line-height: 40px;
+    margin: 2px 10px;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    text-align: center;
+}
+
+.splayui-admin .layui-left-menu .layui-nav .layui-nav-item a i {
+    width: auto !important;
+    margin-right: 0;
+}
+
+/* 折叠态隐藏子菜单箭头 */
+.splayui-admin .layui-left-menu .layui-nav .layui-nav-more {
+    display: none;
 }
 
 /* ============================================================
@@ -618,14 +757,351 @@ a {
 
 .splayui-side-search {
     display: flex;
+    align-items: center;
     height: 6%;
-    margin-right: 4px;
+    min-height: 48px;
+    padding: 0 12px 10px;
 }
 
-.splayui-side-search .layui-icon-search {
-    width: 30px;
-    margin-top: 5px;
-    font-size: 22px;
+/* ---- 全局搜索触发条 ---- */
+.sp-gs-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 38px;
+    padding: 0 8px 0 12px;
+    border: 1px solid var(--sp-border);
+    border-radius: 10px;
+    background-color: var(--sp-surface-2);
+    cursor: pointer;
+    font-family: var(--sp-font);
+    transition: border-color .15s ease, box-shadow .15s ease,
+        background-color .15s ease, transform .15s ease;
+}
+
+.sp-gs-trigger:hover {
+    border-color: var(--sp-primary-border);
+    background-color: var(--sp-surface);
+    box-shadow: var(--sp-shadow-sm);
+    transform: translateY(-1px);
+}
+
+.sp-gs-trigger .layui-icon-search {
+    font-size: 16px;
+    color: var(--sp-text-secondary);
+}
+
+.sp-gs-trigger-text {
+    flex: 1;
+    text-align: left;
+    font-size: 13px;
+    color: var(--sp-text-secondary);
+}
+
+.sp-gs-kbd {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 6px;
+    border: 1px solid var(--sp-border-strong);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: var(--sp-surface);
+    color: var(--sp-text-muted);
+    font-size: 11px;
+    font-family: var(--sp-font);
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.sp-gs-mod {
+    letter-spacing: .3px;
+}
+
+/* 折叠态：仅保留放大镜图标，居中显示 */
+.splayui-admin .sp-gs-trigger {
+    justify-content: center;
+    padding: 0;
+}
+
+.splayui-admin .sp-gs-trigger-text,
+.splayui-admin .sp-gs-kbd {
+    display: none;
+}
+
+/* ============================================================
+   全局搜索 · Spotlight 命令面板
+   ============================================================ */
+.sp-gs[hidden] {
+    display: none;
+}
+
+.sp-gs {
+    position: fixed;
+    inset: 0;
+    z-index: 99999999;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 15vh;
+}
+
+.sp-gs-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(16, 24, 40, .45);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    backdrop-filter: blur(8px) saturate(120%);
+    opacity: 0;
+    transition: opacity .18s ease;
+}
+
+.sp-gs.is-open .sp-gs-backdrop {
+    opacity: 1;
+}
+
+.sp-gs-panel {
+    position: relative;
+    width: 92%;
+    max-width: 640px;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: 14px;
+    box-shadow: var(--sp-shadow-lg);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-8px) scale(.97);
+    transition: opacity .18s ease, transform .18s cubic-bezier(.16, 1, .3, 1);
+}
+
+.sp-gs.is-open .sp-gs-panel {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* 头部搜索框 */
+.sp-gs-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 58px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--sp-border);
+}
+
+.sp-gs-head-icon {
+    font-size: 20px;
+    color: var(--sp-text-muted);
+}
+
+.sp-gs-input {
+    flex: 1;
+    height: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 18px;
+    color: var(--sp-text);
+    font-family: var(--sp-font);
+}
+
+.sp-gs-input::placeholder {
+    color: var(--sp-text-muted);
+}
+
+.sp-gs-esc {
+    flex: none;
+    padding: 3px 8px;
+    border: 1px solid var(--sp-border-strong);
+    border-radius: 5px;
+    background: var(--sp-surface-2);
+    color: var(--sp-text-muted);
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color .15s ease, color .15s ease;
+}
+
+.sp-gs-esc:hover {
+    background: var(--sp-primary-tint);
+    color: var(--sp-primary);
+}
+
+/* 结果列表 */
+.sp-gs-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.sp-gs-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sp-gs-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 9px;
+    cursor: pointer;
+    position: relative;
+    transition: background-color .12s ease;
+}
+
+.sp-gs-item.is-active {
+    background: var(--sp-primary-tint);
+}
+
+.sp-gs-item.is-active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--sp-primary);
+}
+
+.sp-gs-item-icon {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--sp-surface-2);
+    border: 1px solid var(--sp-border);
+    color: var(--sp-text-secondary);
+    font-size: 15px;
+}
+
+.sp-gs-item.is-active .sp-gs-item-icon {
+    background: var(--sp-surface);
+    border-color: var(--sp-primary-border);
+    color: var(--sp-primary);
+}
+
+.sp-gs-item-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    color: var(--sp-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sp-gs-item.is-active .sp-gs-item-name {
+    color: var(--sp-primary-active);
+    font-weight: 500;
+}
+
+.sp-gs-item-path {
+    flex: none;
+    max-width: 45%;
+    font-size: 12px;
+    color: var(--sp-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sp-gs-hl {
+    background: transparent;
+    color: var(--sp-primary);
+    font-weight: 600;
+}
+
+/* 空状态 */
+.sp-gs-empty {
+    padding: 48px 16px;
+    text-align: center;
+    color: var(--sp-text-muted);
+}
+
+.sp-gs-empty .layui-icon {
+    font-size: 32px;
+    opacity: .5;
+}
+
+.sp-gs-empty p {
+    margin-top: 10px;
+    font-size: 13px;
+}
+
+/* 底部状态栏 */
+.sp-gs-foot {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 8px 16px;
+    border-top: 1px solid var(--sp-border);
+    background: var(--sp-surface-2);
+    color: var(--sp-text-muted);
+    font-size: 12px;
+}
+
+.sp-gs-foot kbd {
+    display: inline-block;
+    min-width: 18px;
+    margin-right: 2px;
+    padding: 1px 5px;
+    border: 1px solid var(--sp-border-strong);
+    border-radius: 4px;
+    background: var(--sp-surface);
+    color: var(--sp-text-secondary);
+    font-size: 11px;
+    font-family: var(--sp-font);
+    text-align: center;
+    line-height: 1.4;
+}
+
+/* 打开面板时锁定背景滚动 */
+body.sp-gs-lock {
+    overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sp-gs-backdrop,
+    .sp-gs-panel {
+        transition: none;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .sp-gs {
+        padding-top: 8vh;
+    }
+
+    .sp-gs-panel {
+        width: 94%;
+        max-height: 78vh;
+    }
+
+    .sp-gs-head {
+        height: 52px;
+    }
+
+    .sp-gs-input {
+        font-size: 16px;
+    }
+
+    .sp-gs-item-path {
+        display: none;
+    }
+
+    .sp-gs-foot {
+        gap: 12px;
+    }
 }
 
 * {

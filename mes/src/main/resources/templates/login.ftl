@@ -291,7 +291,7 @@
             <span>Manufacturing Execution Intelligence</span>
         </div>
         <h1 class="brand-title">MES<span class="accent">系统</span>-PRO</h1>
-        <p class="brand-subtitle">面向生产计划、工艺流转、物料追踪与现场执行的数据化制造中枢。</p>
+        <p class="brand-subtitle">面向生产计划、工艺流转、物料追踪与现场执行的智能制造中枢。</p>
         <div class="signal-row" aria-hidden="true">
             <div class="signal-item">
                 <strong>Realtime</strong>

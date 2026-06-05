@@ -27,11 +27,11 @@
     --sp-danger-tint: #FEF3F2;
 
     /* 中性（石板灰阶） */
-    --sp-bg: #F4F6F9;                 /* 页面背景 */
+    --sp-bg: #EEF1F6;                 /* 操作区画布（较灰，与白色外壳形成区分度） */
     --sp-surface: #FFFFFF;            /* 卡片/容器 */
     --sp-surface-2: #FAFBFC;          /* 次级面（表头/只读） */
-    --sp-sidebar-bg: #F7F8FA;         /* 侧边 */
-    --sp-header-bg: #FFFFFF;          /* 顶栏 */
+    --sp-sidebar-bg: #FFFFFF;         /* 侧边（白色外壳，参考 Humaine/Medicare） */
+    --sp-header-bg: #FFFFFF;          /* 顶栏（白色外壳） */
     --sp-border: #E5E8EC;             /* 1px 发丝线 */
     --sp-border-strong: #D5D9DF;
     --sp-text: #1F2937;               /* 主文本 */

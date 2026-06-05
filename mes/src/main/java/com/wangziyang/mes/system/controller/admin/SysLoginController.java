@@ -5,9 +5,12 @@ import com.wangziyang.mes.common.Result;
 import com.wangziyang.mes.system.dto.SysMenuDTO;
 import com.wangziyang.mes.system.dto.SysRoleDTO;
 import com.wangziyang.mes.system.dto.SysUserDTO;
+import com.wangziyang.mes.system.entity.SysUser;
 import com.wangziyang.mes.system.service.ISysMenuService;
+import com.wangziyang.mes.system.service.ISysUserService;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 系统登录
@@ -39,6 +43,12 @@ public class SysLoginController extends BaseController {
     private ISysMenuService sysMenuService;
 
     /**
+     * 系统用户 Service
+     */
+    @Autowired
+    private ISysUserService sysUserService;
+
+    /**
      * 后台管理首页
      *
      * @param model
@@ -46,7 +56,30 @@ public class SysLoginController extends BaseController {
      */
     @GetMapping({"", "/index"})
     public String indexUI(Model model) {
+        // 顶栏展示真实当前用户（姓名 / 头像 / 角色）
+        SysUser principal = getSysUser();
+        if (principal != null) {
+            SysUser currentUser = sysUserService.getById(principal.getId());
+            model.addAttribute("currentUser", currentUser != null ? currentUser : principal);
+            model.addAttribute("roleName", resolveRoleName(principal));
+        }
         return "admin/index";
+    }
+
+    /**
+     * 拼接当前用户的角色名（取自登录态主体）
+     */
+    private String resolveRoleName(SysUser principal) {
+        if (principal instanceof SysUserDTO) {
+            SysUserDTO dto = (SysUserDTO) principal;
+            if (CollectionUtils.isNotEmpty(dto.getSysRoleDTOs())) {
+                return dto.getSysRoleDTOs().stream()
+                        .map(SysRoleDTO::getName)
+                        .filter(StringUtils::isNotEmpty)
+                        .collect(Collectors.joining("、"));
+            }
+        }
+        return "";
     }
 
     /**
