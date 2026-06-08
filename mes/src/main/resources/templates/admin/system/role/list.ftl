@@ -219,6 +219,7 @@
                 spLayer.open({
                     title: '分配用户 - ' + data.name,
                     area: ['900px', '600px'],
+                    btn: [],
                     content: '${request.contextPath}/admin/sys/role/assign-user-ui?roleId=' + data.id
                 });
             }

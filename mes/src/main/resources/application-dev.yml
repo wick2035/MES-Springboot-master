@@ -22,7 +22,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3306/sparchetype?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Hongkong&allowPublicKeyRetrieval=true
     username: root
-    password: 20041118
+    password: Ly123456789*
     druid:
       initial-size: 8
       min-idle: 5
@@ -52,4 +52,3 @@ logging:
   level:
     root: info
     com.wangziyang: debug
-    config: classpath:logback.xml

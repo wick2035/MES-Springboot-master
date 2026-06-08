@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>系统部门列表</title>
+    <meta charset="UTF-8">
+    <title>部门管理</title>
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -15,19 +15,15 @@
         <form id="js-search-form" class="layui-form" lay-filter="js-q-form-filter">
             <div class="layui-form-item">
                 <div class="layui-inline">
-                    <label class="layui-form-label">姓名</label>
+                    <label class="layui-form-label">部门名称</label>
                     <div class="layui-input-inline">
                         <input type="text" name="nameLike" autocomplete="off" class="layui-input">
                     </div>
                 </div>
                 <div class="layui-inline">
-                    <label class="layui-form-label">用户名</label>
-                    <div class="layui-input-inline">
-                        <input type="text" name="usernameLike" autocomplete="off" class="layui-input">
-                    </div>
-                </div>
-                <div class="layui-inline">
-                    <a class="layui-btn" lay-submit lay-filter="js-search-filter"><i class="layui-icon layui-icon-search layuiadmin-button-btn"></i></a>
+                    <a class="layui-btn" lay-submit lay-filter="js-search-filter">
+                        <i class="layui-icon layui-icon-search"></i>查询
+                    </a>
                 </div>
             </div>
         </form>
@@ -40,155 +36,139 @@
 <!--表格头操作模板-->
 <script type="text/html" id="js-record-table-toolbar-top">
     <div class="layui-btn-container">
-        <button class="layui-btn layui-btn-danger layui-btn-sm" lay-event="deleteBatch"><i class="layui-icon">&#xe640;</i>批量删除</button>
         <@shiro.hasPermission name="user:add">
-            <button class="layui-btn layui-btn-sm" lay-event="add"><i class="layui-icon">&#xe61f;</i>添加</button>
+            <button class="layui-btn layui-btn-sm" lay-event="add">
+                <i class="layui-icon">&#xe61f;</i>新增
+            </button>
         </@shiro.hasPermission>
     </div>
 </script>
 
 <!--行操作模板-->
 <script type="text/html" id="js-record-table-toolbar-right">
-    <a class="layui-btn layui-btn-xs" lay-event="edit"><i class="layui-icon layui-icon-edit"></i>编辑</a>
-    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete"><i class="layui-icon layui-icon-delete"></i>删除</a>
+    <a class="layui-btn layui-btn-xs" lay-event="edit" title="编辑">
+        <i class="layui-icon layui-icon-edit"></i>
+    </a>
+    <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="disable" title="禁用/启用">
+        <i class="layui-icon">&#xe690;</i>
+    </a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete" title="删除">
+        <i class="layui-icon layui-icon-delete"></i>
+    </a>
 </script>
 
 <!--js逻辑-->
 <script>
-    layui.use(['form', 'table', 'spLayer', 'spTable'], function () {
+    layui.use(['form', 'table', 'layer', 'spLayer', 'spTable'], function () {
         var form = layui.form,
             table = layui.table,
+            layer = layui.layer,
             spLayer = layui.spLayer,
             spTable = layui.spTable;
 
         // 表格及数据初始化
         var tableIns = spTable.render({
             url: '${request.contextPath}/admin/sys/department/page',
+            toolbar: '#js-record-table-toolbar-top',
             cols: [
                 [{
                     type: 'checkbox'
                 }, {
-                    field: 'name', title: '姓名', width: 120
+                    field: 'name', title: '部门名称', width: 200
                 }, {
-                    field: 'username', title: '用户名', width: 130
-                }, {
-                    field: 'password', title: '密码', width: 90
-                }, {
-                    field: 'deptId', title: '部门id', width: 90
-                }, {
-                    field: 'email', title: '邮箱', width: 90
-                }, {
-                    field: 'mobile', title: '手机号', width: 120
-                }, {
-                    field: 'tel', title: '固定电话', width: 120
-                }, {
-                    field: 'sex', title: '性别', width: 60
-                }, {
-                    field: 'birthday', title: '出生年月日', width: 120
-                }, {
-                    field: 'picId', title: '图片id', width: 90
-                }, {
-                    field: 'idCard', title: '身份证', width: 120
-                }, {
-                    field: 'hobby', title: '爱好', width: 90
-                }, {
-                    field: 'province', title: '省份', width: 90
-                }, {
-                    field: 'city', title: '城市', width: 90
-                }, {
-                    field: 'district', title: '区县', width: 90
-                }, {
-                    field: 'street', title: '街道', width: 90
-                }, {
-                    field: 'streetNumber', title: '门牌号', width: 90
-                }, {
-                    field: 'descr', title: '描述', width: 90
-                }, {
-                    field: 'deleted', title: '状态', width: 90, templet: function (d) {
-                        return spConfig.isDeletedDict[d.deleted];
+                    field: 'parentId', title: '上级部门', width: 120,
+                    templet: function (d) {
+                        return d.parentId === '0' || !d.parentId ? '顶级部门' : d.parentId;
                     }
                 }, {
-                    fixed: 'right', field: 'operate', title: '操作', toolbar: '#js-record-table-toolbar-right', unresize: true, width: 150
+                    field: 'sortNum', title: '排序号', width: 80
+                }, {
+                    field: 'isDeleted', title: '状态', width: 80,
+                    templet: function (d) {
+                        if (d.isDeleted === '0') return '<span style="color:green;">正常</span>';
+                        if (d.isDeleted === '2') return '<span style="color:orange;">禁用</span>';
+                        return '<span style="color:red;">删除</span>';
+                    }
+                }, {
+                    field: 'updateTime', title: '更新时间', width: 160
+                }, {
+                    fixed: 'right',
+                    field: 'operate',
+                    title: '操作',
+                    toolbar: '#js-record-table-toolbar-right',
+                    unresize: true,
+                    width: 150
                 }]
             ],
-            done: function (res, curr, count) {
-            }
+            done: function (res, curr, count) {}
         });
 
-        /*
-         * 数据表格中form表单元素是动态插入,所以需要更新渲染下
-         * http://www.layui.com/doc/modules/form.html#render
-         */
         $(function () {
             form.render();
         });
 
-        /**
-         * 搜索按钮事件
-         */
+        // 搜索
         form.on('submit(js-search-filter)', function (data) {
             tableIns.reload({
                 where: data.field,
-                page: {
-                    // 重新从第 1 页开始
-                    curr: 1
-                }
+                page: { curr: 1 }
             });
-
-            // 阻止表单跳转。如果需要表单跳转，去掉这段即可。
             return false;
         });
 
-        /**
-         * 头工具栏事件
-         */
+        // 头工具栏事件
         table.on('toolbar(js-record-table-filter)', function (obj) {
-            var checkStatus = table.checkStatus(obj.config.id);
-
-            // 批量删除
-            if (obj.event === 'deleteBatch') {
-                var checkStatus = table.checkStatus('js-record-table'),
-                    data = checkStatus.data;
-                if (data.length > 0) {
-                    layer.confirm('确认要删除吗？', function (index) {
-
-                    });
-                } else {
-                    layer.msg("请先选择需要删除的数据！");
-                }
-            }
-
-            // 添加
             if (obj.event === 'add') {
-                var index = spLayer.open({
-                    title: '添加',
-                    area: ['90%', '90%'],
+                spLayer.open({
+                    title: '新增部门',
+                    area: ['600px', '380px'],
                     content: '${request.contextPath}/admin/sys/department/add-or-update-ui'
                 });
             }
         });
 
-        /**
-         * 监听行工具事件
-         */
+        // 行工具事件
         table.on('tool(js-record-table-filter)', function (obj) {
             var data = obj.data;
 
-            // 编辑
             if (obj.event === 'edit') {
                 spLayer.open({
-                    title: '编辑',
-                    area: ['90%', '90%'],
-                    // 请求url参数
+                    title: '编辑部门',
+                    area: ['600px', '380px'],
                     spWhere: {id: data.id},
                     content: '${request.contextPath}/admin/sys/department/add-or-update-ui'
                 });
             }
 
-            // 删除
             if (obj.event === 'delete') {
-                layer.confirm('确认要删除吗？', function (index) {
-                    obj.del();
+                layer.confirm('确认要删除部门【' + data.name + '】吗？', function (index) {
+                    $.post('${request.contextPath}/admin/sys/department/delete', {id: data.id}, function (res) {
+                        if (res.code === 0) {
+                            layer.msg('删除成功');
+                            tableIns.reload();
+                        } else {
+                            layer.msg(res.msg || '删除失败');
+                        }
+                    });
+                    layer.close(index);
+                });
+            }
+
+            if (obj.event === 'disable') {
+                var newStatus = data.isDeleted === '0' ? '2' : '0';
+                var action = newStatus === '2' ? '禁用' : '启用';
+                layer.confirm('确认要' + action + '部门【' + data.name + '】吗？', function (index) {
+                    $.post('${request.contextPath}/admin/sys/department/disable', {
+                        id: data.id,
+                        status: newStatus
+                    }, function (res) {
+                        if (res.code === 0) {
+                            layer.msg(action + '成功');
+                            tableIns.reload();
+                        } else {
+                            layer.msg(res.msg || action + '失败');
+                        }
+                    });
                     layer.close(index);
                 });
             }

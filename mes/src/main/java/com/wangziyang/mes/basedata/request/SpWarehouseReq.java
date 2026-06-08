@@ -14,7 +14,7 @@ public class SpWarehouseReq extends BasePageReq {
     private String warehouseCodeLike;
     /** 库房名称（右模糊） */
     private String warehouseNameLike;
-    /** 库房类型 1零件库 2产品库 */
+    /** 库房类型 1原材料库 2成品库 3半成品库 */
     private String warehouseType;
 
     public String getWarehouseCodeLike() { return warehouseCodeLike; }

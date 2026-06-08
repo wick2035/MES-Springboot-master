@@ -7,6 +7,9 @@
 -- 1. 扩展 sp_sys_role 表字段
 -- ----------------------------
 ALTER TABLE `sp_sys_role`
+  MODIFY COLUMN `is_deleted` varchar(2) NOT NULL DEFAULT '0' COMMENT '逻辑删除：1 表示删除，0 表示未删除，2 表示禁用';
+
+ALTER TABLE `sp_sys_role`
   ADD COLUMN `sort_num`       int(11)     NOT NULL DEFAULT 0    COMMENT '排序号'           AFTER `descr`,
   ADD COLUMN `is_system_role` char(1)     NOT NULL DEFAULT '0'  COMMENT '系统角色(0否1是)'  AFTER `sort_num`,
   ADD COLUMN `user_type`      varchar(32) DEFAULT NULL           COMMENT '用户类型'          AFTER `is_system_role`,

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>工艺BOM管理</title>
+    <title>产品BOM管理</title>
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -15,7 +15,7 @@
         <form id="js-search-form" class="layui-form" lay-filter="js-q-form-filter">
             <div class="layui-form-item">
                 <div class="layui-inline">
-                    <label class="layui-form-label">物料编号</label>
+                    <label class="layui-form-label">产品物料编码</label>
                     <div class="layui-input-inline">
                         <input type="text" name="materielCodeLike" autocomplete="off" class="layui-input">
                     </div>
@@ -36,19 +36,19 @@
 <script type="text/html" id="js-record-table-toolbar-top">
     <div class="layui-btn-container">
         <@shiro.hasPermission name="user:add">
-            <button class="layui-btn layui-btn-sm" lay-event="add"><i class="layui-icon">&#xe61f;</i>添加</button>
+            <button class="layui-btn layui-btn-sm" lay-event="add"><i class="layui-icon">&#xe61f;</i>新增</button>
         </@shiro.hasPermission>
     </div>
 </script>
 
 <!--行操作模板-->
 <script type="text/html" id="js-record-table-toolbar-right">
-    <a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="tree"><i class="layui-icon layui-icon-tree"></i>查看树</a>
+    <a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="tree"><i class="layui-icon layui-icon-tree"></i>查看层级</a>
     {{# if(d.lockStatus !== 'locked'){ }}
         <a class="layui-btn layui-btn-xs" lay-event="edit"><i class="layui-icon layui-icon-edit"></i>编辑</a>
         <a class="layui-btn layui-btn-xs" style="background:var(--sp-success);border-color:var(--sp-success);" lay-event="lock"><i class="layui-icon layui-icon-ok"></i>定版</a>
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete"><i class="layui-icon layui-icon-delete"></i>删除</a>
     {{# } }}
-    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete"><i class="layui-icon layui-icon-delete"></i>删除</a>
 </script>
 
 <!--js逻辑-->
@@ -59,7 +59,7 @@
             spLayer = layui.spLayer,
             spTable = layui.spTable;
 
-        var bomLevelLabels = { 0: '成品BOM', 1: '半成品BOM', 2: '组件BOM' };
+        var bomLevelLabels = { 0: '产品BOM', 1: '半成品BOM', 2: '组件BOM' };
 
         // 表格及数据初始化
         var tableIns = spTable.render({
@@ -68,41 +68,32 @@
                 [{
                     type: 'radio'
                 }, {
-                    field: 'bomCode', title: 'BOM编号', width: 120
+                    field: 'bomCode', title: 'BOM编码', width: 130
                 }, {
-                    field: 'materielCode', title: '物料编号', width: 120
+                    field: 'materielCode', title: '产品物料编码', width: 150
                 }, {
-                    field: 'materielDesc', title: '物料名称', width: 160
+                    field: 'materielDesc', title: '产品物料名称', width: 180
                 }, {
-                    field: 'versionNumber', title: '版本号', width: 60, align: 'center'
+                    field: 'versionNumber', title: '版本', width: 70, align: 'center'
                 }, {
-                    field: 'bomLevel', title: 'BOM层级', width: 90,
+                    field: 'bomLevel', title: 'BOM层级', width: 100,
                     templet: function (d) {
                         return bomLevelLabels[d.bomLevel] || '-';
                     }
                 }, {
-                    field: 'validity', title: '有效性', width: 70, align: 'center',
+                    field: 'validity', title: '有效性', width: 90, align: 'center',
                     templet: function (d) {
                         return d.validity === '有效'
                             ? '<span class="sp-badge sp-badge-success">有效</span>'
                             : '<span class="sp-badge sp-badge-warn">无效</span>';
                     }
                 }, {
-                    field: 'lockStatus', title: '定版标识', width: 80, align: 'center',
+                    field: 'lockStatus', title: '定版标识', width: 100, align: 'center',
                     templet: function (d) {
                         return d.lockStatus === 'locked'
                             ? '<span class="sp-badge sp-badge-info">已定版</span>'
                             : '<span class="sp-badge sp-badge-muted">草稿</span>';
                     }
-                }, {
-                    field: 'state', title: '审核状态', width: 75, align: 'center',
-                    templet: function (d) {
-                        return d.state === 'pass'
-                            ? '<span class="sp-badge sp-badge-success">已审核</span>'
-                            : '<span class="sp-badge sp-badge-muted">草稿</span>';
-                    }
-                }, {
-                    field: 'factory', title: '所属工厂', width: 80
                 }, {
                     field: 'remark', title: '备注'
                 }, {
@@ -116,7 +107,7 @@
                     title: '操作',
                     toolbar: '#js-record-table-toolbar-right',
                     unresize: true,
-                    width: 210
+                    width: 230
                 }]
             ],
             done: function () {}
@@ -134,7 +125,7 @@
         table.on('toolbar(js-record-table-filter)', function (obj) {
             if (obj.event === 'add') {
                 spLayer.open({
-                    title: '添加BOM',
+                    title: '新增产品BOM',
                     area: ['90%', '90%'],
                     content: '${request.contextPath}/technology/bom/add-or-update-ui',
                     end: function () { tableIns.reload(); }
@@ -148,7 +139,7 @@
 
             if (obj.event === 'tree') {
                 spLayer.open({
-                    title: 'BOM树: ' + data.bomCode,
+                    title: '产品BOM层级: ' + data.bomCode,
                     area: ['90%', '85%'],
                     spWhere: { id: data.id },
                     content: '${request.contextPath}/technology/bom/tree-ui',
@@ -163,7 +154,7 @@
                     return;
                 }
                 spLayer.open({
-                    title: '编辑BOM',
+                    title: '编辑产品BOM',
                     area: ['90%', '90%'],
                     spWhere: { id: data.id },
                     content: '${request.contextPath}/technology/bom/add-or-update-ui',
@@ -201,8 +192,13 @@
                         showLoading: true,
                         serializable: false,
                         data: { id: data.id },
-                        success: function () {
-                            tableIns.reload();
+                        success: function (res) {
+                            if (res.code === 0) {
+                                layer.msg('删除成功', { icon: 1 });
+                                tableIns.reload();
+                            } else {
+                                layer.msg(res.msg || '删除失败', { icon: 2 });
+                            }
                             layer.close(index);
                         }
                     });

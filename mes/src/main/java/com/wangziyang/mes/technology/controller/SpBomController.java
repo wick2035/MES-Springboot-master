@@ -36,13 +36,13 @@ public class SpBomController extends BaseController {
     @Autowired
     private ISpBomService iSpBomService;
 
-    @ApiOperation("工艺BOM管理界面UI")
+    @ApiOperation("产品BOM管理界面UI")
     @GetMapping("/list-ui")
     public String listUI(Model model) {
         return "technology/bom/list";
     }
 
-    @ApiOperation("工艺BOM管理修改界面")
+    @ApiOperation("产品BOM管理修改界面")
     @GetMapping("/add-or-update-ui")
     public String addOrUpdateUI(Model model, SpBom spBom) throws Exception {
         if (StringUtils.isNotEmpty(spBom.getId())) {
@@ -66,24 +66,28 @@ public class SpBomController extends BaseController {
     @ApiOperation("子BOM选择弹框界面")
     @GetMapping("/select-bom-panel-ui")
     public String selectBomPanelUI(Model model,
-                                   @RequestParam(required = false) String itemMatType) {
+                                   @RequestParam(required = false) String itemMatType,
+                                   @RequestParam(required = false) String itemCode) {
         model.addAttribute("itemMatType", itemMatType != null ? itemMatType : "");
+        model.addAttribute("itemCode", itemCode != null ? itemCode : "");
         return "technology/bom/selectBomPanel";
     }
 
-    @ApiOperation("工艺BOM分页查询")
+    @ApiOperation("产品BOM分页查询")
     @PostMapping("/page")
     @ResponseBody
     public Result page(SpBomReq req) {
-        QueryWrapper qw = new QueryWrapper();
+        QueryWrapper<SpBom> qw = new QueryWrapper<>();
+        qw.ne("is_deleted", "1");
         if (StringUtils.isNotEmpty(req.getMaterielCodeLike())) {
             qw.likeRight("materiel_code", req.getMaterielCodeLike());
         }
+        qw.orderByDesc("update_time");
         IPage result = iSpBomService.page(req, qw);
         return Result.success(result);
     }
 
-    @ApiOperation("工艺BOM修改、新增（仅头信息）")
+    @ApiOperation("产品BOM修改、新增（仅头信息）")
     @PostMapping("/add-or-update")
     @ResponseBody
     public Result addOrUpdate(SpBom spBom) {
@@ -96,8 +100,12 @@ public class SpBomController extends BaseController {
     @ResponseBody
     public Result saveWithItems(SpBom spBom,
                                 @RequestParam(required = false) String itemsJson) {
-        iSpBomService.saveBomWithItems(spBom, itemsJson);
-        return Result.success();
+        try {
+            iSpBomService.saveBomWithItems(spBom, itemsJson);
+            return Result.success();
+        } catch (Exception e) {
+            return Result.failure(e.getMessage());
+        }
     }
 
     @ApiOperation("获取完整BOM树数据")
@@ -115,8 +123,9 @@ public class SpBomController extends BaseController {
     @ApiOperation("获取可选子BOM列表")
     @GetMapping("/selectable-boms")
     @ResponseBody
-    public Result selectableBoms(@RequestParam(required = false) String itemMatType) {
-        List<SpBom> boms = iSpBomService.listSelectableBoms(itemMatType);
+    public Result selectableBoms(@RequestParam(required = false) String itemMatType,
+                                 @RequestParam(required = false) String itemCode) {
+        List<SpBom> boms = iSpBomService.listSelectableBoms(itemMatType, itemCode);
         return Result.success(boms);
     }
 
@@ -132,11 +141,15 @@ public class SpBomController extends BaseController {
         }
     }
 
-    @ApiOperation("删除工艺BOM")
+    @ApiOperation("删除产品BOM")
     @PostMapping("/delete")
     @ResponseBody
-    public Result deleteByTableNameId(SpBom spBom) throws Exception {
-        iSpBomService.removeById(spBom.getId());
-        return Result.success();
+    public Result deleteByTableNameId(SpBom spBom) {
+        try {
+            iSpBomService.deleteBom(spBom.getId());
+            return Result.success();
+        } catch (Exception e) {
+            return Result.failure(e.getMessage());
+        }
     }
 }

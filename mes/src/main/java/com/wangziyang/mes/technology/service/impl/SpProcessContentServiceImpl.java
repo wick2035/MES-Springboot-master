@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +38,7 @@ public class SpProcessContentServiceImpl extends ServiceImpl<SpProcessContentMap
 
     @Override
     public SpProcessContent getOrCreateByRoute(String routeId) {
+        ensureRouteBoundOper(routeId);
         SpProcessContent existing = getOne(new QueryWrapper<SpProcessContent>().eq("route_id", routeId));
         if (existing != null) return existing;
         SpProcessContent c = new SpProcessContent();
@@ -46,12 +48,19 @@ public class SpProcessContentServiceImpl extends ServiceImpl<SpProcessContentMap
         return c;
     }
 
-    private void checkNotLocked(String routeId) {
+    private SpProcessRoute ensureRouteBoundOper(String routeId) {
         SpProcessRoute r = routeMapper.selectById(routeId);
         if (r == null) throw new RuntimeException("工艺记录不存在");
-        if ("locked".equals(r.getLockStatus())) {
-            // 锁定后不允许编辑；PDF描述锁定的是产品工艺规划，编制仍允许 — 这里放开
-            // throw new RuntimeException("已锁定，不能编辑");
+        if (StringUtils.isEmpty(r.getOperId())) {
+            throw new RuntimeException("请先在工艺路线中绑定工序，再编制工艺内容");
+        }
+        return r;
+    }
+
+    private void checkNotLocked(String routeId) {
+        SpProcessRoute r = ensureRouteBoundOper(routeId);
+        if ("completed".equals(r.getEditStatus())) {
+            throw new RuntimeException("当前工序已完成编制并锁定，不能再编辑");
         }
     }
 
@@ -145,11 +154,50 @@ public class SpProcessContentServiceImpl extends ServiceImpl<SpProcessContentMap
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void completeEdit(String routeId) {
-        getOrCreateByRoute(routeId);
+        validateBeforeComplete(routeId);
         SpProcessRoute r = routeMapper.selectById(routeId);
-        if (r == null) throw new RuntimeException("工艺记录不存在");
         r.setEditStatus("completed");
         routeMapper.updateById(r);
+    }
+
+    private void validateBeforeComplete(String routeId) {
+        SpProcessRoute r = ensureRouteBoundOper(routeId);
+        if ("completed".equals(r.getEditStatus())) {
+            throw new RuntimeException("当前工序已完成编制并锁定，不能重复提交");
+        }
+
+        SpProcessContent content = getOne(new QueryWrapper<SpProcessContent>().eq("route_id", routeId));
+        List<String> missing = new ArrayList<>();
+        if (content == null) {
+            missing.add("工序内容");
+            missing.add("工序要求");
+            missing.add("注意事项");
+            missing.add("技术文档");
+        } else {
+            if (StringUtils.isBlank(content.getContentText())) missing.add("工序内容");
+            if (StringUtils.isBlank(content.getRequireText())) missing.add("工序要求");
+            if (StringUtils.isBlank(content.getPrecautionText())) missing.add("注意事项");
+            if (StringUtils.isBlank(content.getTechDocDesc())) missing.add("技术文档描述");
+            if ("Y".equals(content.getNeedCheck()) && countFiles(routeId, "REQ_IMG") == 0) {
+                missing.add("检验标准图片");
+            }
+        }
+        if (countFiles(routeId, "CONTENT_IMG") == 0) missing.add("工序图片");
+        if (countFiles(routeId, "PREC_IMG") == 0) missing.add("注意事项图示");
+        if (countFiles(routeId, "TECH_IMG") == 0) missing.add("技术文档图片");
+        if (countFiles(routeId, "TECH_ATTACH") == 0) missing.add("技术文件附件");
+        if (listEquipments(routeId).isEmpty()) missing.add("工装设备");
+        if (listMaterials(routeId).isEmpty()) missing.add("备料清单");
+
+        if (!missing.isEmpty()) {
+            throw new RuntimeException("请先补全以下信息：" + StringUtils.join(missing, "、"));
+        }
+    }
+
+    private int countFiles(String routeId, String fileType) {
+        return fileMapper.selectCount(new QueryWrapper<SpProcessFile>()
+                .eq("route_id", routeId)
+                .eq("file_type", fileType));
     }
 
     @Override
@@ -175,6 +223,10 @@ public class SpProcessContentServiceImpl extends ServiceImpl<SpProcessContentMap
 
     @Override
     public void deleteFile(String fileId) {
+        SpProcessFile file = fileMapper.selectById(fileId);
+        if (file != null) {
+            checkNotLocked(file.getRouteId());
+        }
         fileMapper.deleteById(fileId);
     }
 

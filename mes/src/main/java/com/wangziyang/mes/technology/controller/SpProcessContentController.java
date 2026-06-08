@@ -64,6 +64,7 @@ public class SpProcessContentController extends BaseController {
         SpProcessContent content = contentService.getOrCreateByRoute(routeId);
         model.addAttribute("route", r);
         model.addAttribute("content", content);
+        model.addAttribute("contentLocked", "completed".equals(r.getEditStatus()));
 
         // 工序主信息
         Map<String, Object> mainInfo = new HashMap<>();
@@ -250,7 +251,7 @@ public class SpProcessContentController extends BaseController {
     public Result complete(@RequestParam String routeId) {
         try {
             contentService.completeEdit(routeId);
-            return Result.success("工序编制完成");
+            return Result.success("工序编制完成并锁定");
         } catch (Exception e) {
             return Result.failure(e.getMessage());
         }

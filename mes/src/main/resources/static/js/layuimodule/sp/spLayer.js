@@ -51,8 +51,14 @@ layui.define(['layer'], function (exports) {
                 }
             };
 
+            var spWhere = spUtil.parseParam(param.spWhere || {});
+            var content = param.content;
+            if (spWhere) {
+                content += (content.indexOf('?') === -1 ? '?' : '&') + spWhere;
+            }
+
             var config = $.extend({}, defaultConfig, param, {
-                content: param.content + '?' + spUtil.parseParam(param.spWhere)
+                content: content
             });
 
             return layer.open(config);

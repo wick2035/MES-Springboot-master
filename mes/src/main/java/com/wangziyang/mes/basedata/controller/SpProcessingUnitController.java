@@ -55,7 +55,7 @@ public class SpProcessingUnitController extends BaseController {
             SpProcessingUnit init = new SpProcessingUnit();
             init.setUnitCode(unitService.nextUnitCode());
             init.setUnitType("person");
-            init.setStatus("1");
+            init.setStatus("0");
             model.addAttribute("result", init);
         }
         return "basedata/processing-unit/addOrUpdate";
@@ -69,6 +69,7 @@ public class SpProcessingUnitController extends BaseController {
         if (StringUtils.isNotEmpty(req.getUnitCodeLike())) qw.like("unit_code", req.getUnitCodeLike());
         if (StringUtils.isNotEmpty(req.getUnitNameLike())) qw.like("unit_name", req.getUnitNameLike());
         if (StringUtils.isNotEmpty(req.getUnitType())) qw.eq("unit_type", req.getUnitType());
+        if (StringUtils.isNotEmpty(req.getStatus())) qw.eq("status", req.getStatus());
         qw.orderByDesc("update_time");
         IPage<SpProcessingUnit> result = unitService.page(req, qw);
         return Result.success(result);
@@ -78,7 +79,7 @@ public class SpProcessingUnitController extends BaseController {
     @ResponseBody
     public Result list() {
         QueryWrapper<SpProcessingUnit> qw = new QueryWrapper<>();
-        qw.eq("is_deleted", "0").eq("status", "1").orderByAsc("unit_code");
+        qw.eq("is_deleted", "0").eq("status", "0").orderByAsc("unit_code");
         return Result.success(unitService.list(qw));
     }
 
@@ -91,6 +92,9 @@ public class SpProcessingUnitController extends BaseController {
         // 编码唯一校验（小结第1点：编码唯一，重复需更换）
         if (unitService.isUnitCodeDuplicate(record.getUnitCode(), record.getId())) {
             return Result.failure("加工单元编码已存在，请更换编码");
+        }
+        if (!"2".equals(record.getStatus())) {
+            record.setStatus("0");
         }
         unitService.saveOrUpdate(record);
         return Result.success();

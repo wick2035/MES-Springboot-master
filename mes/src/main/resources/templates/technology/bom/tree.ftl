@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>BOM树形结构</title>
+    <title>产品BOM层级结构</title>
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -78,7 +78,7 @@
         <span><strong>版本:</strong>V${(bom.versionNumber)!''}</span>
         <span><strong>层级:</strong>
             <#if (bom.bomLevel)??>
-                <#if bom.bomLevel == 0>成品BOM<#elseif bom.bomLevel == 1>半成品BOM<#else>组件BOM</#if>
+                <#if bom.bomLevel == 0>产品BOM<#elseif bom.bomLevel == 1>半成品BOM<#else>组件BOM</#if>
             </#if>
         </span>
         <span><strong>定版:</strong>
@@ -100,7 +100,7 @@
 
         <!-- 右侧：节点明细表 -->
         <div class="bom-right-panel">
-            <div class="bom-right-panel-title" id="js-right-panel-title">BOM完整层级</div>
+            <div class="bom-right-panel-title" id="js-right-panel-title">产品BOM完整层级</div>
             <div id="js-right-table-wrap">
                 <table id="js-bom-right-table"></table>
             </div>
@@ -148,7 +148,7 @@
                 });
 
                 // 默认显示完整树
-                $('#js-right-panel-title').text('BOM完整层级（点击左侧节点查看子树）');
+                $('#js-right-panel-title').text('产品BOM完整层级（点击左侧节点查看子树）');
                 renderRightTable([fullTreeRoot]);
             },
             error: function () {

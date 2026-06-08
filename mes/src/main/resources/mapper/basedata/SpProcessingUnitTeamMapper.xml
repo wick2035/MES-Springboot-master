@@ -14,6 +14,7 @@
         <result column="update_username" property="updateUsername" jdbcType="VARCHAR"/>
         <result column="team_code" property="teamCode" jdbcType="VARCHAR"/>
         <result column="team_name" property="teamName" jdbcType="VARCHAR"/>
+        <result column="team_status" property="teamStatus" jdbcType="VARCHAR"/>
     </resultMap>
 
     <!--按加工单元分页查询已绑定班组，联表回显班组代码 / 名称-->
@@ -29,7 +30,8 @@
             ut.update_time,
             ut.update_username,
             t.team_code AS team_code,
-            t.team_name AS team_name
+            t.team_name AS team_name,
+            t.is_deleted AS team_status
         FROM sp_processing_unit_team ut
         LEFT JOIN sp_team t ON ut.team_id = t.id
         WHERE ut.is_deleted = '0'

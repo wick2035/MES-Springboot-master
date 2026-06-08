@@ -23,10 +23,10 @@
 <div class="splayui-container">
     <div class="splayui-main">
         <div class="menu-tree-actions">
-            <button class="layui-btn layui-btn-sm" id="js-check-all">全选</button>
-            <button class="layui-btn layui-btn-sm layui-btn-normal" id="js-uncheck-all">取消全选</button>
-            <button class="layui-btn layui-btn-sm layui-btn-warm" id="js-expand-all">展开全部</button>
-            <button class="layui-btn layui-btn-sm layui-btn-primary" id="js-collapse-all">折叠全部</button>
+            <button type="button" class="layui-btn layui-btn-sm" id="js-check-all">全选</button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="js-uncheck-all">取消全选</button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-warm" id="js-expand-all">展开全部</button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-primary" id="js-collapse-all">折叠全部</button>
         </div>
         <div class="tree-scroll">
             <div class="menu-tree" id="js-menu-tree">
@@ -65,8 +65,9 @@
 
         <div style="padding:12px 0 0 0; text-align:center;">
             <input type="hidden" id="js-role-id" value="${roleId}">
-            <button class="layui-btn" id="js-submit-auth">保存授权</button>
-            <button class="layui-btn layui-btn-primary" id="js-cancel">取消</button>
+            <button type="button" id="js-submit" class="layui-hide">确定</button>
+            <button type="button" class="layui-btn" id="js-submit-auth">保存授权</button>
+            <button type="button" class="layui-btn layui-btn-primary" id="js-cancel">取消</button>
         </div>
     </div>
 </div>
@@ -116,33 +117,49 @@
         });
     });
 
-    // 提交
-    document.getElementById('js-submit-auth').onclick = function () {
+    function closeCurrentLayer() {
+        var index = parent.layer.getFrameIndex(window.name);
+        parent.layer.close(index);
+    }
+
+    function saveAuth(closeAfterSuccess) {
         var roleId = document.getElementById('js-role-id').value;
         var menuIds = [];
         document.querySelectorAll('.menu-checkbox:checked').forEach(function (cb) {
             menuIds.push(cb.value);
         });
 
-        var params = 'roleId=' + encodeURIComponent(roleId);
-        menuIds.forEach(function (id) {
-            params += '&menuIds=' + encodeURIComponent(id);
-        });
-
-        $.post('${request.contextPath}/admin/sys/role/auth-menu', params, function (res) {
-            if (res.code === 0) {
-                layer.msg('授权成功');
-                var index = parent.layer.getFrameIndex(window.name);
-                parent.layer.close(index);
-            } else {
-                layer.msg(res.msg || '授权失败');
+        spUtil.submitForm({
+            url: '${request.contextPath}/admin/sys/role/auth-menu',
+            data: {roleId: roleId, menuIds: menuIds},
+            traditional: true,
+            success: function (res) {
+                window.spChildFrameResult = res;
+                if (res.code === 0) {
+                    layer.msg('授权成功');
+                    if (closeAfterSuccess) {
+                        setTimeout(closeCurrentLayer, 400);
+                    }
+                } else {
+                    layer.alert(res.msg || '授权失败', {icon: 2});
+                }
             }
         });
+        return false;
+    }
+
+    // spLayer 外层“确定”按钮会触发 iframe 中的 #js-submit。
+    document.getElementById('js-submit').onclick = function () {
+        return saveAuth(false);
+    };
+
+    // 页面内保存按钮直接保存并关闭当前弹窗。
+    document.getElementById('js-submit-auth').onclick = function () {
+        return saveAuth(true);
     };
 
     document.getElementById('js-cancel').onclick = function () {
-        var index = parent.layer.getFrameIndex(window.name);
-        parent.layer.close(index);
+        closeCurrentLayer();
     };
 </script>
 </body>

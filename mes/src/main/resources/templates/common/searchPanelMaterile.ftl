@@ -57,11 +57,16 @@
             util = layui.util,
             table = layui.table,
             spTable = layui.spTable;
+        var urlParams = new URLSearchParams(window.location.search);
+        var fixedWhere = {};
+        if (urlParams.get('matType')) fixedWhere.matType = urlParams.get('matType');
+        if (urlParams.get('matTypes')) fixedWhere.matTypes = urlParams.get('matTypes');
 
         // 表格及数据初始化
         var tableIns = spTable.render({
             toolbar: '',
             url: '${request.contextPath}/basedata/materile/page',
+            where: fixedWhere,
             cols: [
                 [{
                     type: 'radio'
@@ -80,7 +85,7 @@
          */
         form.on('submit(js-search-filter)', function (data) {
             tableIns.reload({
-                where: data.field,
+                where: $.extend({}, fixedWhere, data.field),
                 page: {
                     // 重新从第 1 页开始
                     curr: 1

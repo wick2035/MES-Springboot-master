@@ -64,7 +64,12 @@ public class SpProcessRouteController extends BaseController {
     public Result lockedBomPage() {
         // 仅返回已锁定的BOM列表，作为工艺流程入口选择
         QueryWrapper<SpBom> qw = new QueryWrapper<>();
-        qw.eq("lock_status", "locked").orderByDesc("update_time");
+        qw.eq("lock_status", "locked")
+                .eq("state", "pass")
+                .eq("validity", "有效")
+                .eq("bom_level", 0)
+                .eq("is_deleted", "0")
+                .orderByDesc("update_time");
         return Result.success(bomService.list(qw));
     }
 

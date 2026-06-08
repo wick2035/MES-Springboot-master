@@ -44,6 +44,16 @@
                         </div>
                     </div>
                     <div class="layui-inline">
+                        <label class="layui-form-label">状态</label>
+                        <div class="layui-input-inline">
+                            <select name="status">
+                                <option value="">全部</option>
+                                <option value="0">正常</option>
+                                <option value="2">异常</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-inline">
                         <a class="layui-btn" lay-submit lay-filter="js-search-filter">
                             <i class="layui-icon layui-icon-search"></i>查询</a>
                     </div>
@@ -84,6 +94,7 @@
 </script>
 <!--班组行操作模板-->
 <script type="text/html" id="js-team-toolbar-right">
+    <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="editStatus"><i class="layui-icon layui-icon-edit"></i>状态</a>
     <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="unbind"><i class="layui-icon layui-icon-delete"></i>移除</a>
 </script>
 
@@ -97,6 +108,16 @@
         var currentUnitId = '';
         var currentUnitName = '';
         var currentUnitType = '';
+
+        function teamStatusTemplet(d) {
+            if (d.teamStatus === '2') {
+                return '<span style="color:orange;">禁用</span>';
+            }
+            if (d.teamStatus === '1') {
+                return '<span style="color:red;">已删除</span>';
+            }
+            return '<span style="color:green;">正常</span>';
+        }
 
         // ---------------- 加工单元表格 ----------------
         var unitTableIns = spTable.render({
@@ -119,7 +140,9 @@
                 },
                 {
                     field: 'status', title: '状态', width: 80, templet: function (d) {
-                        return d.status === '1' ? '启用' : '停用';
+                        return d.status === '2'
+                            ? '<span style="color:red;">异常</span>'
+                            : '<span style="color:green;">正常</span>';
                     }
                 },
                 {
@@ -142,12 +165,10 @@
                 {field: 'teamCode', title: '工作组代码', width: 200},
                 {field: 'teamName', title: '工作组名称', width: 240},
                 {
-                    field: 'deleted', title: '状态', width: 120, templet: function (d) {
-                        return d.deleted === '0' ? '<span style="color:green;">正常</span>' : '<span style="color:red;">已移除</span>';
-                    }
+                    field: 'teamStatus', title: '状态', width: 120, templet: teamStatusTemplet
                 },
                 {field: 'createTime', title: '绑定时间', width: 170},
-                {fixed: 'right', title: '操作', toolbar: '#js-team-toolbar-right', unresize: true, width: 120}
+                {fixed: 'right', title: '操作', toolbar: '#js-team-toolbar-right', unresize: true, width: 170}
             ]],
             done: function (res) {
                 // 软提醒：人员作业单元建议绑定生产班组（不阻断）
@@ -261,6 +282,42 @@
         // ---------------- 班组：行工具（移除）----------------
         table.on('tool(js-team-table-filter)', function (obj) {
             var data = obj.data;
+            if (obj.event === 'editStatus') {
+                var status = data.teamStatus === '2' ? '2' : '0';
+                layer.open({
+                    type: 1,
+                    title: '编辑工作组状态 - ' + (data.teamName || data.teamCode),
+                    area: ['360px', '220px'],
+                    content:
+                        '<div style="padding: 24px 28px 8px 28px;">' +
+                        '  <form class="layui-form" lay-filter="js-team-status-form">' +
+                        '    <div class="layui-form-item">' +
+                        '      <label class="layui-form-label">状态</label>' +
+                        '      <div class="layui-input-block">' +
+                        '        <input type="radio" name="status" value="0" title="正常" ' + (status === '0' ? 'checked' : '') + '>' +
+                        '        <input type="radio" name="status" value="2" title="禁用" ' + (status === '2' ? 'checked' : '') + '>' +
+                        '      </div>' +
+                        '    </div>' +
+                        '  </form>' +
+                        '</div>',
+                    btn: ['确定', '取消'],
+                    success: function () {
+                        form.render('radio', 'js-team-status-form');
+                    },
+                    yes: function (index) {
+                        var newStatus = $('input[name="status"]:checked').val();
+                        $.post(contextPath + '/basedata/team/disable', {id: data.teamId, status: newStatus}, function (res) {
+                            if (res.code === 0) {
+                                layer.msg('状态更新成功');
+                                reloadTeams();
+                                layer.close(index);
+                            } else {
+                                layer.msg(res.msg || '状态更新失败');
+                            }
+                        });
+                    }
+                });
+            }
             if (obj.event === 'unbind') {
                 layer.confirm('确认从加工单元【' + currentUnitName + '】移除班组【' + (data.teamName || data.teamCode) + '】吗？', function (index) {
                     $.post(contextPath + '/basedata/processing-unit/team/delete', {id: data.id}, function (res) {

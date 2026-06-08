@@ -236,11 +236,18 @@
             if (obj.event === 'disable') {
                 var newStatus = data.deleted === '0' ? '2' : '0';
                 var action = newStatus === '2' ? '禁用' : '启用';
-                layer.confirm('确认要' + action + '编组【' + data.groupName + '】吗？', function (index) {
+                var confirmText = '确认要' + action + '编组【' + data.groupName + '】吗？';
+                if (newStatus === '2') {
+                    confirmText = '确认要禁用编组【' + data.groupName + '】吗？当前编组管理的所有设备也会被停用。';
+                }
+                layer.confirm(confirmText, function (index) {
                     $.post(contextPath + '/basedata/equipment-group/disable', {id: data.id, status: newStatus}, function (res) {
                         if (res.code === 0) {
                             layer.msg(action + '成功');
                             groupTableIns.reload();
+                            if (currentGroupId === data.id) {
+                                reloadDevices();
+                            }
                         } else {
                             layer.msg(res.msg || (action + '失败'));
                         }

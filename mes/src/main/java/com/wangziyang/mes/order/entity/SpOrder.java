@@ -64,6 +64,31 @@ public class SpOrder extends BaseEntity {
      */
     private Integer statue;
 
+    /**
+     * 设计人用户ID
+     */
+    private String designerId;
+
+    /**
+     * 设计人
+     */
+    private String designerName;
+
+    /**
+     * 审批人用户ID
+     */
+    private String approveUserId;
+
+    /**
+     * 审批人
+     */
+    private String approveUsername;
+
+    /**
+     * 审批时间
+     */
+    private String approveTime;
+
     public String getOrderCode() {
         return orderCode;
     }
@@ -135,6 +160,46 @@ public class SpOrder extends BaseEntity {
         this.statue = statue;
     }
 
+    public String getDesignerId() {
+        return designerId;
+    }
+
+    public void setDesignerId(String designerId) {
+        this.designerId = designerId;
+    }
+
+    public String getDesignerName() {
+        return designerName;
+    }
+
+    public void setDesignerName(String designerName) {
+        this.designerName = designerName;
+    }
+
+    public String getApproveUserId() {
+        return approveUserId;
+    }
+
+    public void setApproveUserId(String approveUserId) {
+        this.approveUserId = approveUserId;
+    }
+
+    public String getApproveUsername() {
+        return approveUsername;
+    }
+
+    public void setApproveUsername(String approveUsername) {
+        this.approveUsername = approveUsername;
+    }
+
+    public String getApproveTime() {
+        return approveTime;
+    }
+
+    public void setApproveTime(String approveTime) {
+        this.approveTime = approveTime;
+    }
+
     @Override
     public String toString() {
         return "SpOrder{" +
@@ -148,6 +213,11 @@ public class SpOrder extends BaseEntity {
             ", planStartTime=" + planStartTime +
             ", planEndTime=" + planEndTime +
             ", statue=" + statue +
+            ", designerId=" + designerId +
+            ", designerName=" + designerName +
+            ", approveUserId=" + approveUserId +
+            ", approveUsername=" + approveUsername +
+            ", approveTime=" + approveTime +
         "}";
     }
 }

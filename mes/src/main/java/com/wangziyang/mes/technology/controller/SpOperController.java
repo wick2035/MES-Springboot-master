@@ -60,6 +60,8 @@ public class SpOperController extends BaseController {
             SpOper init = new SpOper();
             init.setOper(operService.nextOperCode());
             init.setGenPlan("Y");
+            init.setOperHours(BigDecimal.ONE);
+            init.setManuCycle(new BigDecimal("2"));
             model.addAttribute("result", init);
             model.addAttribute("unitName", "");
         }
@@ -123,18 +125,70 @@ public class SpOperController extends BaseController {
     @PostMapping("/add-or-update")
     @ResponseBody
     public Result addOrUpdate(SpOper record) {
-        if (record.getOperHours() != null && record.getManuCycle() != null
-                && record.getManuCycle().compareTo(record.getOperHours()) < 0) {
+        Result validateResult = validateOper(record);
+        if (validateResult != null) {
+            return validateResult;
+        }
+
+        boolean create = StringUtils.isEmpty(record.getId());
+        if (create) {
+            record.setOper(operService.nextOperCode());
+        } else {
+            SpOper old = operService.getById(record.getId());
+            if (old == null) {
+                return Result.failure("工序记录不存在");
+            }
+            record.setOper(old.getOper());
+        }
+        record.setOperHours(record.getOperHours().stripTrailingZeros());
+        record.setManuCycle(record.getManuCycle().stripTrailingZeros());
+        record.setGenPlan("Y");
+
+        QueryWrapper<SpOper> duplicateQw = new QueryWrapper<>();
+        duplicateQw.eq("oper", record.getOper());
+        if (!create) duplicateQw.ne("id", record.getId());
+        if (operService.count(duplicateQw) > 0) {
+            return Result.failure("工序编号已存在，请刷新后重试");
+        }
+
+        try {
+            operService.saveOrUpdate(record);
+            return Result.success();
+        } catch (Exception e) {
+            return Result.failure("工序保存失败，请检查编号唯一性和必填项");
+        }
+    }
+
+    private Result validateOper(SpOper record) {
+        if (record == null) {
+            return Result.failure("工序信息不能为空");
+        }
+        record.setOperDesc(StringUtils.trimToEmpty(record.getOperDesc()));
+        if (StringUtils.isEmpty(record.getOperDesc())) {
+            return Result.failure("请填写工序名称");
+        }
+        if (StringUtils.isEmpty(record.getUnitId())) {
+            return Result.failure("请绑定具体加工单元");
+        }
+        if (unitService.getById(record.getUnitId()) == null) {
+            return Result.failure("加工单元不存在，请重新选择");
+        }
+        if (!isPositiveInteger(record.getOperHours())) {
+            return Result.failure("工序工时必须为正整数");
+        }
+        if (!isPositiveInteger(record.getManuCycle())) {
+            return Result.failure("制造周期必须为正整数");
+        }
+        if (record.getManuCycle().compareTo(record.getOperHours()) < 0) {
             return Result.failure("制造周期应大于等于工序工时");
         }
-        if (StringUtils.isEmpty(record.getId()) && StringUtils.isEmpty(record.getOper())) {
-            record.setOper(operService.nextOperCode());
-        }
-        if (record.getOperHours() == null) record.setOperHours(BigDecimal.ZERO);
-        if (record.getManuCycle() == null) record.setManuCycle(BigDecimal.ZERO);
-        if (StringUtils.isEmpty(record.getGenPlan())) record.setGenPlan("Y");
-        operService.saveOrUpdate(record);
-        return Result.success();
+        return null;
+    }
+
+    private boolean isPositiveInteger(BigDecimal value) {
+        return value != null
+                && value.compareTo(BigDecimal.ZERO) > 0
+                && value.stripTrailingZeros().scale() <= 0;
     }
 
     @PostMapping("/delete")

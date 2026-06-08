@@ -82,6 +82,9 @@
                     }
                 },
                 {field: 'mobile', title: '手机号', width: 120},
+                {field: 'deptName', title: '部门', width: 140,
+                    templet: function (d) { return d.deptName || '<span style="color:#bbb;">未分配</span>'; }
+                },
                 {field: 'email', title: '邮箱', width: 160},
                 {
                     field: 'sex', title: '性别', width: 70, templet: function (d) { return sexDict[d.sex] || '-'; }

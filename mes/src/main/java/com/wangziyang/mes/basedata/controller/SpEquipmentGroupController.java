@@ -100,10 +100,10 @@ public class SpEquipmentGroupController extends BaseController {
     @PostMapping("/disable")
     @ResponseBody
     public Result disable(@RequestParam String id, @RequestParam String status) {
-        SpEquipmentGroup record = new SpEquipmentGroup();
-        record.setId(id);
-        record.setDeleted(status);
-        spEquipmentGroupService.updateById(record);
+        if (!"0".equals(status) && !"2".equals(status)) {
+            return Result.failure("状态参数不正确");
+        }
+        spEquipmentGroupService.updateGroupStatus(id, status);
         return Result.success();
     }
 

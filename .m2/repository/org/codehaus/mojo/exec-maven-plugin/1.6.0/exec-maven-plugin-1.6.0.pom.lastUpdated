@@ -1,0 +1,4 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Sat Jun 06 15:04:04 CST 2026
+@default-aliyunmaven-https\://maven.aliyun.com/repository/public/.lastUpdated=1780729444521
+https\://maven.aliyun.com/repository/public/.error=Could not transfer artifact org.codehaus.mojo\:exec-maven-plugin\:pom\:1.6.0 from/to aliyunmaven (https\://maven.aliyun.com/repository/public)\: transfer failed for https\://maven.aliyun.com/repository/public/org/codehaus/mojo/exec-maven-plugin/1.6.0/exec-maven-plugin-1.6.0.pom

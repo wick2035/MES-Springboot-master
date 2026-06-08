@@ -138,6 +138,11 @@ mvn -s .\.codex-maven-settings.xml -f .\mes\pom.xml -DskipTests spring-boot:run
 | 7 | `jiagong-unit-banzu-upgrade-20260604.sql` | 加工单元绑定班组 + 产能 / 边库标识 |
 | 8 | `warehouse-location-upgrade-20260605.sql` | 库房 + 库位（按规格自动生成库位） |
 | 9 | `material-info-upgrade-20260605.sql` | 物料信息增强（来源 / 材质 / 安全库存 / 多图等） |
+| 10 | `component-definition-upgrade-20260606.sql` | 产品零部件定义 + 产品 BOM 前置组件清单 |
+| 11 | `product-bom-menu-upgrade-20260606.sql` | 原工艺BOM管理入口替换为产品BOM管理 |
+| 12 | `component-product-name-normalize-20260606.sql` | 修正零部件定义产品名称末尾误带问号的数据 |
+| 13 | `processing-unit-status-upgrade-20260608.sql` | 加工单元状态调整为正常 / 异常 |
+| 14 | `order-approval-upgrade-20260608.sql` | 工单设计人 + 库房管理员审批流 |
 
 新增脚本命名约定：`{feature}-upgrade-YYYYMMDD.sql`，并务必保持幂等（详见 [开发规范](docs/开发规范.md)）。
 

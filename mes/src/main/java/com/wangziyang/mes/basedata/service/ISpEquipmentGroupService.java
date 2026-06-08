@@ -13,4 +13,13 @@ public interface ISpEquipmentGroupService extends IService<SpEquipmentGroup> {
      * @return true 已存在
      */
     boolean isGroupCodeDuplicate(String groupCode, String excludeId);
+
+    /**
+     * Update group status. When disabling a group, all active devices managed by
+     * the group are stopped together.
+     *
+     * @param id group id
+     * @param status group status: 0 normal, 2 disabled
+     */
+    void updateGroupStatus(String id, String status);
 }

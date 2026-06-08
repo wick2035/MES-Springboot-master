@@ -7,9 +7,17 @@ import com.wangziyang.mes.basedata.service.ISpProcessingUnitService;
 import com.wangziyang.mes.technology.entity.SpBom;
 import com.wangziyang.mes.technology.entity.SpBomItem;
 import com.wangziyang.mes.technology.entity.SpOper;
+import com.wangziyang.mes.technology.entity.SpProcessContent;
+import com.wangziyang.mes.technology.entity.SpProcessEquipmentRel;
+import com.wangziyang.mes.technology.entity.SpProcessFile;
+import com.wangziyang.mes.technology.entity.SpProcessMaterialRel;
 import com.wangziyang.mes.technology.entity.SpProcessRoute;
 import com.wangziyang.mes.technology.mapper.SpBomItemMapper;
 import com.wangziyang.mes.technology.mapper.SpBomMapper;
+import com.wangziyang.mes.technology.mapper.SpProcessContentMapper;
+import com.wangziyang.mes.technology.mapper.SpProcessEquipmentRelMapper;
+import com.wangziyang.mes.technology.mapper.SpProcessFileMapper;
+import com.wangziyang.mes.technology.mapper.SpProcessMaterialRelMapper;
 import com.wangziyang.mes.technology.mapper.SpProcessRouteMapper;
 import com.wangziyang.mes.technology.service.ISpOperService;
 import com.wangziyang.mes.technology.service.ISpProcessRouteService;
@@ -19,13 +27,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
- * 工艺流程服务实现
- *
- * @author Claude
- * @since 2026-05-28
+ * 产品工艺流程服务实现。
  */
 @Service
 public class SpProcessRouteServiceImpl extends ServiceImpl<SpProcessRouteMapper, SpProcessRoute>
@@ -41,12 +54,22 @@ public class SpProcessRouteServiceImpl extends ServiceImpl<SpProcessRouteMapper,
     private ISpOperService operService;
     @Autowired
     private ISpProcessingUnitService unitService;
+    @Autowired
+    private SpProcessContentMapper contentMapper;
+    @Autowired
+    private SpProcessFileMapper fileMapper;
+    @Autowired
+    private SpProcessEquipmentRelMapper equipmentRelMapper;
+    @Autowired
+    private SpProcessMaterialRelMapper materialRelMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int initRoutes(String bomId) {
         SpBom bom = bomMapper.selectById(bomId);
-        if (bom == null) throw new RuntimeException("BOM不存在");
+        if (bom == null) {
+            throw new RuntimeException("BOM不存在");
+        }
         if (!"locked".equals(bom.getLockStatus())) {
             throw new RuntimeException("请先锁定BOM再初始化工艺流程");
         }
@@ -54,44 +77,79 @@ public class SpProcessRouteServiceImpl extends ServiceImpl<SpProcessRouteMapper,
             throw new RuntimeException("该BOM的工艺规划已锁定，不能重新初始化");
         }
 
-        // 清空旧的非锁定记录
-        remove(new QueryWrapper<SpProcessRoute>().eq("bom_id", bomId));
-
-        // 根节点
         String rootCode = NGY_PREFIX + bom.getMaterielCode();
+        ensureNoLockedRouteCodeConflict(rootCode, bomId);
+        clearDraftRoutes(bomId, rootCode);
+
         SpProcessRoute rootRoute = newRoute(bomId, null, rootCode, null,
                 bom.getMaterielDesc(), bom.getMaterielCode(), 30);
         save(rootRoute);
 
-        // 递归子节点
-        int created = 1 + expand(bomId, rootRoute.getId(), rootCode, new HashSet<>(Collections.singleton(bomId)));
-        return created;
+        return 1 + expand(bomId, bomId, rootRoute.getId(), rootCode,
+                new HashSet<>(Collections.singleton(bomId)));
     }
 
-    /** 递归生成 bom 的所有子项 route */
-    private int expand(String bomId, String parentRouteId, String parentCode, Set<String> visited) {
-        List<SpBomItem> items = bomItemMapper.listByBomHeadId(bomId);
+    private void ensureNoLockedRouteCodeConflict(String rootCode, String bomId) {
+        int lockedCount = count(new QueryWrapper<SpProcessRoute>()
+                .ne("bom_id", bomId)
+                .eq("lock_status", "locked")
+                .and(w -> w.eq("route_code", rootCode)
+                        .or()
+                        .likeRight("route_code", rootCode + "_")));
+        if (lockedCount > 0) {
+            throw new RuntimeException("已存在相同产品编码的锁定工艺规划，无法覆盖初始化");
+        }
+    }
+
+    private void clearDraftRoutes(String bomId, String rootCode) {
+        List<SpProcessRoute> oldRoutes = list(new QueryWrapper<SpProcessRoute>()
+                .and(status -> status.ne("lock_status", "locked")
+                        .or()
+                        .isNull("lock_status")
+                        .or()
+                        .eq("lock_status", ""))
+                .and(w -> w.eq("bom_id", bomId)
+                        .or()
+                        .eq("route_code", rootCode)
+                        .or()
+                        .likeRight("route_code", rootCode + "_")));
+        if (oldRoutes.isEmpty()) {
+            return;
+        }
+
+        List<String> routeIds = oldRoutes.stream().map(SpProcessRoute::getId).collect(Collectors.toList());
+        contentMapper.delete(new QueryWrapper<SpProcessContent>().in("route_id", routeIds));
+        fileMapper.delete(new QueryWrapper<SpProcessFile>().in("route_id", routeIds));
+        equipmentRelMapper.delete(new QueryWrapper<SpProcessEquipmentRel>().in("route_id", routeIds));
+        materialRelMapper.delete(new QueryWrapper<SpProcessMaterialRel>().in("route_id", routeIds));
+        removeByIds(routeIds);
+    }
+
+    /**
+     * 递归生成子BOM的可装配节点。所有节点的 bom_id 均保存为顶层产品BOM，便于一棵树查询。
+     */
+    private int expand(String ownerBomId, String currentBomId, String parentRouteId, String parentCode, Set<String> visited) {
+        List<SpBomItem> items = bomItemMapper.listByBomHeadId(currentBomId);
         int count = 0;
         int seq = 1;
         for (SpBomItem item : items) {
             boolean isPart = "PART".equals(item.getItemMatType());
             boolean hasChildBom = StringUtils.isNotEmpty(item.getChildBomId());
-            // 只对非PART(有子BOM)节点生成 route，因为PART是直接物料叶子，无装配工序
-            if (isPart || !hasChildBom) {
+            if (isPart) {
                 continue;
             }
+
             String code = parentCode + "_" + String.format("%03d", seq);
-            SpProcessRoute r = newRoute(bomId, item.getId(), code, parentRouteId,
+            SpProcessRoute route = newRoute(ownerBomId, item.getId(), code, parentRouteId,
                     item.getMaterielItemDesc(), item.getMaterielItemCode(), seq * 30);
-            save(r);
+            save(route);
             count++;
             seq++;
 
-            // 递归子BOM
-            if (!visited.contains(item.getChildBomId())) {
+            if (hasChildBom && !visited.contains(item.getChildBomId())) {
                 Set<String> nextVisited = new HashSet<>(visited);
                 nextVisited.add(item.getChildBomId());
-                count += expand(item.getChildBomId(), r.getId(), code, nextVisited);
+                count += expand(ownerBomId, item.getChildBomId(), route.getId(), code, nextVisited);
             }
         }
         return count;
@@ -99,60 +157,72 @@ public class SpProcessRouteServiceImpl extends ServiceImpl<SpProcessRouteMapper,
 
     private SpProcessRoute newRoute(String bomId, String bomItemId, String code,
                                     String parentRouteId, String nodeName, String materielCode, int seq) {
-        SpProcessRoute r = new SpProcessRoute();
-        r.setBomId(bomId);
-        r.setBomItemId(bomItemId);
-        r.setRouteCode(code);
-        r.setParentRouteId(parentRouteId);
-        r.setNodeName(nodeName);
-        r.setMaterielCode(materielCode);
-        r.setSeqNo(seq);
-        r.setLockStatus("draft");
-        r.setEditStatus("pending");
-        r.setDeleted("0");
-        return r;
+        SpProcessRoute route = new SpProcessRoute();
+        route.setBomId(bomId);
+        route.setBomItemId(bomItemId);
+        route.setRouteCode(code);
+        route.setParentRouteId(parentRouteId);
+        route.setNodeName(nodeName);
+        route.setMaterielCode(materielCode);
+        route.setSeqNo(seq);
+        route.setLockStatus("draft");
+        route.setEditStatus("pending");
+        route.setDeleted("0");
+        return route;
     }
 
     @Override
     public ProcessRouteNodeVO getRouteTree(String bomId) {
         List<SpProcessRoute> routes = listByBomId(bomId);
-        if (routes.isEmpty()) return null;
-
-        // 工序缓存
-        Set<String> operIds = new HashSet<>();
-        for (SpProcessRoute r : routes) {
-            if (StringUtils.isNotEmpty(r.getOperId())) operIds.add(r.getOperId());
+        if (routes.isEmpty()) {
+            return null;
         }
+
+        Set<String> operIds = new HashSet<>();
+        for (SpProcessRoute route : routes) {
+            if (StringUtils.isNotEmpty(route.getOperId())) {
+                operIds.add(route.getOperId());
+            }
+        }
+
         Map<String, SpOper> operMap = new HashMap<>();
         Map<String, SpProcessingUnit> unitMap = new HashMap<>();
         if (!operIds.isEmpty()) {
-            for (SpOper o : operService.listByIds(operIds)) operMap.put(o.getId(), o);
+            for (SpOper oper : operService.listByIds(operIds)) {
+                operMap.put(oper.getId(), oper);
+            }
             Set<String> unitIds = new HashSet<>();
-            for (SpOper o : operMap.values()) {
-                if (StringUtils.isNotEmpty(o.getUnitId())) unitIds.add(o.getUnitId());
+            for (SpOper oper : operMap.values()) {
+                if (StringUtils.isNotEmpty(oper.getUnitId())) {
+                    unitIds.add(oper.getUnitId());
+                }
             }
             if (!unitIds.isEmpty()) {
-                for (SpProcessingUnit u : unitService.listByIds(unitIds)) unitMap.put(u.getId(), u);
+                for (SpProcessingUnit unit : unitService.listByIds(unitIds)) {
+                    unitMap.put(unit.getId(), unit);
+                }
             }
         }
 
         Map<String, ProcessRouteNodeVO> idMap = new HashMap<>();
         ProcessRouteNodeVO root = null;
-        for (SpProcessRoute r : routes) {
-            ProcessRouteNodeVO vo = toVO(r, operMap, unitMap);
-            idMap.put(r.getId(), vo);
-            if (r.getParentRouteId() == null) root = vo;
+        for (SpProcessRoute route : routes) {
+            ProcessRouteNodeVO vo = toVO(route, operMap, unitMap);
+            idMap.put(route.getId(), vo);
+            if (StringUtils.isEmpty(route.getParentRouteId())) {
+                root = vo;
+            }
         }
-        for (SpProcessRoute r : routes) {
-            if (r.getParentRouteId() != null) {
-                ProcessRouteNodeVO parent = idMap.get(r.getParentRouteId());
-                if (parent != null) {
-                    parent.getChildren().add(idMap.get(r.getId()));
+        for (SpProcessRoute route : routes) {
+            if (StringUtils.isNotEmpty(route.getParentRouteId())) {
+                ProcessRouteNodeVO parent = idMap.get(route.getParentRouteId());
+                ProcessRouteNodeVO child = idMap.get(route.getId());
+                if (parent != null && child != null) {
+                    parent.getChildren().add(child);
                     parent.setHaveChild(true);
                 }
             }
         }
-        // 同级按 seq_no 排序
         for (ProcessRouteNodeVO vo : idMap.values()) {
             if (!vo.getChildren().isEmpty()) {
                 vo.getChildren().sort(Comparator.comparing(ProcessRouteNodeVO::getSeqNo));
@@ -161,34 +231,35 @@ public class SpProcessRouteServiceImpl extends ServiceImpl<SpProcessRouteMapper,
         return root;
     }
 
-    private ProcessRouteNodeVO toVO(SpProcessRoute r,
+    private ProcessRouteNodeVO toVO(SpProcessRoute route,
                                     Map<String, SpOper> operMap,
                                     Map<String, SpProcessingUnit> unitMap) {
         ProcessRouteNodeVO vo = new ProcessRouteNodeVO();
-        vo.setId(r.getId());
-        vo.setPid(r.getParentRouteId());
-        vo.setRouteId(r.getId());
-        vo.setRouteCode(r.getRouteCode());
-        vo.setNodeName("(" + r.getRouteCode() + ") " + (r.getNodeName() != null ? r.getNodeName() : ""));
-        vo.setMaterielCode(r.getMaterielCode());
-        vo.setBomItemId(r.getBomItemId());
-        vo.setOperId(r.getOperId());
-        vo.setSeqNo(r.getSeqNo());
-        vo.setLockStatus(r.getLockStatus());
-        vo.setEditStatus(r.getEditStatus());
-        if (StringUtils.isNotEmpty(r.getOperId())) {
-            SpOper o = operMap.get(r.getOperId());
-            if (o != null) {
-                vo.setOperCode(o.getOper());
-                vo.setOperName(o.getOperDesc());
-                vo.setOperHours(o.getOperHours() != null ? o.getOperHours().toPlainString() : "");
-                vo.setManuCycle(o.getManuCycle() != null ? o.getManuCycle().toPlainString() : "");
-                vo.setGenPlan(o.getGenPlan());
-                if (StringUtils.isNotEmpty(o.getUnitId())) {
-                    SpProcessingUnit u = unitMap.get(o.getUnitId());
-                    if (u != null) {
-                        vo.setUnitName(u.getUnitName());
-                        vo.setUnitTypeName("device".equals(u.getUnitType()) ? "设备作业单元" : "人员作业单元");
+        vo.setId(route.getId());
+        vo.setPid(route.getParentRouteId());
+        vo.setRouteId(route.getId());
+        vo.setRouteCode(route.getRouteCode());
+        vo.setNodeName("(" + route.getRouteCode() + ") " + StringUtils.defaultString(route.getNodeName()));
+        vo.setMaterielCode(route.getMaterielCode());
+        vo.setBomItemId(route.getBomItemId());
+        vo.setOperId(route.getOperId());
+        vo.setSeqNo(route.getSeqNo());
+        vo.setLockStatus(route.getLockStatus());
+        vo.setEditStatus(route.getEditStatus());
+
+        if (StringUtils.isNotEmpty(route.getOperId())) {
+            SpOper oper = operMap.get(route.getOperId());
+            if (oper != null) {
+                vo.setOperCode(oper.getOper());
+                vo.setOperName(oper.getOperDesc());
+                vo.setOperHours(oper.getOperHours() != null ? oper.getOperHours().toPlainString() : "");
+                vo.setManuCycle(oper.getManuCycle() != null ? oper.getManuCycle().toPlainString() : "");
+                vo.setGenPlan(oper.getGenPlan());
+                if (StringUtils.isNotEmpty(oper.getUnitId())) {
+                    SpProcessingUnit unit = unitMap.get(oper.getUnitId());
+                    if (unit != null) {
+                        vo.setUnitName(unit.getUnitName());
+                        vo.setUnitTypeName("device".equals(unit.getUnitType()) ? "设备作业单元" : "人员作业单元");
                     }
                 }
             }
@@ -199,28 +270,53 @@ public class SpProcessRouteServiceImpl extends ServiceImpl<SpProcessRouteMapper,
     @Override
     public List<SpProcessRoute> listByBomId(String bomId) {
         QueryWrapper<SpProcessRoute> qw = new QueryWrapper<>();
-        qw.eq("bom_id", bomId).eq("is_deleted", "0").orderByAsc("seq_no");
+        qw.eq("bom_id", bomId).eq("is_deleted", "0").orderByAsc("route_code");
         return list(qw);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void bindOper(String routeId, String operId) {
-        SpProcessRoute r = getById(routeId);
-        if (r == null) throw new RuntimeException("工艺记录不存在");
-        if ("locked".equals(r.getLockStatus())) throw new RuntimeException("该工艺已锁定，不能修改");
-        r.setOperId(operId);
-        updateById(r);
+        SpProcessRoute route = getById(routeId);
+        if (route == null) {
+            throw new RuntimeException("工艺记录不存在");
+        }
+        if ("locked".equals(route.getLockStatus())) {
+            throw new RuntimeException("该工艺已锁定，不能修改");
+        }
+        if (StringUtils.isEmpty(operId)) {
+            throw new RuntimeException("请选择要绑定的工序");
+        }
+        if (operService.getById(operId) == null) {
+            throw new RuntimeException("工序记录不存在");
+        }
+        route.setOperId(operId);
+        updateById(route);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void lockAll(String bomId) {
         List<SpProcessRoute> routes = listByBomId(bomId);
-        if (routes.isEmpty()) throw new RuntimeException("尚未初始化工艺流程");
-        for (SpProcessRoute r : routes) {
-            // 允许工序为空也可锁定（PDF未明确要求全部绑定）
-            r.setLockStatus("locked");
+        if (routes.isEmpty()) {
+            throw new RuntimeException("尚未初始化工艺流程");
+        }
+        if (routes.stream().anyMatch(route -> "locked".equals(route.getLockStatus()))) {
+            throw new RuntimeException("该BOM的工艺规划已锁定，不能重复锁定");
+        }
+
+        List<String> missingNodes = new ArrayList<>();
+        for (SpProcessRoute route : routes) {
+            if (StringUtils.isNotEmpty(route.getParentRouteId()) && StringUtils.isEmpty(route.getOperId())) {
+                missingNodes.add(route.getNodeName());
+            }
+        }
+        if (!missingNodes.isEmpty()) {
+            throw new RuntimeException("以下工艺节点尚未绑定工序，无法锁定：" + StringUtils.join(missingNodes, "、"));
+        }
+
+        for (SpProcessRoute route : routes) {
+            route.setLockStatus("locked");
         }
         updateBatchById(routes);
     }
@@ -231,5 +327,4 @@ public class SpProcessRouteServiceImpl extends ServiceImpl<SpProcessRouteMapper,
         qw.eq("bom_id", bomId).eq("lock_status", "locked").last("limit 1");
         return getOne(qw) != null;
     }
-
 }

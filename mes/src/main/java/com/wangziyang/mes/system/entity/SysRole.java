@@ -67,7 +67,7 @@ public class SysRole extends BaseEntity {
      * 状态(0:正常;1:删除;2:禁用)
      */
 	@TableField(value = "is_deleted")
-    private String deleted;
+    private String deleted = "0";
 
 	public String getName() {
 		return name;

@@ -62,6 +62,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void update(SysUserDTO record) throws Exception {
+        SysUser oldUser = sysUserMapper.selectById(record.getId());
+        if (oldUser != null && !oldUser.getPassword().equals(record.getPassword())) {
+            String result = new Md5Hash(record.getPassword(), record.getUsername(),3).toString();
+            record.setPassword(result);
+        }
         sysUserMapper.updateById(record);
         sysRoleService.rebuild(record);
     }

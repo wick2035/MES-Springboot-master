@@ -19,7 +19,7 @@ CREATE TABLE `sp_processing_unit` (
   `unit_name`       varchar(128) NOT NULL                COMMENT '加工单元名称',
   `unit_type`       varchar(32)  NOT NULL DEFAULT 'person' COMMENT '加工单元类型 person=人员作业单元 device=设备作业单元',
   `description`     varchar(500) DEFAULT NULL            COMMENT '描述',
-  `status`          char(1)      NOT NULL DEFAULT '1'    COMMENT '状态 1启用 0停用',
+  `status`          char(1)      NOT NULL DEFAULT '0'    COMMENT '状态 0正常 2异常',
   `is_deleted`      char(1)      NOT NULL DEFAULT '0'    COMMENT '是否删除',
   `create_time`     datetime     NOT NULL                COMMENT '创建时间',
   `create_username` varchar(64)  NOT NULL                COMMENT '创建人',
@@ -30,8 +30,8 @@ CREATE TABLE `sp_processing_unit` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='加工单元主数据';
 
 INSERT INTO `sp_processing_unit` VALUES
-('jg_unit_001', 'JG000001', '电脑组装单元', 'person', 'PDF示例-电脑组装作业人员单元', '1', '0', NOW(), 'admin', NOW(), 'admin'),
-('jg_unit_002', 'JG000002', '加工单元1',     'device', 'PDF示例-轮毂上线工序所属单元',   '1', '0', NOW(), 'admin', NOW(), 'admin');
+('jg_unit_001', 'JG000001', '电脑组装单元', 'person', 'PDF示例-电脑组装作业人员单元', '0', '0', NOW(), 'admin', NOW(), 'admin'),
+('jg_unit_002', 'JG000002', '加工单元1',     'device', 'PDF示例-轮毂上线工序所属单元',   '0', '0', NOW(), 'admin', NOW(), 'admin');
 
 -- ----------------------------
 -- 2. 设备 sp_equipment

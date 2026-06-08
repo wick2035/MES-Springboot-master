@@ -3,14 +3,19 @@
 <mapper namespace="com.wangziyang.mes.technology.mapper.SpBomMapper">
 
     <select id="listAvailableBoms" resultType="com.wangziyang.mes.technology.entity.SpBom">
-        SELECT id, bom_code, materiel_code, materiel_desc, version_number, state, bom_level
+        SELECT id, bom_code, materiel_code, materiel_desc, version_number, state,
+               bom_level, lock_status, validity, factory, remark, is_deleted
         FROM sp_bom
         WHERE is_deleted = '0'
-          AND state = 'pass'
+          AND lock_status = 'locked'
+          AND validity = '有效'
           <if test="bomLevel != null">
               AND bom_level = #{bomLevel}
           </if>
-        ORDER BY bom_level, materiel_code
+          <if test="materielCode != null and materielCode != ''">
+              AND materiel_code = #{materielCode}
+          </if>
+        ORDER BY bom_level, materiel_code, version_number DESC
     </select>
 
 </mapper>

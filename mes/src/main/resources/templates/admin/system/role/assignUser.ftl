@@ -120,7 +120,7 @@
     // 添加选中
     document.getElementById('js-add-btn').onclick = function () {
         var selected = document.querySelectorAll('#js-all-users .user-item.selected');
-        if (selected.length === 0) { layer.msg('请先选择要添加的用户'); return; }
+        if (selected.length === 0) { parent.layer.msg('请先选择要添加的用户'); return; }
         var pending = [];
         selected.forEach(function (el) { pending.push(el.dataset.id); });
         var done = 0;
@@ -131,6 +131,7 @@
                 if (done === pending.length) {
                     renderAllUsers(document.getElementById('js-all-search').value);
                     renderAssignedUsers();
+                    parent.layer.msg('成功添加 ' + pending.length + ' 个用户', {icon: 1});
                 }
             });
         });
@@ -139,7 +140,7 @@
     // 移除选中
     document.getElementById('js-remove-btn').onclick = function () {
         var selected = document.querySelectorAll('#js-assigned-users .user-item.selected');
-        if (selected.length === 0) { layer.msg('请先选择要移除的用户'); return; }
+        if (selected.length === 0) { parent.layer.msg('请先选择要移除的用户'); return; }
         var pending = [];
         selected.forEach(function (el) { pending.push(el.dataset.id); });
         var done = 0;
@@ -150,6 +151,7 @@
                 if (done === pending.length) {
                     renderAllUsers(document.getElementById('js-all-search').value);
                     renderAssignedUsers();
+                    parent.layer.msg('成功移除 ' + pending.length + ' 个用户', {icon: 1});
                 }
             });
         });

@@ -1,6 +1,7 @@
 package com.wangziyang.mes.technology.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.wangziyang.mes.common.BaseEntity;
 
 import java.math.BigDecimal;
@@ -62,6 +63,12 @@ public class SpBomItem extends BaseEntity {
      * 子项物料类型 FG/PG/COMP/PART
      */
     private String itemMatType;
+
+    /**
+     * 关联子BOM编码，仅用于页面展示
+     */
+    @TableField(exist = false)
+    private String childBomCode;
 
     public String getBomHeadId() {
         return bomHeadId;
@@ -135,6 +142,14 @@ public class SpBomItem extends BaseEntity {
         this.itemMatType = itemMatType;
     }
 
+    public String getChildBomCode() {
+        return childBomCode;
+    }
+
+    public void setChildBomCode(String childBomCode) {
+        this.childBomCode = childBomCode;
+    }
+
     @Override
     public String toString() {
         return "SpBomItem{" +
@@ -147,6 +162,7 @@ public class SpBomItem extends BaseEntity {
                 ", operTyper=" + operTyper +
                 ", childBomId=" + childBomId +
                 ", itemMatType=" + itemMatType +
+                ", childBomCode=" + childBomCode +
                 "}";
     }
 }

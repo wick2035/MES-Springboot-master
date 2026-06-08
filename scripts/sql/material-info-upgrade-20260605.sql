@@ -63,7 +63,7 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- 2. 字典 sp_sys_dict
 -- ----------------------------
 
--- 2.1 material_type 补充：产品=PRODUCT、标准件=STD、其他=OTHER
+-- 2.1 material_type 补充：产品=PRODUCT、标准件=STD、其他=OTHER、原材料=RAW
 --     （保留既有 成品FG/半成品PG/组件COMP/零件PART，BOM 层级逻辑依赖其 code）
 INSERT INTO `sp_sys_dict`
   (`id`, `name`, `value`, `type`, `descr`, `sort_num`, `parent_id`, `is_deleted`,
@@ -72,6 +72,7 @@ SELECT * FROM (
   SELECT REPLACE(UUID(),'-','') id, '产品' name, 'PRODUCT' value, 'material_type' type, '物料类型-产品' descr, 6 sort_num, '""' parent_id, '0' is_deleted, NOW() ct, 'admin' cu, NOW() ut, 'admin' uu
   UNION ALL SELECT REPLACE(UUID(),'-',''), '标准件', 'STD', 'material_type', '物料类型-标准件', 7, '""', '0', NOW(), 'admin', NOW(), 'admin'
   UNION ALL SELECT REPLACE(UUID(),'-',''), '其他',  'OTHER', 'material_type', '物料类型-其他', 8, '""', '0', NOW(), 'admin', NOW(), 'admin'
+  UNION ALL SELECT REPLACE(UUID(),'-',''), '原材料', 'RAW', 'material_type', '物料类型-原材料', 9, '""', '0', NOW(), 'admin', NOW(), 'admin'
 ) t
 WHERE NOT EXISTS (SELECT 1 FROM `sp_sys_dict` d WHERE d.type = 'material_type' AND d.value = t.value);
 

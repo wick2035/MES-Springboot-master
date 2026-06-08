@@ -20,5 +20,6 @@ public interface SpBomMapper extends BaseMapper<SpBom> {
      * 查询可用的子BOM列表（state=pass，is_deleted=0）
      * @param bomLevel BOM层级，null表示不限制
      */
-    List<SpBom> listAvailableBoms(@Param("bomLevel") Integer bomLevel);
+    List<SpBom> listAvailableBoms(@Param("bomLevel") Integer bomLevel,
+                                  @Param("materielCode") String materielCode);
 }

@@ -33,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -140,6 +141,16 @@ public class SpMaterileController extends BaseController {
         }
         if (StringUtils.isNotEmpty(req.getMatType())) {
             queryWrapper.eq("mat_type", req.getMatType());
+        } else if (StringUtils.isNotEmpty(req.getMatTypes())) {
+            List<String> matTypes = new ArrayList<>();
+            for (String matType : Arrays.asList(req.getMatTypes().split(","))) {
+                if (StringUtils.isNotEmpty(matType)) {
+                    matTypes.add(matType.trim());
+                }
+            }
+            if (!matTypes.isEmpty()) {
+                queryWrapper.in("mat_type", matTypes);
+            }
         }
         if (StringUtils.isNotEmpty(req.getMatSource())) {
             queryWrapper.eq("mat_source", req.getMatSource());

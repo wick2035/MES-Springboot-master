@@ -1,6 +1,7 @@
 package com.wangziyang.mes.common.config;
 
 import com.baomidou.mybatisplus.extension.plugins.PaginationInterceptor;
+import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +13,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  */
 @EnableTransactionManagement
 @Configuration
-@MapperScan("com.wangziyang.mes.*.mapper*")
+@MapperScan("com.wangziyang.mes.**.mapper*")
 public class MybatisPlusConfig {
 
 	@Bean
@@ -23,5 +24,11 @@ public class MybatisPlusConfig {
 		// 设置最大单页限制数量，默认 500 条，-1 不受限制
 		// paginationInterceptor.setLimit(500);
 		return paginationInterceptor;
+	}
+
+	@Bean
+	public ConfigurationCustomizer localDateTimeTypeHandlerCustomizer() {
+		return configuration -> configuration.getTypeHandlerRegistry()
+				.register(CompatibleLocalDateTimeTypeHandler.class);
 	}
 }

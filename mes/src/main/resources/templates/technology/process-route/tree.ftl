@@ -10,8 +10,10 @@
         .lock-draft { background: #98A2B3; }
         .lock-locked { background: #D97706; }
         .gen-yes { color: #16BAAA; font-weight: bold; }
-        .layui-table .lock-icon { color: #D97706; font-size: 16px; cursor: pointer; }
+        .layui-table .lock-icon { color: #D97706; font-size: 16px; }
         .layui-table .edit-icon { color: #16BAAA; font-size: 16px; cursor: pointer; }
+        .content-btn { background-color: #E74C3C; border-radius: 4px; }
+        .content-btn:hover { opacity: .9; color: #fff; }
     </style>
 </head>
 <body>
@@ -23,16 +25,16 @@
         <span id="js-bom-info" style="margin-left:16px; color:#555;">请先选择已锁定的BOM</span>
         <span id="js-lock-status" style="margin-left:16px;"></span>
         <span style="float:right;">
-            <button class="layui-btn layui-btn-sm layui-btn-warm layui-btn-disabled" id="js-btn-init">
+            <button class="layui-btn layui-btn-sm layui-btn-warm layui-btn-disabled" id="js-btn-init" disabled>
                 <i class="layui-icon">&#xe609;</i> 初始化工艺流程
             </button>
-            <button class="layui-btn layui-btn-sm layui-btn-danger layui-btn-disabled" id="js-btn-lock">
+            <button class="layui-btn layui-btn-sm layui-btn-danger layui-btn-disabled" id="js-btn-lock" disabled>
                 <i class="layui-icon">&#xe61b;</i> 锁定产品工艺规划
             </button>
         </span>
     </div>
 
-    <div class="splayui-main" style="padding-top:10px;">
+    <div class="splayui-main" id="js-route-table-wrap" style="padding-top:10px;">
         <table id="js-route-table" lay-filter="js-route-table-filter"></table>
     </div>
 </div>
@@ -40,6 +42,10 @@
 <script type="text/html" id="js-route-table-toolbar-right">
     {{# if (d.lockStatus !== 'locked') { }}
     <a class="layui-icon edit-icon" lay-event="edit" title="编辑工艺规划">&#xe642;</a>
+    {{# } else if (d.operId && d.editStatus === 'completed') { }}
+    <a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="viewContent">查看工艺</a>
+    {{# } else if (d.operId) { }}
+    <a class="layui-btn layui-btn-xs layui-btn-danger content-btn" lay-event="content">工艺内容编制</a>
     {{# } else { }}
     <i class="layui-icon lock-icon" title="已锁定">&#xe673;</i>
     {{# } }}
@@ -50,6 +56,7 @@
     var currentBomCode = '';
     var currentBomDesc = '';
     var treeTableIns = null;
+    var loadTree = function () {};
 
     window.__bomSelectCallback = function (row) {
         currentBomId = row.id;
@@ -60,7 +67,7 @@
     };
 
     layui.use(['table', 'treeTable'], function () {
-        var table = layui.table, treeTable = layui.treeTable;
+        var treeTable = layui.treeTable;
 
         $('#js-btn-select-bom').on('click', function () {
             layer.open({
@@ -71,6 +78,7 @@
 
         $('#js-btn-init').on('click', function () {
             if (!currentBomId) { layer.msg('请先选择BOM'); return; }
+            if ($(this).hasClass('layui-btn-disabled')) { return; }
             layer.confirm('确认初始化（将覆盖未锁定的旧工艺记录）？', function (idx) {
                 spUtil.ajax({
                     url: '${request.contextPath}/technology/process-route/init',
@@ -86,6 +94,7 @@
 
         $('#js-btn-lock').on('click', function () {
             if (!currentBomId) { layer.msg('请先选择BOM'); return; }
+            if ($(this).hasClass('layui-btn-disabled')) { return; }
             layer.confirm('确认要锁定该产品工艺规划吗？<br/>锁定后将无法再对该产品工艺及其工序进行新增、编辑、删除操作。', function (idx) {
                 spUtil.ajax({
                     url: '${request.contextPath}/technology/process-route/lock',
@@ -99,7 +108,16 @@
             });
         });
 
-        function loadTree() {
+        function setButtonState(selector, enabled) {
+            var $btn = $(selector);
+            if (enabled) {
+                $btn.removeClass('layui-btn-disabled').removeAttr('disabled');
+            } else {
+                $btn.addClass('layui-btn-disabled').attr('disabled', true);
+            }
+        }
+
+        loadTree = function () {
             if (!currentBomId) return;
             spUtil.ajax({
                 url: '${request.contextPath}/technology/process-route/tree',
@@ -109,23 +127,22 @@
                     var locked = d.locked;
                     if (locked) {
                         $('#js-lock-status').html('<span class="pr-lock-badge lock-locked">已锁定</span>');
-                        $('#js-btn-lock').addClass('layui-btn-disabled').attr('disabled', true);
+                        setButtonState('#js-btn-init', false);
+                        setButtonState('#js-btn-lock', false);
                     } else {
                         $('#js-lock-status').html('<span class="pr-lock-badge lock-draft">草稿</span>');
-                        $('#js-btn-lock').removeClass('layui-btn-disabled').removeAttr('disabled');
+                        setButtonState('#js-btn-init', true);
+                        setButtonState('#js-btn-lock', true);
                     }
-                    $('#js-btn-init').removeClass('layui-btn-disabled').removeAttr('disabled');
 
                     var rows = d.tree ? [d.tree] : [];
                     renderTable(rows);
                 }
             });
-        }
+        };
 
         function renderTable(rows) {
-            if (treeTableIns) {
-                try { layui.treeTable.reload('js-route-table', {data: rows}); return; } catch (e) {}
-            }
+            $('#js-route-table-wrap').html('<table id="js-route-table"></table>');
             treeTableIns = treeTable.render({
                 elem: '#js-route-table',
                 data: rows,
@@ -133,47 +150,55 @@
                     iconIndex: 1,
                     isPidData: false,
                     idName: 'id',
+                    pidName: 'pid',
                     childName: 'children',
+                    haveChildName: 'haveChild',
                     openName: 'open'
                 },
-                cols: [[
+                cols: [
                     {type: 'numbers', width: 50},
-                    {field: 'nodeName', title: '工序名称', minWidth: 380},
+                    {field: 'nodeName', title: '工艺节点名称', minWidth: 380},
                     {field: 'operCode', title: '工序编号', width: 110},
-                    {field: 'operName', title: '绑定工序', width: 160},
+                    {field: 'operName', title: '绑定工序', width: 170},
                     {field: 'unitName', title: '加工单元', width: 130},
                     {field: 'unitTypeName', title: '加工单元类型', width: 130},
                     {field: 'operHours', title: '工时(h)', width: 80},
                     {field: 'manuCycle', title: '周期(h)', width: 80},
                     {
-                        field: 'genPlan', title: '是否生成生产计划', width: 130, templet: function (d) {
+                        field: 'genPlan', title: '生成生产计划', width: 120, templet: function (d) {
                             return d.genPlan === 'Y' ? '<span class="gen-yes">是</span>' : (d.genPlan === 'N' ? '否' : '');
                         }
                     },
                     {field: 'seqNo', title: '排序号', width: 80},
-                    {title: '操作', toolbar: '#js-route-table-toolbar-right', width: 110}
-                ]]
+                    {title: '操作', toolbar: '#js-route-table-toolbar-right', width: 150}
+                ]
             });
         }
 
-        // 行操作
-        $(document).on('click', '#js-route-table .edit-icon', function () {
-            // treeTable 行事件需要通过 toolbar 触发；为简单起见这里取最近一行的数据
-        });
-
-        treeTable.on('tool(js-route-table-filter)', function (obj) {
+        treeTable.on('tool(js-route-table)', function (obj) {
             if (obj.event === 'edit') {
-                var routeId = obj.data.routeId;
                 layer.open({
                     type: 2, title: '编辑工艺规划', area: ['80%', '80%'],
-                    content: '${request.contextPath}/technology/process-route/edit-ui?routeId=' + routeId,
+                    content: '${request.contextPath}/technology/process-route/edit-ui?routeId=' + obj.data.routeId,
                     end: function () { loadTree(); }
+                });
+            }
+            if (obj.event === 'content') {
+                layer.open({
+                    type: 2, title: '工艺内容编制', area: ['95%', '92%'],
+                    content: '${request.contextPath}/technology/process-content/wizard-ui?routeId=' + obj.data.routeId,
+                    end: function () { loadTree(); }
+                });
+            }
+            if (obj.event === 'viewContent') {
+                layer.open({
+                    type: 2, title: '工艺详情', area: ['95%', '92%'],
+                    content: '${request.contextPath}/technology/process-query/detail-ui?routeId=' + obj.data.routeId
                 });
             }
         });
 
         if (currentBomId) {
-            // 已经带入bomId，直接加载（需要先拿到BOM信息显示）
             loadTree();
         }
     });

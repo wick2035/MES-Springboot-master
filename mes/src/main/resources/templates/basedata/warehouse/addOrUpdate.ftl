@@ -32,8 +32,9 @@
                         <div class="layui-input-inline">
                             <select name="warehouseType" lay-verify="required">
                                 <option value="">请选择库房类型</option>
-                                <option value="1" <#if (result.warehouseType)?? && result.warehouseType == "1">selected</#if>>零件库</option>
-                                <option value="2" <#if (result.warehouseType)?? && result.warehouseType == "2">selected</#if>>产品库</option>
+                                <option value="1" <#if (result.warehouseType)?? && result.warehouseType == "1">selected</#if>>原材料库</option>
+                                <option value="3" <#if (result.warehouseType)?? && result.warehouseType == "3">selected</#if>>半成品库</option>
+                                <option value="2" <#if (result.warehouseType)?? && result.warehouseType == "2">selected</#if>>成品库</option>
                             </select>
                         </div>
                     </div>

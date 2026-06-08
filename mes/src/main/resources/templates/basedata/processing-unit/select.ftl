@@ -39,6 +39,7 @@
         var tableIns = spTable.render({
             id: 'unit-select-table',
             url: '${request.contextPath}/basedata/processing-unit/page',
+            where: {status: '0'},
             cols: [[
                 {type: 'radio'},
                 {field: 'unitCode', title: '单元编号', width: 130},
@@ -52,6 +53,7 @@
             ]]
         });
         form.on('submit(js-search-filter)', function (data) {
+            data.field.status = '0';
             tableIns.reload({where: data.field, page: {curr: 1}});
             return false;
         });

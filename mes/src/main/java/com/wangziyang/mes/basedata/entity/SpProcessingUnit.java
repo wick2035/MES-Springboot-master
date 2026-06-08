@@ -29,7 +29,7 @@ public class SpProcessingUnit extends BaseEntity {
     private BigDecimal stdCapacity;
     /** 是否有线边库 Y是 N否 */
     private String hasEdgeWarehouse;
-    /** 状态 1启用 0停用 */
+    /** 状态 0正常 2异常 */
     private String status;
 
     @TableField(value = "is_deleted")

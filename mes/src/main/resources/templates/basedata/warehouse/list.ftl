@@ -106,8 +106,9 @@
         }
 
         function typeTemplet(d) {
-            if (d.warehouseType === '1') return '零件库';
-            if (d.warehouseType === '2') return '产品库';
+            if (d.warehouseType === '1') return '原材料库';
+            if (d.warehouseType === '2') return '成品库';
+            if (d.warehouseType === '3') return '半成品库';
             return '';
         }
 

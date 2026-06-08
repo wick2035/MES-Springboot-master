@@ -81,6 +81,19 @@ public class SpEquipmentController extends BaseController {
         return Result.success();
     }
 
+    @PostMapping("/disable")
+    @ResponseBody
+    public Result disable(@RequestParam String id, @RequestParam String status) {
+        if (!"0".equals(status) && !"1".equals(status)) {
+            return Result.failure("状态参数不正确");
+        }
+        SpEquipment exist = equipmentService.getById(id);
+        if (exist == null || "1".equals(exist.getDeleted())) return Result.failure("数据不存在");
+        exist.setStatus(status);
+        equipmentService.updateById(exist);
+        return Result.success();
+    }
+
     @PostMapping("/delete")
     @ResponseBody
     public Result delete(SpEquipment req) {

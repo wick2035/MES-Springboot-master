@@ -113,7 +113,7 @@
         //监听提交
         form.on('submit(js-submit-filter)', function (data) {
             spUtil.submitForm({
-                url: "${request.contextPath}/admin/sys/user/add-or-update",
+                url: "${request.contextPath}/admin/sys/menu/add-or-update",
                 data: data.field
             });
 

@@ -19,7 +19,7 @@ public class SpWarehouse extends BaseEntity {
     private String warehouseCode;
     /** 库房名称 */
     private String warehouseName;
-    /** 库房类型 1零件库 2产品库 */
+    /** 库房类型 1原材料库 2成品库 3半成品库 */
     private String warehouseType;
     /** 库房描述 */
     private String warehouseDesc;

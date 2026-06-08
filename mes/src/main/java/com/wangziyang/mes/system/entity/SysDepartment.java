@@ -1,5 +1,6 @@
 package com.wangziyang.mes.system.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.wangziyang.mes.common.BaseEntity;
 
@@ -25,6 +26,7 @@ public class SysDepartment extends BaseEntity {
     /**
      * 逻辑删除：1 表示删除，0 表示未删除，2 表示禁用
      */
+    @TableField("is_deleted")
     private String isDeleted;
 
     public String getParentId() {

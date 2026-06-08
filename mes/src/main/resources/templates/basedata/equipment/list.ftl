@@ -44,12 +44,19 @@
 </script>
 <script type="text/html" id="js-record-table-toolbar-right">
     <a class="layui-btn layui-btn-xs" lay-event="edit"><i class="layui-icon layui-icon-edit"></i>编辑</a>
+    <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="disable">
+        {{# if(d.status === '1'){ }}
+        <i class="layui-icon">&#xe651;</i>禁用
+        {{# } else { }}
+        <i class="layui-icon">&#xe652;</i>启用
+        {{# } }}
+    </a>
     <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete"><i class="layui-icon layui-icon-delete"></i>删除</a>
 </script>
 
 <script>
-    layui.use(['form', 'table', 'spLayer', 'spTable'], function () {
-        var form = layui.form, table = layui.table, spLayer = layui.spLayer, spTable = layui.spTable;
+    layui.use(['form', 'table', 'layer', 'spLayer', 'spTable'], function () {
+        var form = layui.form, table = layui.table, layer = layui.layer, spLayer = layui.spLayer, spTable = layui.spTable;
         var tableIns = spTable.render({
             url: '${request.contextPath}/basedata/equipment/page',
             toolbar: '#js-record-table-toolbar-top',
@@ -64,7 +71,7 @@
                         return d.status === '1' ? '启用' : '停用';
                     }
                 },
-                {fixed: 'right', title: '操作', toolbar: '#js-record-table-toolbar-right', unresize: true, width: 150}
+                {fixed: 'right', title: '操作', toolbar: '#js-record-table-toolbar-right', unresize: true, width: 220}
             ]]
         });
         $(function () { form.render(); });
@@ -87,6 +94,23 @@
                     title: '编辑设备', area: ['700px', '550px'],
                     spWhere: {id: data.id},
                     content: '${request.contextPath}/basedata/equipment/add-or-update-ui'
+                });
+            }
+            if (obj.event === 'disable') {
+                var newStatus = data.status === '1' ? '0' : '1';
+                var action = newStatus === '0' ? '禁用' : '启用';
+                layer.confirm('确认要' + action + '设备【' + (data.equipmentName || data.equipmentCode || '') + '】吗？', function (index) {
+                    spUtil.ajax({
+                        url: '${request.contextPath}/basedata/equipment/disable',
+                        type: 'POST',
+                        serializable: false,
+                        data: {id: data.id, status: newStatus},
+                        success: function () {
+                            layer.msg(action + '成功');
+                            tableIns.reload();
+                            layer.close(index);
+                        }
+                    });
                 });
             }
             if (obj.event === 'delete') {

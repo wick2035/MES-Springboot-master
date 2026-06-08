@@ -19,7 +19,7 @@
         </button>
         <span id="js-bom-info" style="margin-left:16px; color:#555;">请先选择BOM</span>
     </div>
-    <div class="splayui-main" style="padding-top:10px;">
+    <div class="splayui-main" id="js-route-table-wrap" style="padding-top:10px;">
         <table id="js-route-table" lay-filter="js-route-table-filter"></table>
     </div>
 </div>
@@ -31,6 +31,7 @@
 <script>
     var currentBomId = '${bomId!''}';
     var treeTableIns = null;
+    var loadTree = function () {};
 
     window.__bomSelectCallback = function (row) {
         currentBomId = row.id;
@@ -48,7 +49,7 @@
             });
         });
 
-        function loadTree() {
+        loadTree = function () {
             if (!currentBomId) return;
             spUtil.ajax({
                 url: '${request.contextPath}/technology/process-query/route-tree',
@@ -58,17 +59,15 @@
                     renderTable(rows);
                 }
             });
-        }
+        };
 
         function renderTable(rows) {
-            if (treeTableIns) {
-                try { layui.treeTable.reload('js-route-table', {data: rows}); return; } catch (e) {}
-            }
+            $('#js-route-table-wrap').html('<table id="js-route-table"></table>');
             treeTableIns = treeTable.render({
                 elem: '#js-route-table',
                 data: rows,
-                tree: {iconIndex: 1, isPidData: false, idName: 'id', childName: 'children', openName: 'open'},
-                cols: [[
+                tree: {iconIndex: 1, isPidData: false, idName: 'id', pidName: 'pid', childName: 'children', haveChildName: 'haveChild', openName: 'open'},
+                cols: [
                     {type: 'numbers', width: 50},
                     {
                         field: 'nodeName', title: '节点名称', minWidth: 360, templet: function (d) {
@@ -87,11 +86,11 @@
                         }
                     },
                     {title: '操作', toolbar: '#js-route-toolbar', width: 110}
-                ]]
+                ]
             });
         }
 
-        treeTable.on('tool(js-route-table-filter)', function (obj) {
+        treeTable.on('tool(js-route-table)', function (obj) {
             if (obj.event === 'view') {
                 layer.open({
                     type: 2, title: '工艺详情', area: ['95%', '92%'],

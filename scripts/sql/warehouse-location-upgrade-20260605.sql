@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `sp_warehouse` (
   `id` varchar(64) NOT NULL COMMENT '主键',
   `warehouse_code` varchar(64) NOT NULL COMMENT '库房编码',
   `warehouse_name` varchar(255) NOT NULL COMMENT '库房名称',
-  `warehouse_type` varchar(2) NOT NULL COMMENT '库房类型 1零件库 2产品库',
+  `warehouse_type` varchar(2) NOT NULL COMMENT '库房类型 1原材料库 2成品库 3半成品库',
   `warehouse_desc` varchar(500) DEFAULT NULL COMMENT '库房描述',
   `spec_group` int(11) DEFAULT NULL COMMENT '规格-组',
   `spec_row` int(11) DEFAULT NULL COMMENT '规格-排',

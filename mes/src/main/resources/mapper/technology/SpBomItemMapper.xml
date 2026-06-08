@@ -3,13 +3,15 @@
 <mapper namespace="com.wangziyang.mes.technology.mapper.SpBomItemMapper">
 
     <select id="listByBomHeadId" resultType="com.wangziyang.mes.technology.entity.SpBomItem">
-        SELECT id, bom_head_id, materiel_item_code, materiel_item_desc,
-               line_no, item_num, item_unit, oper_typer,
-               child_bom_id, item_mat_type,
-               create_time, create_username, update_time, update_username
-        FROM sp_bom_item
-        WHERE bom_head_id = #{bomHeadId}
-        ORDER BY CAST(line_no AS UNSIGNED)
+        SELECT bi.id, bi.bom_head_id, bi.materiel_item_code, bi.materiel_item_desc,
+               bi.line_no, bi.item_num, bi.item_unit, bi.oper_typer,
+               bi.child_bom_id, bi.item_mat_type,
+               cb.bom_code AS child_bom_code,
+               bi.create_time, bi.create_username, bi.update_time, bi.update_username
+        FROM sp_bom_item bi
+        LEFT JOIN sp_bom cb ON cb.id = bi.child_bom_id
+        WHERE bi.bom_head_id = #{bomHeadId}
+        ORDER BY CAST(bi.line_no AS UNSIGNED)
     </select>
 
 </mapper>

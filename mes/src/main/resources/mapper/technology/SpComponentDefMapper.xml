@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.technology.mapper.SpComponentDefMapper">
+
+    <select id="listEnabledByProductName" resultType="com.wangziyang.mes.technology.entity.SpComponentDef">
+        SELECT id, product_name, component_code, component_name, component_type,
+               remark, is_deleted, create_time, create_username, update_time, update_username
+        FROM sp_component_def
+        WHERE is_deleted = '0'
+          <if test="productName != null and productName != ''">
+              AND (
+                  REPLACE(REPLACE(TRIM(product_name), '?', ''), '？', '')
+                      = REPLACE(REPLACE(TRIM(#{productName}), '?', ''), '？', '')
+                  OR REPLACE(REPLACE(TRIM(product_name), '?', ''), '？', '')
+                      LIKE CONCAT('%', REPLACE(REPLACE(TRIM(#{productName}), '?', ''), '？', ''), '%')
+                  OR REPLACE(REPLACE(TRIM(#{productName}), '?', ''), '？', '')
+                      LIKE CONCAT('%', REPLACE(REPLACE(TRIM(product_name), '?', ''), '？', ''), '%')
+              )
+          </if>
+          <if test="componentType != null and componentType != ''">
+              <choose>
+                  <when test="componentType == 'PG' or componentType == '半成品'">
+                      AND component_type IN ('PG', '半成品')
+                  </when>
+                  <when test="componentType == 'COMP' or componentType == '组件'">
+                      AND component_type IN ('COMP', '组件')
+                  </when>
+                  <otherwise>
+                      AND component_type = #{componentType}
+                  </otherwise>
+              </choose>
+          </if>
+        ORDER BY component_code
+    </select>
+
+</mapper>

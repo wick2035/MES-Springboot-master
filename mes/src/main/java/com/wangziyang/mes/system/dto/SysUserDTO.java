@@ -18,6 +18,11 @@ public class SysUserDTO extends SysUser {
     private String[] sysRoleIds;
 
     /**
+     * 确认密码，仅用于表单校验
+     */
+    private String repassword;
+
+    /**
      * 角色列表
      */
     private List<SysRoleDTO> sysRoleDTOs;
@@ -36,5 +41,13 @@ public class SysUserDTO extends SysUser {
 
     public void setSysRoleIds(String[] sysRoleIds) {
         this.sysRoleIds = sysRoleIds;
+    }
+
+    public String getRepassword() {
+        return repassword;
+    }
+
+    public void setRepassword(String repassword) {
+        this.repassword = repassword;
     }
 }

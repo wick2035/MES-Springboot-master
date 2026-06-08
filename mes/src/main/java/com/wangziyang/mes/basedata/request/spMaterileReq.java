@@ -22,6 +22,11 @@ public class spMaterileReq  extends BasePageReq {
     private String matType;
 
     /**
+     * 物料类型集合（逗号分隔）
+     */
+    private String matTypes;
+
+    /**
      * 物料来源（精确）
      */
     private String matSource;
@@ -37,6 +42,14 @@ public class spMaterileReq  extends BasePageReq {
 
     public void setMatType(String matType) {
         this.matType = matType;
+    }
+
+    public String getMatTypes() {
+        return this.matTypes;
+    }
+
+    public void setMatTypes(String matTypes) {
+        this.matTypes = matTypes;
     }
 
     public String getMatSource() {

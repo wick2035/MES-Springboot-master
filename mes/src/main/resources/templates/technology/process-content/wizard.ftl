@@ -36,10 +36,23 @@
         .attach-item { padding: 6px 10px; background:#f0f0f0; border-radius:3px; margin: 4px 0; }
         .panel-footer { padding: 16px 20px; border-top: 1px solid #eee; text-align:center; }
         .layui-form-label { width: 110px; }
+        .lock-banner {
+            margin: 12px 16px 0; padding: 10px 14px; border-left: 4px solid #16BAAA;
+            background: #f0fdfa; color: #0f766e; font-weight: 600;
+        }
+        .content-locked .layui-input,
+        .content-locked .layui-textarea,
+        .content-locked select {
+            background: #f5f7fa !important; color: #555;
+        }
     </style>
 </head>
-<body>
+<body class="<#if contentLocked?? && contentLocked>content-locked</#if>">
 <div>
+    <#if contentLocked?? && contentLocked>
+    <div class="lock-banner">当前工序已完成编制并锁定，页面仅支持查看，不能再编辑。</div>
+    </#if>
+
     <!-- 顶部步骤导航 -->
     <div class="step-bar" id="js-step-bar">
         <div class="step-item">
@@ -307,6 +320,7 @@
 
 <script>
     var routeId = '${route.id}';
+    var contentLocked = ${contentLocked?string('true','false')};
     var ROUTE = {
         contentImgs: [],
         reqImgs: [],
@@ -341,9 +355,11 @@
             var idx = i;
             var $item = $('<div class="img-preview-item"></div>');
             $item.append('<img src="' + url + '" title="' + (f.originalName || '') + '">');
-            $item.append($('<span class="del-btn">×</span>').on('click', (function (k) {
-                return function () { arr.splice(k, 1); renderImgList(listElemId, arr, fileType); };
-            })(idx)));
+            if (!contentLocked) {
+                $item.append($('<span class="del-btn">×</span>').on('click', (function (k) {
+                    return function () { arr.splice(k, 1); renderImgList(listElemId, arr, fileType); };
+                })(idx)));
+            }
             $el.append($item);
         }
     }
@@ -355,9 +371,11 @@
             var idx = i;
             var $item = $('<div class="attach-item"></div>');
             $item.append('<i class="layui-icon layui-icon-file"></i> <a href="${request.contextPath}/upload/' + f.filePath + '" target="_blank">' + (f.originalName || '') + '</a> <span style="color:#999;">(' + Math.round((f.size || 0) / 1024) + 'KB)</span> ');
-            $item.append($('<a style="color:red; margin-left:10px; cursor:pointer;">删除</a>').on('click', (function (k) {
-                return function () { arr.splice(k, 1); renderAttachList(listElemId, arr); };
-            })(idx)));
+            if (!contentLocked) {
+                $item.append($('<a style="color:red; margin-left:10px; cursor:pointer;">删除</a>').on('click', (function (k) {
+                    return function () { arr.splice(k, 1); renderAttachList(listElemId, arr); };
+                })(idx)));
+            }
             $el.append($item);
         }
     }
@@ -415,6 +433,7 @@
         var upload = layui.upload, table = layui.table;
 
         function buildUpload(elemId, arr, listId) {
+            if (contentLocked) return;
             upload.render({
                 elem: '#' + elemId,
                 url: '${request.contextPath}/common/uploads',
@@ -440,56 +459,64 @@
         buildUpload('js-upload-tech-img', ROUTE.techImgs, 'js-tech-img-list');
 
         // 附件上传（非图片）
-        upload.render({
-            elem: '#js-upload-tech-attach',
-            url: '${request.contextPath}/common/uploads',
-            multiple: true,
-            accept: 'file',
-            exts: 'doc|docx|pdf|xls|xlsx|ppt|pptx|txt|zip|rar',
-            field: 'files',
-            done: function (resp) {
-                if (resp.code === 0) {
-                    var files = resp.data || [];
-                    for (var i = 0; i < files.length; i++) {
-                        ROUTE.techAttachs.push({filePath: files[i].filePath, originalName: files[i].originalName, size: files[i].size});
+        if (!contentLocked) {
+            upload.render({
+                elem: '#js-upload-tech-attach',
+                url: '${request.contextPath}/common/uploads',
+                multiple: true,
+                accept: 'file',
+                exts: 'doc|docx|pdf|xls|xlsx|ppt|pptx|txt|zip|rar',
+                field: 'files',
+                done: function (resp) {
+                    if (resp.code === 0) {
+                        var files = resp.data || [];
+                        for (var i = 0; i < files.length; i++) {
+                            ROUTE.techAttachs.push({filePath: files[i].filePath, originalName: files[i].originalName, size: files[i].size});
+                        }
+                        renderAttachList('js-tech-attach-list', ROUTE.techAttachs);
+                    } else {
+                        layer.msg(resp.msg || '上传失败');
                     }
-                    renderAttachList('js-tech-attach-list', ROUTE.techAttachs);
-                } else {
-                    layer.msg(resp.msg || '上传失败');
                 }
-            }
-        });
+            });
+        }
 
         // Step5 工装设备表
         window.renderEquipTable = function () {
+            var equipCols = [
+                {field: 'equipmentCode', title: '设备编码', width: 130},
+                {field: 'equipmentName', title: '设备名称'},
+                {field: 'equipmentModel', title: '设备规格/型号'},
+                {field: 'purpose', title: '设备用途'},
+                {field: 'reqQty', title: '需求数量', width: 100, edit: contentLocked ? false : 'text'},
+                {field: 'remark', title: '备注信息', edit: contentLocked ? false : 'text'}
+            ];
+            if (!contentLocked) {
+                equipCols.push({fixed: 'right', title: '操作', width: 80, templet: function (d) { return '<a class="layui-btn layui-btn-xs layui-btn-danger" onclick="removeEquip(' + d.LAY_INDEX + ')">移除</a>'; }});
+            }
             table.render({
                 elem: '#js-equip-table',
                 data: ROUTE.equipments,
-                cols: [[
-                    {field: 'equipmentCode', title: '设备编码', width: 130},
-                    {field: 'equipmentName', title: '设备名称'},
-                    {field: 'equipmentModel', title: '设备规格/型号'},
-                    {field: 'purpose', title: '设备用途'},
-                    {field: 'reqQty', title: '需求数量', width: 100, edit: 'text'},
-                    {field: 'remark', title: '备注信息', edit: 'text'},
-                    {fixed: 'right', title: '操作', width: 80, templet: function (d) { return '<a class="layui-btn layui-btn-xs layui-btn-danger" onclick="removeEquip(' + d.LAY_INDEX + ')">移除</a>'; }}
-                ]]
+                cols: [equipCols]
             });
         };
         // Step7 物料表
         window.renderMatTable = function () {
+            var matCols = [
+                {field: 'materielCode', title: '物料编码', width: 130},
+                {field: 'materielDesc', title: '物料名称'},
+                {field: 'matType', title: '物料类型', width: 100},
+                {field: 'model', title: '规格/型号'},
+                {field: 'reqQty', title: '需求数量', width: 110, edit: contentLocked ? false : 'text'},
+                {field: 'remark', title: '备注信息', edit: contentLocked ? false : 'text'}
+            ];
+            if (!contentLocked) {
+                matCols.push({fixed: 'right', title: '操作', width: 80, templet: function (d) { return '<a class="layui-btn layui-btn-xs layui-btn-danger" onclick="removeMat(' + d.LAY_INDEX + ')">移除</a>'; }});
+            }
             table.render({
                 elem: '#js-mat-table',
                 data: ROUTE.materials,
-                cols: [[
-                    {field: 'materielCode', title: '物料编码', width: 130},
-                    {field: 'materielDesc', title: '物料名称'},
-                    {field: 'matType', title: '物料类型', width: 100},
-                    {field: 'model', title: '规格/型号'},
-                    {field: 'reqQty', title: '需求数量', width: 110, edit: 'text'},
-                    {field: 'remark', title: '备注信息', edit: 'text'},
-                    {fixed: 'right', title: '操作', width: 80, templet: function (d) { return '<a class="layui-btn layui-btn-xs layui-btn-danger" onclick="removeMat(' + d.LAY_INDEX + ')">移除</a>'; }}
-                ]]
+                cols: [matCols]
             });
         };
 
@@ -502,18 +529,22 @@
         });
 
         loadInitData();
+        applyReadonlyState();
     });
 
     window.removeEquip = function (idx) {
+        if (contentLocked) return;
         ROUTE.equipments.splice(idx, 1);
         renderEquipTable();
     };
     window.removeMat = function (idx) {
+        if (contentLocked) return;
         ROUTE.materials.splice(idx, 1);
         renderMatTable();
     };
 
     window.__equipmentSelectCallback = function (rows) {
+        if (contentLocked) return;
         for (var i = 0; i < rows.length; i++) {
             var r = rows[i];
             if (ROUTE.equipments.some(function (x) { return x.equipmentId === r.id; })) continue;
@@ -523,6 +554,7 @@
         renderEquipTable();
     };
     window.__materileSelectCallback = function (rows) {
+        if (contentLocked) return;
         for (var i = 0; i < rows.length; i++) {
             var r = rows[i];
             if (ROUTE.materials.some(function (x) { return x.materielId === r.id; })) continue;
@@ -533,15 +565,22 @@
     };
 
     function openEquipmentSelect() {
+        if (contentLocked) { layer.msg('当前工序已锁定，仅可查看'); return; }
         layer.open({type: 2, title: '选择设备', area: ['80%', '70%'],
             content: '${request.contextPath}/basedata/equipment/select-ui'});
     }
     function openMaterileSelect() {
+        if (contentLocked) { layer.msg('当前工序已锁定，仅可查看'); return; }
         layer.open({type: 2, title: '选择物料', area: ['80%', '70%'],
             content: '${request.contextPath}/basedata/materile/select-ui'});
     }
 
-    function saveStep(n) {
+    function saveStep(n, done) {
+        if (contentLocked) {
+            layer.msg('当前工序已锁定，仅可查看');
+            if (n < 7) goStep(n + 1);
+            return;
+        }
         var data = {routeId: routeId};
         var url = '${request.contextPath}/technology/process-content/save-step' + n;
         if (n === 2) {
@@ -572,13 +611,14 @@
             success: function () {
                 layer.msg('保存成功');
                 if (n < 7) goStep(n + 1);
+                if (typeof done === 'function') done();
             }
         });
     }
 
     function completeAll() {
-        saveStep(7); // 先保存当前步
-        setTimeout(function () {
+        if (contentLocked) { layer.msg('当前工序已锁定，仅可查看'); return; }
+        saveStep(7, function () {
             layer.confirm('确认已完成当前工序各个步骤的编制？', function (idx) {
                 spUtil.ajax({
                     url: '${request.contextPath}/technology/process-content/complete',
@@ -592,7 +632,17 @@
                     }
                 });
             });
-        }, 400);
+        });
+    }
+
+    function applyReadonlyState() {
+        if (!contentLocked) return;
+        $('textarea, select').prop('disabled', true);
+        $('#panel-6 input[name=techDocDesc]').prop('disabled', true);
+        $('#js-upload-content-img,#js-upload-req-img,#js-upload-prec-img,#js-upload-tech-img,#js-upload-tech-attach')
+            .addClass('layui-btn-disabled').attr('disabled', true);
+        $('#panel-5 .layui-btn-sm,#panel-7 .layui-btn-sm').addClass('layui-btn-disabled').attr('disabled', true);
+        layui.use(['form'], function () { layui.form.render(); });
     }
 </script>
 </body>

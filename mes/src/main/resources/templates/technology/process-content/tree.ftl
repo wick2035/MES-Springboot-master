@@ -20,13 +20,15 @@
         </button>
         <span id="js-bom-info" style="margin-left:16px; color:#555;">请先选择BOM</span>
     </div>
-    <div class="splayui-main" style="padding-top:10px;">
+    <div class="splayui-main" id="js-route-table-wrap" style="padding-top:10px;">
         <table id="js-route-table" lay-filter="js-route-table-filter"></table>
     </div>
 </div>
 
 <script type="text/html" id="js-route-toolbar">
-    {{# if (d.operId) { }}
+    {{# if (d.operId && d.editStatus === 'completed') { }}
+    <a class="layui-btn layui-btn-sm layui-btn-normal" lay-event="view">查看详情</a>
+    {{# } else if (d.operId) { }}
     <a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="edit">工艺内容编制</a>
     {{# } else { }}
     <span style="color:#999;">未绑定工序</span>
@@ -36,6 +38,7 @@
 <script>
     var currentBomId = '${bomId!''}';
     var treeTableIns = null;
+    var loadTree = function () {};
 
     window.__bomSelectCallback = function (row) {
         currentBomId = row.id;
@@ -53,7 +56,7 @@
             });
         });
 
-        function loadTree() {
+        loadTree = function () {
             if (!currentBomId) return;
             spUtil.ajax({
                 url: '${request.contextPath}/technology/process-content/route-tree',
@@ -63,17 +66,15 @@
                     renderTable(rows);
                 }
             });
-        }
+        };
 
         function renderTable(rows) {
-            if (treeTableIns) {
-                try { layui.treeTable.reload('js-route-table', {data: rows}); return; } catch (e) {}
-            }
+            $('#js-route-table-wrap').html('<table id="js-route-table"></table>');
             treeTableIns = treeTable.render({
                 elem: '#js-route-table',
                 data: rows,
-                tree: {iconIndex: 1, isPidData: false, idName: 'id', childName: 'children', openName: 'open'},
-                cols: [[
+                tree: {iconIndex: 1, isPidData: false, idName: 'id', pidName: 'pid', childName: 'children', haveChildName: 'haveChild', openName: 'open'},
+                cols: [
                     {type: 'numbers', width: 50},
                     {field: 'nodeName', title: '工序名称', minWidth: 360},
                     {field: 'operCode', title: '工序编号', width: 110},
@@ -81,23 +82,29 @@
                     {field: 'unitName', title: '加工单元', width: 130},
                     {
                         field: 'editStatus', title: '编制状态', width: 100, templet: function (d) {
-                            if (d.editStatus === 'completed') return '<span class="edit-completed">已完成 ✓</span>';
+                            if (d.editStatus === 'completed') return '<span class="edit-completed">已完成锁定 ✓</span>';
                             if (d.editStatus === 'editing') return '<span class="edit-editing">编制中</span>';
                             return '<span class="edit-pending">未编制</span>';
                         }
                     },
                     {title: '操作', toolbar: '#js-route-toolbar', width: 160}
-                ]]
+                ]
             });
         }
 
-        treeTable.on('tool(js-route-table-filter)', function (obj) {
+        treeTable.on('tool(js-route-table)', function (obj) {
             if (obj.event === 'edit') {
                 var routeId = obj.data.routeId;
                 layer.open({
                     type: 2, title: '工艺内容编制', area: ['95%', '92%'],
                     content: '${request.contextPath}/technology/process-content/wizard-ui?routeId=' + routeId,
                     end: function () { loadTree(); }
+                });
+            }
+            if (obj.event === 'view') {
+                layer.open({
+                    type: 2, title: '工艺详情', area: ['95%', '92%'],
+                    content: '${request.contextPath}/technology/process-query/detail-ui?routeId=' + obj.data.routeId
                 });
             }
         });

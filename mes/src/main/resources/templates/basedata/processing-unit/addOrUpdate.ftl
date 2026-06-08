@@ -58,10 +58,10 @@
             <div class="layui-form-item">
                 <label class="layui-form-label sp-required">状态</label>
                 <div class="layui-input-block" style="width: 310px;">
-                    <input type="radio" name="status" value="1" title="启用"
-                           <#if (result.status!'1') == '1'>checked</#if>>
-                    <input type="radio" name="status" value="0" title="停用"
-                           <#if (result.status!'') == '0'>checked</#if>>
+                    <input type="radio" name="status" value="0" title="正常"
+                           <#if (result.status!'0') == '0' || (result.status!'') == '1'>checked</#if>>
+                    <input type="radio" name="status" value="2" title="异常"
+                           <#if (result.status!'') == '2'>checked</#if>>
                 </div>
             </div>
             <div class="layui-form-item layui-hide">

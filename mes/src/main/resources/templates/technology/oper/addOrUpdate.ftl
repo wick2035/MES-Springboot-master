@@ -47,8 +47,8 @@
                     <div class="layui-form-item">
                         <label class="layui-form-label sp-required">工序工时(h)</label>
                         <div class="layui-input-inline">
-                            <input type="number" name="operHours" lay-verify="required|number" class="layui-input"
-                                   step="0.01" min="0" value="${(result.operHours!0)?string}">
+                            <input type="number" name="operHours" lay-verify="required|positiveInteger" class="layui-input"
+                                   step="1" min="1" value="${(result.operHours!1)?string}">
                         </div>
                     </div>
                 </div>
@@ -59,8 +59,8 @@
                     <div class="layui-form-item">
                         <label class="layui-form-label sp-required">制造周期(h)</label>
                         <div class="layui-input-inline">
-                            <input type="number" name="manuCycle" lay-verify="required|number" class="layui-input"
-                                   step="0.01" min="0" value="${(result.manuCycle!0)?string}">
+                            <input type="number" name="manuCycle" lay-verify="required|positiveInteger|cycleRule" class="layui-input"
+                                   step="1" min="1" value="${(result.manuCycle!2)?string}">
                         </div>
                         <div class="layui-form-mid layui-word-aux">需≥工序工时</div>
                     </div>
@@ -69,9 +69,9 @@
                     <div class="layui-form-item">
                         <label class="layui-form-label">是否生成生产计划</label>
                         <div class="layui-input-inline">
-                            <select name="genPlan">
-                                <option value="Y" <#if (result.genPlan!'Y') == 'Y'>selected</#if>>是</option>
-                                <option value="N" <#if (result.genPlan!'') == 'N'>selected</#if>>否</option>
+                            <input type="hidden" name="genPlan" value="Y">
+                            <select disabled>
+                                <option value="Y" selected>是</option>
                             </select>
                         </div>
                     </div>
@@ -87,7 +87,7 @@
 
             <div class="layui-form-item layui-hide">
                 <input name="id" value="${result.id!''}"/>
-                <button class="layui-btn" lay-submit lay-filter="js-submit-filter">确定</button>
+                <button id="js-submit" class="layui-btn" lay-submit lay-filter="js-submit-filter">确定</button>
             </div>
         </form>
     </div>
@@ -109,6 +109,20 @@
 
     layui.use(['form'], function () {
         var form = layui.form;
+        form.verify({
+            positiveInteger: function (value) {
+                if (!/^[1-9]\d*$/.test(value)) {
+                    return '请输入正整数';
+                }
+            },
+            cycleRule: function (value) {
+                var operHours = parseInt($('input[name="operHours"]').val(), 10);
+                var manuCycle = parseInt(value, 10);
+                if (!isNaN(operHours) && !isNaN(manuCycle) && manuCycle < operHours) {
+                    return '制造周期应大于等于工序工时';
+                }
+            }
+        });
         form.on('submit(js-submit-filter)', function (data) {
             spUtil.submitForm({
                 url: "${request.contextPath}/technology/oper/add-or-update",

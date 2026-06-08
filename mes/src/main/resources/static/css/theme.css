@@ -368,6 +368,29 @@ body {
     border-color: transparent;
 }
 
+/* === 操作列按钮防折叠规则 === */
+
+/* 对带 toolbar 的列（LayUI 渲染时自动加 data-off="true"），
+   取消 overflow hidden，让按钮全部可见 */
+.layui-table td[data-off="true"] .layui-table-cell {
+    overflow: visible !important;
+    text-overflow: clip;
+}
+
+/* 隐藏 toolbar 列上的 grid-down 下拉图标 */
+.layui-table td[data-off="true"] .layui-table-grid-down {
+    display: none !important;
+}
+
+/* 兜底：field="operate" 或 data-field="operate" 的列同样处理 */
+.layui-table td[data-field="operate"] .layui-table-cell {
+    overflow: visible !important;
+    text-overflow: clip;
+}
+.layui-table td[data-field="operate"] .layui-table-grid-down {
+    display: none !important;
+}
+
 /* 分页 laypage */
 .layui-laypage a,
 .layui-laypage span {
@@ -413,6 +436,26 @@ body {
 }
 .layui-layer-content {
     color: var(--sp-text-secondary);
+}
+/* Global message toast: keep text readable on the themed layer content color. */
+.layui-layer-msg.layui-layer-hui {
+    background-color: var(--sp-surface);
+    border: 1px solid var(--sp-border);
+    border-radius: var(--sp-radius-lg);
+    box-shadow: var(--sp-shadow-lg);
+    filter: none;
+    color: var(--sp-text);
+}
+.layui-layer-msg.layui-layer-hui .layui-layer-content {
+    padding: 12px 22px;
+    color: var(--sp-text);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 22px;
+}
+.layui-layer-msg.layui-layer-hui .layui-layer-padding {
+    padding: 16px 20px 16px 54px;
+    text-align: left;
 }
 .layui-layer-btn {
     padding: 12px 18px 18px;
