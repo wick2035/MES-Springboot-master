@@ -67,7 +67,7 @@
         }
 
         .login-shell > .brand-panel { justify-self: start; }
-        .brand-panel { max-width: 660px; }
+        .brand-panel { max-width: 720px; }
 
         .brand-mark {
             display: inline-flex;
@@ -103,38 +103,41 @@
             line-height: 1.8;
         }
 
-        .signal-row {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 14px;
-            max-width: 580px;
-            margin-top: 40px;
+        .position-relative { position: relative; }
+        .position-absolute { position: absolute; }
+
+        /* fit2cloud 同款分层浮动 banner */
+        .f2c-banner {
+            width: 100%;
+            max-width: 720px;
+            margin-top: 28px;
         }
-        .signal-item {
-            min-height: 92px;
-            padding: 16px;
-            border: 1px solid #E5E8EC;
-            border-radius: 8px;
-            background: #FFFFFF;
-            box-shadow: 0 1px 2px rgba(16, 24, 40, .05);
-            transition: transform .2s ease, box-shadow .2s ease;
+        .f2c-banner img { display: block; }
+        .f2c-bg {
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 18px 40px rgba(16, 24, 40, .12));
         }
-        .signal-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(16, 24, 40, .10);
+        .f2c-banner .position-absolute { height: auto; z-index: 2; }
+        .f2c-banner .position-absolute img { width: 100%; height: auto; }
+        .f2c-animate-img-bottom { width: 60%; }
+        .f2c-animate-img-block  { width: 36%; }
+        .f2c-animate-img-left   { width: 13%; }
+        .f2c-animate-img-right  { width: 7.7%; }
+        .f2c-animate-img-AI     { width: 16.4%; }
+
+        @keyframes f2cFloat {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-14px); }
         }
-        .signal-item strong {
-            display: block;
-            color: #2563EB;
-            font-size: 22px;
-            line-height: 1.1;
-            font-weight: 700;
-        }
-        .signal-item span {
-            display: block;
-            margin-top: 8px;
-            color: #5B6573;
-            font-size: 13px;
+        .f2c-animate-img-bottom { animation: f2cFloat 6s ease-in-out infinite; }
+        .f2c-animate-img-block  { animation: f2cFloat 5s ease-in-out infinite .4s; }
+        .f2c-animate-img-left   { animation: f2cFloat 4.5s ease-in-out infinite .8s; }
+        .f2c-animate-img-right  { animation: f2cFloat 5.5s ease-in-out infinite .2s; }
+        .f2c-animate-img-AI     { animation: f2cFloat 4s ease-in-out infinite .6s; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .f2c-banner .position-absolute { animation: none !important; }
         }
 
         .login-panel {
@@ -266,7 +269,7 @@
             }
             .login-shell > .brand-panel { justify-self: center; text-align: center; }
             .brand-panel { max-width: 100%; }
-            .signal-row { margin-left: auto; margin-right: auto; grid-template-columns: 1fr; margin-top: 24px; }
+            .f2c-banner { margin-left: auto; margin-right: auto; max-width: 460px; margin-top: 24px; }
             .brand-title { margin-top: 20px; font-size: 40px; }
             .brand-subtitle { font-size: 15px; }
             .login-panel { max-width: 420px; margin: 0 auto; }
@@ -286,25 +289,25 @@
 <body>
 <div class="login-shell">
     <section class="brand-panel" aria-label="MES系统-PRO">
-        <div class="brand-mark">
-            <img src="${request.contextPath}/image/logo.png" alt="">
-            <span>Manufacturing Execution Intelligence</span>
-        </div>
         <h1 class="brand-title">MES<span class="accent">系统</span>-PRO</h1>
         <p class="brand-subtitle">面向生产计划、工艺流转、物料追踪与现场执行的智能制造中枢。</p>
-        <div class="signal-row" aria-hidden="true">
-            <div class="signal-item">
-                <strong>Realtime</strong>
-                <span>产线状态同步</span>
+        <div class="f2c-banner position-relative" aria-hidden="true">
+            <div class="f2c-animate-img-bottom position-absolute" style="bottom: 14%; right: 12%">
+                <img src="${request.contextPath}/image/banner/banner-bottom.png" alt="">
             </div>
-            <div class="signal-item">
-                <strong>Trace</strong>
-                <span>过程数据追溯</span>
+            <div class="f2c-animate-img-block position-absolute" style="top: 6%; left: 38%">
+                <img src="${request.contextPath}/image/banner/banner-block.png" alt="">
             </div>
-            <div class="signal-item">
-                <strong>Control</strong>
-                <span>执行闭环管控</span>
+            <div class="f2c-animate-img-left position-absolute" style="top: 18%; left: 20%">
+                <img src="${request.contextPath}/image/banner/banner-left.png" alt="">
             </div>
+            <div class="f2c-animate-img-right position-absolute" style="top: 18%; right: 23%">
+                <img src="${request.contextPath}/image/banner/banner-right.png" alt="">
+            </div>
+            <div class="f2c-animate-img-AI position-absolute" style="top: 8%; left: 47%">
+                <img src="${request.contextPath}/image/banner/banner-AI.png" alt="">
+            </div>
+            <img class="f2c-bg" src="${request.contextPath}/image/banner/banner-bg.png" alt="">
         </div>
     </section>
 

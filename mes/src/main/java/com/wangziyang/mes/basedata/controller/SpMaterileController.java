@@ -9,7 +9,6 @@ import com.wangziyang.mes.basedata.common.entity.SpSysDict;
 import com.wangziyang.mes.basedata.common.service.ISpSysDictService;
 import com.wangziyang.mes.basedata.dto.SpMaterileImportDTO;
 import com.wangziyang.mes.basedata.entity.SpMaterile;
-import com.wangziyang.mes.basedata.entity.SpTableManager;
 import com.wangziyang.mes.basedata.request.spMaterileReq;
 import com.wangziyang.mes.basedata.service.ISpMaterileService;
 import com.wangziyang.mes.common.BaseController;
@@ -98,7 +97,7 @@ public class SpMaterileController extends BaseController {
      */
     @ApiOperation("物料管理修改界面")
     @GetMapping("/add-or-update-ui")
-    public String addOrUpdateUI(Model model, SpTableManager record) {
+    public String addOrUpdateUI(Model model, SpMaterile record) {
         if (StringUtils.isNotEmpty(record.getId())) {
             SpMaterile spMaterile = iSpMaterileService.getById(record.getId());
             model.addAttribute("result", spMaterile);

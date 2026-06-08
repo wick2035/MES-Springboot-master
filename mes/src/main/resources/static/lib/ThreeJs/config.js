@@ -1,7 +1,8 @@
 /**
- * 这是模型的静态常量配置
- * 和货架的配置（一般要从数据库读取，这里仅做演示）
- * @author 谢宁, Created on 2020-01-07
+ * 模型静态常量配置 + 货架配置。
+ * 货架/层数/列数原为写死的演示数据，现改为可由后端库房数据动态填充：
+ * 页面加载时调用 SET_SCENE_CONFIG(layer, column, shelfList) 注入真实库房规格。
+ * @author 谢宁, Created on 2020-01-07；2026-06-08 改造为数据驱动
  */
 /** ***************************************************************** */
 
@@ -11,18 +12,24 @@ var PLANE_HEIGHT = 2;   //货架板面高度
 var HOLDER_LENGTH = 2;  //支架长度
 var HOLDER_WIDTH = 2;   //支架宽度
 var HOLDER_HEIGHT = 25; //支架高度
-var LAYER_NUM = 3;      //货架层数
-var COLUMN_NUM = 2;     //货架每层列数
+var LAYER_NUM = 1;      //货架层数（运行时由库房规格-层 注入）
+var COLUMN_NUM = 1;     //货架每层列数（运行时由库房规格-列 注入）
 var BOX_SIZE = 16;      //货物的大小(立方体)
 
-//货架数组
+//货架数组（运行时由库房 组×排 生成）
 var shelf_list = new Array();
-shelf_list.push({StorageZoneId:'Z1',shelfId:'A1',shelfName:'货架A1',x:-100,y:27,z:0});
-shelf_list.push({StorageZoneId:'Z1',shelfId:'A2',shelfName:'货架A2',x:0,y:27,z:0});
-shelf_list.push({StorageZoneId:'Z1',shelfId:'A3',shelfName:'货架A3',x:100,y:27,z:0});
-shelf_list.push({StorageZoneId:'Z1',shelfId:'A4',shelfName:'货架A4',x:200,y:27,z:0});
-shelf_list.push({StorageZoneId:'Z1',shelfId:'A5',shelfName:'货架A5',x:300,y:27,z:0});
-shelf_list.push({StorageZoneId:'Z1',shelfId:'A6',shelfName:'货架A6',x:400,y:27,z:0});
+
+/**
+ * 由后端库房数据注入场景配置
+ * @param layer    库房规格-层
+ * @param column   库房规格-列
+ * @param shelfList 货架数组，元素形如 {StorageZoneId, shelfId, shelfName, x, y, z}
+ */
+function SET_SCENE_CONFIG(layer, column, shelfList) {
+  LAYER_NUM = (layer && layer > 0) ? layer : 1;
+  COLUMN_NUM = (column && column > 0) ? column : 1;
+  shelf_list = shelfList || [];
+}
 
 function GET_PLANE_LENGTH(){
   return PLANE_LENGTH;

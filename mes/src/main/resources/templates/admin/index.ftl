@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no">
     <#include "${request.contextPath}/common/common.ftl">
-    <link rel="stylesheet" href="${request.contextPath}/css/splayui.css?v=1.3.0" media="all">
+    <link rel="stylesheet" href="${request.contextPath}/css/splayui.css?v=1.3.1" media="all">
     <style id="splayui-bg-color">
     </style>
 </head>

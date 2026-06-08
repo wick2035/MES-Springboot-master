@@ -23,6 +23,41 @@
             width: 0;
             height: 0;
         }
+
+        #wh-selector {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 6px 12px;
+            border-radius: 6px;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+            font-size: 14px;
+        }
+
+        #wh-selector select {
+            height: 30px;
+            min-width: 220px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 0 6px;
+        }
+
+        #wh-empty-tip {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 998;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.45);
+            padding: 14px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            display: none;
+        }
     </style>
 
     <script type="text/javascript" src="${request.contextPath}/lib/ThreeJs/js/three.js"></script>
@@ -50,6 +85,11 @@
 </head>
 
 <body>
+<div id="wh-selector">
+    库房：
+    <select id="js-wh-select"></select>
+</div>
+<div id="wh-empty-tip">该库房暂无库位/库存数据，或尚未选择库房</div>
 <div id="label"></div>
 <div id="container"></div>
 <video id="video" autoplay loop muted>
@@ -57,6 +97,15 @@
 </video>
 
 <script>
+
+    // 全局错误捕获：把任何脚本错误显示到页面中央，便于排查 3D 不显示问题
+    window.onerror = function (msg, src, line, col) {
+        var tip = document.getElementById('wh-empty-tip');
+        if (tip) {
+            tip.style.display = 'block';
+            tip.textContent = '脚本错误：' + msg + ' @' + (src || '') + ':' + line;
+        }
+    };
 
     var stats = initStats();
     var scene, camera, renderer, controls, light, composer, transformControls, options;
@@ -102,21 +151,17 @@
     // 初始化GUI
     function initGui() {
         options = new function () {
+            this.matName = '';
             this.batchNo = '';
-            this.qty = 0;
+            this.qty = '';
             this.qtyUom = '';
-            this.qty2 = 0;
-            this.实时全景监控 = function () {
-                window.open("3DVideo.html");
-            };
         };
         var gui = new dat.GUI();
         gui.domElement.style = 'position:absolute;top:10px;right:0px;height:600px';
-        gui.add(options, 'batchNo').name("物料批号：").listen();
+        gui.add(options, 'matName').name("物料名称：").listen();
+        gui.add(options, 'batchNo').name("批号：").listen();
         gui.add(options, 'qty').name("数量：").listen();
         gui.add(options, 'qtyUom').name("单位：").listen();
-        gui.add(options, 'qty2').name("件数：").listen();
-        gui.add(options, '实时全景监控');
     }
 
     // 初始化渲染器
@@ -450,14 +495,18 @@
 
         addArea(0, 0, 1000, 500, scene, "ID1$库区1号", "FF0000", 20, "左对齐");
 
-        addShelf(scene);
+        //按真实库房规格生成货架（组×排），无库房数据则不生成
+        if (GET_SHELF_LIST().length > 0) {
+            addShelf(scene);
 
-        //添加货物
-        var shelf_list = GET_SHELF_LIST();
-        for (var i = 1; i <= GET_LAYER_NUM(); i++) {
-            for (var j = 1; j <= GET_COLUMN_NUM(); j++) {
-                for (var k = 1; k <= shelf_list.length; k++) {
-                    addOneUnitCargos(shelf_list[k - 1].shelfId, i, j, scene);
+            //按真实库存数据放置货物（仅有库存的库位放盒子）
+            var invs = window.sceneInventories || [];
+            for (var n = 0; n < invs.length; n++) {
+                var it = invs[n];
+                var shelfId = 'G' + it.groupNo + 'R' + it.rowNo;
+                // 库位坐标须落在当前库房规格内，否则跳过
+                if (getStorageUnitById(shelfId, it.layerNo, it.columnNo)) {
+                    addOneUnitCargos(shelfId, it.layerNo, it.columnNo, scene);
                 }
             }
         }
@@ -510,8 +559,103 @@
         RollTexture.offset.x += 0.001;
     }
 
-    init();
-    animate();
+    // ======================= 数据驱动启动 =======================
+    var WAREHOUSE_ID = '${warehouseId!""}';
+    window.inventoryMap = {};
+    window.sceneInventories = [];
+
+    // 由库房规格(组×排)生成货架列表
+    function buildShelfList(wh) {
+        var groups = (wh.specGroup && wh.specGroup > 0) ? wh.specGroup : 1;
+        var rows = (wh.specRow && wh.specRow > 0) ? wh.specRow : 1;
+        var spacingX = 120, spacingZ = 140;
+        var list = [];
+        for (var g = 1; g <= groups; g++) {
+            for (var r = 1; r <= rows; r++) {
+                list.push({
+                    StorageZoneId: 'Z1',
+                    shelfId: 'G' + g + 'R' + r,
+                    shelfName: '货架' + g + '-' + r,
+                    x: (r - (rows + 1) / 2) * spacingX,
+                    y: 27,
+                    z: (g - (groups + 1) / 2) * spacingZ
+                });
+            }
+        }
+        return list;
+    }
+
+    // 用场景数据初始化并启动渲染
+    function startScene(sceneData) {
+        var wh = sceneData.warehouse;
+        var invs = sceneData.inventories || [];
+        if (!wh) {
+            $('#wh-empty-tip').show();
+            SET_SCENE_CONFIG(1, 1, []);
+        } else {
+            var shelfList = buildShelfList(wh);
+            SET_SCENE_CONFIG(wh.specLayer, wh.specColumn, shelfList);
+            window.sceneInventories = invs;
+            // 构建库存映射，键 = shelfId$层$列
+            window.inventoryMap = {};
+            for (var i = 0; i < invs.length; i++) {
+                var it = invs[i];
+                var key = 'G' + it.groupNo + 'R' + it.rowNo + '$' + it.layerNo + '$' + it.columnNo;
+                window.inventoryMap[key] = it;
+            }
+            if (shelfList.length === 0) {
+                $('#wh-empty-tip').show();
+            }
+        }
+        try {
+            init();
+            animate();
+        } catch (e) {
+            $('#wh-empty-tip').css('display', 'block').text('3D 初始化失败：' + (e && e.message ? e.message : e));
+            if (window.console) console.error('3D init error:', e);
+        }
+    }
+
+    // 切换库房 -> 整页重载（规避 Three.js 重建复杂度）
+    $('#js-wh-select').on('change', function () {
+        var id = $(this).val();
+        window.location.href = '${request.contextPath}/digital/simulation/list-ui?warehouseId=' + encodeURIComponent(id);
+    });
+
+    // 加载库房下拉，再拉取所选库房场景数据
+    function loadWarehousesAndStart() {
+        $.post('${request.contextPath}/digital/simulation/warehouse-list', {}, function (res) {
+            var list = (res && res.code === 0 && res.data) ? res.data : [];
+            var selectedId = WAREHOUSE_ID || (list.length > 0 ? list[0].id : '');
+            var html = '';
+            if (list.length === 0) {
+                html = '<option value="">（暂无库房）</option>';
+            }
+            for (var i = 0; i < list.length; i++) {
+                var w = list[i];
+                var sel = (w.id === selectedId) ? ' selected' : '';
+                html += '<option value="' + w.id + '"' + sel + '>' + w.warehouseCode + ' ' + w.warehouseName + '</option>';
+            }
+            $('#js-wh-select').html(html);
+
+            if (!selectedId) {
+                startScene({});
+                return;
+            }
+            $.post('${request.contextPath}/digital/simulation/scene', {warehouseId: selectedId}, function (sres) {
+                var sceneData = (sres && sres.code === 0 && sres.data) ? sres.data : {};
+                startScene(sceneData);
+            }).fail(function () {
+                startScene({});
+            });
+        }).fail(function () {
+            // 接口不可用（如应用未重启）：仍渲染空建筑并提示
+            $('#js-wh-select').html('<option value="">（库房接口不可用，请重启应用）</option>');
+            startScene({});
+        });
+    }
+
+    loadWarehousesAndStart();
 </script>
 </body>
 

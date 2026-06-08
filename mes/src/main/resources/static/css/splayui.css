@@ -634,6 +634,8 @@ a {
 
 .layui-layout-admin .layui-side {
     top: 60px !important;
+    /* 外层不滚动，仅由内层 .layui-side-scroll 产生滚动条，避免双滚动条 */
+    overflow: hidden;
 }
 
 /* ============================================================
@@ -753,6 +755,19 @@ a {
 .splayui-side-inner {
     height: 94%;
     display: flex;
+    flex-direction: column;
+    /* 自身不滚动，仅作为内层滚动容器的外壳 */
+    overflow: hidden;
+}
+
+/* 唯一滚动容器：撑满宽高，覆盖 layui 默认 width:220px（其「20px 溢出隐藏滚动条」
+   的小技巧因外层 flex 而失效，反而露出第二条滚动条），用 100% 让滚动条贴右边缘只剩一条 */
+.layui-layout-admin .layui-side-scroll {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .splayui-side-search {

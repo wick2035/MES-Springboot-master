@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.basedata.mapper.SpInventoryMapper">
+
+    <resultMap id="BaseResultMap" type="com.wangziyang.mes.basedata.entity.SpInventory">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="warehouse_id" property="warehouseId" jdbcType="VARCHAR"/>
+        <result column="location_id" property="locationId" jdbcType="VARCHAR"/>
+        <result column="materiel_id" property="materielId" jdbcType="VARCHAR"/>
+        <result column="batch_no" property="batchNo" jdbcType="VARCHAR"/>
+        <result column="qty" property="qty" jdbcType="DECIMAL"/>
+        <result column="unit" property="unit" jdbcType="VARCHAR"/>
+        <result column="is_deleted" property="deleted" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="create_username" property="createUsername" jdbcType="VARCHAR"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="update_username" property="updateUsername" jdbcType="VARCHAR"/>
+        <!-- 展示字段 -->
+        <result column="warehouse_code" property="warehouseCode" jdbcType="VARCHAR"/>
+        <result column="warehouse_name" property="warehouseName" jdbcType="VARCHAR"/>
+        <result column="location_code" property="locationCode" jdbcType="VARCHAR"/>
+        <result column="group_no" property="groupNo" jdbcType="INTEGER"/>
+        <result column="row_no" property="rowNo" jdbcType="INTEGER"/>
+        <result column="layer_no" property="layerNo" jdbcType="INTEGER"/>
+        <result column="column_no" property="columnNo" jdbcType="INTEGER"/>
+        <result column="materiel_code" property="materielCode" jdbcType="VARCHAR"/>
+        <result column="materiel_desc" property="materielDesc" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!--分页查询库存，联表回显库房/库位/物料-->
+    <select id="pageList" resultMap="BaseResultMap">
+        SELECT
+            it.id,
+            it.warehouse_id,
+            it.location_id,
+            it.materiel_id,
+            it.batch_no,
+            it.qty,
+            it.unit,
+            it.is_deleted,
+            it.create_time,
+            it.create_username,
+            it.update_time,
+            it.update_username,
+            w.warehouse_code AS warehouse_code,
+            w.warehouse_name AS warehouse_name,
+            wl.location_code AS location_code,
+            wl.group_no AS group_no,
+            wl.row_no AS row_no,
+            wl.layer_no AS layer_no,
+            wl.column_no AS column_no,
+            m.materiel AS materiel_code,
+            m.materiel_desc AS materiel_desc
+        FROM sp_inventory it
+        LEFT JOIN sp_warehouse w ON it.warehouse_id = w.id
+        LEFT JOIN sp_warehouse_location wl ON it.location_id = wl.id
+        LEFT JOIN sp_materile m ON it.materiel_id = m.id
+        WHERE it.is_deleted = '0'
+        <if test="req.warehouseId != null and req.warehouseId != ''">
+            AND it.warehouse_id = #{req.warehouseId}
+        </if>
+        <if test="req.materielLike != null and req.materielLike != ''">
+            AND (m.materiel LIKE CONCAT('%', #{req.materielLike}, '%')
+                 OR m.materiel_desc LIKE CONCAT('%', #{req.materielLike}, '%'))
+        </if>
+        <if test="req.locationCodeLike != null and req.locationCodeLike != ''">
+            AND wl.location_code LIKE CONCAT('%', #{req.locationCodeLike}, '%')
+        </if>
+        ORDER BY it.update_time DESC
+    </select>
+
+    <!--查询某库房全部库存（含库位坐标，供 3D 场景使用）-->
+    <select id="listByWarehouse" resultMap="BaseResultMap">
+        SELECT
+            it.id,
+            it.warehouse_id,
+            it.location_id,
+            it.materiel_id,
+            it.batch_no,
+            it.qty,
+            it.unit,
+            wl.location_code AS location_code,
+            wl.group_no AS group_no,
+            wl.row_no AS row_no,
+            wl.layer_no AS layer_no,
+            wl.column_no AS column_no,
+            m.materiel AS materiel_code,
+            m.materiel_desc AS materiel_desc
+        FROM sp_inventory it
+        LEFT JOIN sp_warehouse_location wl ON it.location_id = wl.id
+        LEFT JOIN sp_materile m ON it.materiel_id = m.id
+        WHERE it.is_deleted = '0'
+          AND it.warehouse_id = #{warehouseId}
+        ORDER BY wl.group_no, wl.row_no, wl.layer_no, wl.column_no
+    </select>
+
+</mapper>

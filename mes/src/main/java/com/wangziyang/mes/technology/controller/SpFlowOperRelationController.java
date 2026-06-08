@@ -2,7 +2,7 @@ package com.wangziyang.mes.technology.controller;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.wangziyang.mes.basedata.request.SpTableManagerReq;
+import com.wangziyang.mes.common.BasePageReq;
 import com.wangziyang.mes.common.BaseController;
 import com.wangziyang.mes.common.Result;
 import com.wangziyang.mes.technology.dto.SpFlowDto;
@@ -98,8 +98,7 @@ public class SpFlowOperRelationController extends BaseController {
     @ApiImplicitParams({@ApiImplicitParam(name = "req", value = "请求参数", defaultValue = "请求参数")})
     @PostMapping("/page")
     @ResponseBody
-    public Result page(SpTableManagerReq req) {
-        //   IPage result = iSpTableManagerService.page(req);
+    public Result page(BasePageReq req) {
         return Result.success();
     }
 

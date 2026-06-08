@@ -71,12 +71,23 @@ THREE.ThreeJs_Composer = function ( _renderer, _scene, _camera, _options, _selec
 
         var Msg = intersects[0].object.name.split("$");
         if(Msg[0] == "货物") {
-            _options.batchNo = "一个货物";
-            _options.qty = "100";
-            _options.qtyUom = "kg";
-            _options.qty2 = "10";
+            // name 形如 货物$<shelfId>$<层>$<列>，与 inventoryMap 的键一致
+            var key = Msg[1] + "$" + Msg[2] + "$" + Msg[3];
+            var inv = (window.inventoryMap && window.inventoryMap[key]) ? window.inventoryMap[key] : null;
+            if (inv) {
+                _options.matName = inv.materielDesc || inv.materielCode || '';
+                _options.batchNo = inv.batchNo || '-';
+                _options.qty = (inv.qty != null) ? String(inv.qty) : '';
+                _options.qtyUom = inv.unit || '';
+                $("#label").text((inv.materielDesc || inv.materielCode || '货物') + ' / ' + (inv.locationCode || ''));
+            } else {
+                _options.matName = '';
+                _options.batchNo = '空库位';
+                _options.qty = '0';
+                _options.qtyUom = '';
+            }
             _options.selectObj = intersects[0].object.name;
-            _selectobject.push( intersects[0].object );
+            if (_selectobject) { _selectobject.push( intersects[0].object ); }
         }
 
         if(intersects[0].object.name == "左门1"){
@@ -130,16 +141,16 @@ THREE.ThreeJs_Composer = function ( _renderer, _scene, _camera, _options, _selec
 
         var Msg = intersects[0].object.name.split("$");
         if(Msg[0] == "货物") {
-            var href = "DispatchAction.do?efFormEname=YMIQ083DP&inqu_status-0-storageUnitId=" + Msg[1];
-            EFColorbox({
-                href : href,
-                title:"货物详情",
-                innerWidth:'1200px',
-                innerHeight:'800px',
-                iframe : true,
-                scrolling : false,
-                overlayClose: false
-            });
+            var key = Msg[1] + "$" + Msg[2] + "$" + Msg[3];
+            var inv = (window.inventoryMap && window.inventoryMap[key]) ? window.inventoryMap[key] : null;
+            if (inv) {
+                alert("库位：" + (inv.locationCode || '') +
+                    "\n物料：" + (inv.materielCode || '') + " " + (inv.materielDesc || '') +
+                    "\n批号：" + (inv.batchNo || '-') +
+                    "\n数量：" + (inv.qty != null ? inv.qty : '') + " " + (inv.unit || ''));
+            } else {
+                alert("该库位暂无库存");
+            }
         }
     }
 
