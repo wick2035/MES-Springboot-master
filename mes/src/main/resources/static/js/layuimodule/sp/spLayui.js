@@ -85,9 +85,12 @@ layui.define(["element", "jquery"], function (exports) {
          * @param data
          */
         this.initLogo = function (data) {
+            var textHtml = data.textImage
+                ? '<img class="sp-logo-text" src="' + data.textImage + '" alt="' + (data.name || 'logo') + '">\n'
+                : '<h1>' + (data.name || '') + '</h1>\n';
             var html = '<a href="' + data.url + '">\n' +
-                '<img src="' + data.image + '" alt="logo" οnerrοr="javascript:this.src=\'image/logo.png\'">\n' +
-                '<h1>' + data.name + '</h1>\n' +
+                '<img class="sp-logo-icon" src="' + data.image + '" alt="logo" οnerrοr="javascript:this.src=\'image/logo.png\'">\n' +
+                textHtml +
                 '</a>';
             $('.layui-layout-admin .layui-logo').html(html);
         };

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.order.mapper.SpOrderOperAssignMapper">
+
+    <!--按加工单元查询可分配员工候选：单元绑定班组 → 班组成员 → 统计未完成任务数，负载升序-->
+    <select id="pickCandidatesByUnit" resultType="java.util.Map">
+        SELECT
+            u.id                       AS userId,
+            IFNULL(u.name, u.username) AS userName,
+            te.team_id                 AS teamId,
+            t.team_name                AS teamName,
+            IFNULL(la.cnt, 0)          AS currentLoad
+        FROM sp_processing_unit_team ut
+        JOIN sp_team t           ON t.id = ut.team_id AND t.is_deleted = '0'
+        JOIN sp_team_employee te ON te.team_id = ut.team_id AND te.is_deleted = '0'
+        JOIN sp_sys_user u       ON u.id = te.user_id
+        LEFT JOIN (
+            SELECT a.user_id, COUNT(*) AS cnt
+            FROM sp_order_oper_assign a
+            JOIN sp_order o ON o.id = a.order_id
+            WHERE a.is_deleted = '0'
+              AND a.status &lt;&gt; '2'
+              AND o.statue IN (1, 2)
+            GROUP BY a.user_id
+        ) la ON la.user_id = u.id
+        WHERE ut.unit_id = #{unitId}
+          AND ut.is_deleted = '0'
+        ORDER BY currentLoad ASC, u.id ASC
+    </select>
+
+</mapper>

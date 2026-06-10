@@ -1,0 +1,807 @@
+package com.wangziyang.mes.llm.service.impl;
+
+import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.wangziyang.mes.basedata.entity.SpInventory;
+import com.wangziyang.mes.basedata.entity.SpMaterile;
+import com.wangziyang.mes.basedata.entity.SpProcessingUnit;
+import com.wangziyang.mes.basedata.entity.SpWarehouseLocation;
+import com.wangziyang.mes.basedata.service.ISpInventoryService;
+import com.wangziyang.mes.basedata.service.ISpMaterileService;
+import com.wangziyang.mes.basedata.service.ISpProcessingUnitService;
+import com.wangziyang.mes.basedata.service.ISpWarehouseLocationService;
+import com.wangziyang.mes.common.Result;
+import com.wangziyang.mes.llm.service.ILlmBomWizardService;
+import com.wangziyang.mes.order.entity.SpOrder;
+import com.wangziyang.mes.order.entity.SpOrderOperAssign;
+import com.wangziyang.mes.order.service.ISpOrderOperAssignService;
+import com.wangziyang.mes.order.service.ISpOrderService;
+import com.wangziyang.mes.system.entity.SysUser;
+import com.wangziyang.mes.technology.dto.SpFlowDto;
+import com.wangziyang.mes.technology.entity.SpBom;
+import com.wangziyang.mes.technology.entity.SpComponentDef;
+import com.wangziyang.mes.technology.entity.SpFlow;
+import com.wangziyang.mes.technology.entity.SpFlowOperRelation;
+import com.wangziyang.mes.technology.entity.SpOper;
+import com.wangziyang.mes.technology.service.ISpBomService;
+import com.wangziyang.mes.technology.service.ISpComponentDefService;
+import com.wangziyang.mes.technology.service.ISpFlowOperRelationService;
+import com.wangziyang.mes.technology.service.ISpFlowService;
+import com.wangziyang.mes.technology.service.ISpOperService;
+import com.wangziyang.mes.technology.vo.SpOperVo;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * AI 智能建模分步向导服务实现。
+ *
+ * 事务策略：每个步骤一个独立事务，步间不做跨步回滚——
+ * 物料/工序/工艺路线均为可复用主数据，失败重试时靠匹配逻辑自动复用，不会重复创建。
+ */
+@Service
+public class LlmBomWizardServiceImpl implements ILlmBomWizardService {
+
+    private static final Logger log = LoggerFactory.getLogger(LlmBomWizardServiceImpl.class);
+
+    /** 工单状态：已创建/待审批（与 SpOrderController 保持一致） */
+    private static final int STATUE_CREATED_PENDING_APPROVAL = 1;
+
+    @Autowired
+    private ISpMaterileService materileService;
+
+    @Autowired
+    private ISpComponentDefService componentDefService;
+
+    @Autowired
+    private ISpOperService operService;
+
+    @Autowired
+    private ISpProcessingUnitService unitService;
+
+    @Autowired
+    private ISpFlowService flowService;
+
+    @Autowired
+    private ISpFlowOperRelationService flowOperRelationService;
+
+    @Autowired
+    private ISpOrderService orderService;
+
+    @Autowired
+    private ISpOrderOperAssignService assignService;
+
+    @Autowired
+    private ISpBomService bomService;
+
+    @Autowired
+    private ISpInventoryService inventoryService;
+
+    @Autowired
+    private ISpWarehouseLocationService warehouseLocationService;
+
+    // ==================== 步骤②：物料一键补建 ====================
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public JSONObject batchCreateMaterials(String productName, Integer bomLevel, JSONArray materials) {
+        productName = StrUtil.trimToEmpty(productName);
+        if (StrUtil.isBlank(productName)) {
+            throw new RuntimeException("请先填写产品名称");
+        }
+        int level = bomLevel == null ? 0 : bomLevel;
+        if (materials == null) {
+            materials = new JSONArray();
+        }
+
+        int createdMaterialCount = 0;
+        int createdInventoryCount = 0;
+        for (Object o : materials) {
+            JSONObject m = (JSONObject) o;
+            String desc = StrUtil.trimToEmpty(m.getStr("materielItemDesc"));
+            if (StrUtil.isBlank(desc)) {
+                throw new RuntimeException("存在未填写名称的物料行，请补全后再提交");
+            }
+            String code = StrUtil.trimToEmpty(m.getStr("materielItemCode"));
+
+            // 先按编码/描述匹配现有物料，命中直接复用（防止重复创建）
+            SpMaterile exist = findMaterile(code, desc);
+            if (exist != null) {
+                m.put("materielItemCode", exist.getMateriel());
+                m.put("materielId", exist.getId());
+                m.put("matched", true);
+                continue;
+            }
+
+            String matType = StrUtil.blankToDefault(m.getStr("matType"), m.getStr("itemMatType"));
+            SpMaterile nm = createMaterial(desc, code, StrUtil.blankToDefault(matType, "PART"),
+                    m.getStr("itemUnit"), m.getStr("matSource"), m.getInt("leadTime"), m.getInt("safetyStock"));
+            createdMaterialCount++;
+            if (createInitInventory(nm)) {
+                createdInventoryCount++;
+            }
+
+            m.put("materielItemCode", nm.getMateriel());
+            m.put("materielId", nm.getId());
+            m.put("matched", true);
+            m.put("created", true);
+        }
+
+        // 自动补齐 BOM 保存前置条件
+        String headerMaterielCode;
+        int createdComponentCount = 0;
+        if (level == 0) {
+            headerMaterielCode = ensureProductMateriel(productName);
+            createdComponentCount = ensureComponentDefs(productName, materials);
+        } else {
+            headerMaterielCode = ensureHeaderComponentDef(productName, level);
+        }
+
+        JSONObject result = new JSONObject();
+        result.put("materials", materials);
+        result.put("headerMaterielCode", headerMaterielCode);
+        result.put("createdMaterialCount", createdMaterialCount);
+        result.put("createdComponentCount", createdComponentCount);
+        result.put("createdInventoryCount", createdInventoryCount);
+        return result;
+    }
+
+    /**
+     * 创建物料主数据（编码空/重复时自动取号；循环内逐条保存保证编码连续）。
+     */
+    private SpMaterile createMaterial(String desc, String code, String matType,
+                                      String unit, String matSource, Integer leadTime, Integer safetyStock) {
+        SpMaterile nm = new SpMaterile();
+        if (StrUtil.isBlank(code) || materileService.isMaterielCodeDuplicate(code, null)) {
+            code = materileService.nextMaterielCode();
+        }
+        nm.setMateriel(code);
+        nm.setMaterielDesc(desc);
+        nm.setMatType(StrUtil.blankToDefault(matType, "PART"));
+        nm.setUnit(StrUtil.blankToDefault(unit, "个"));
+        nm.setMatSource("SELF".equals(matSource) ? "SELF" : "OUT");
+        nm.setLeadTime(leadTime == null || leadTime < 1 ? 1 : leadTime);
+        nm.setSafetyStock(safetyStock == null || safetyStock < 0 ? 0 : safetyStock);
+        nm.setDeleted("0");
+        materileService.save(nm);
+        return nm;
+    }
+
+    /**
+     * 为新建物料写一条期初库存（优先选无库存记录的空闲库位，每个物料独占一格，
+     * 3D 仓库展示更直观；数量=安全库存），使其在「库存管理」与数字仿真3D仓库中可见。
+     * 系统尚无库房库位时跳过。
+     *
+     * @return 是否成功写入
+     */
+    private boolean createInitInventory(SpMaterile m) {
+        if (m == null || "FG".equals(m.getMatType()) || "PRODUCT".equals(m.getMatType())) {
+            return false;
+        }
+        // 优先：状态正常且尚无库存记录的空闲库位
+        SpWarehouseLocation location = warehouseLocationService.getOne(new QueryWrapper<SpWarehouseLocation>()
+                .eq("is_deleted", "0").eq("status", "0")
+                .notExists("SELECT 1 FROM sp_inventory i WHERE i.location_id = sp_warehouse_location.id AND i.is_deleted = '0'")
+                .orderByAsc("location_code").last("limit 1"), false);
+        if (location == null) {
+            location = warehouseLocationService.getOne(new QueryWrapper<SpWarehouseLocation>()
+                    .eq("is_deleted", "0").eq("status", "0")
+                    .orderByAsc("location_code").last("limit 1"), false);
+        }
+        if (location == null) {
+            location = warehouseLocationService.getOne(new QueryWrapper<SpWarehouseLocation>()
+                    .eq("is_deleted", "0").orderByAsc("location_code").last("limit 1"), false);
+        }
+        if (location == null) {
+            log.warn("系统未维护库房库位，物料【{}】跳过期初库存", m.getMateriel());
+            return false;
+        }
+        SpInventory inv = new SpInventory();
+        inv.setWarehouseId(location.getWarehouseId());
+        inv.setLocationId(location.getId());
+        inv.setMaterielId(m.getId());
+        inv.setBatchNo("AI期初");
+        inv.setQty(BigDecimal.valueOf(m.getSafetyStock() == null ? 0 : m.getSafetyStock()));
+        inventoryService.inbound(inv);
+        return true;
+    }
+
+    /** 按编码/描述匹配现有物料 */
+    private SpMaterile findMaterile(String code, String desc) {
+        if (StrUtil.isNotBlank(code)) {
+            SpMaterile byCode = materileService.getOne(new QueryWrapper<SpMaterile>()
+                    .eq("materiel", code).ne("is_deleted", "1").last("limit 1"), false);
+            if (byCode != null) {
+                return byCode;
+            }
+        }
+        if (StrUtil.isNotBlank(desc)) {
+            return materileService.getOne(new QueryWrapper<SpMaterile>()
+                    .eq("materiel_desc", desc).ne("is_deleted", "1").last("limit 1"), false);
+        }
+        return null;
+    }
+
+    /** level=0：确保产品本身存在成品物料（FG），返回成品物料编码作为 BOM 表头物料 */
+    private String ensureProductMateriel(String productName) {
+        SpMaterile product = materileService.getOne(new QueryWrapper<SpMaterile>()
+                .eq("materiel_desc", productName)
+                .in("mat_type", "FG", "PRODUCT")
+                .ne("is_deleted", "1").last("limit 1"), false);
+        if (product == null) {
+            product = new SpMaterile();
+            product.setMateriel(materileService.nextMaterielCode());
+            product.setMaterielDesc(productName);
+            product.setMatType("FG");
+            product.setUnit("台");
+            product.setMatSource("SELF");
+            product.setLeadTime(1);
+            product.setSafetyStock(0);
+            product.setDeleted("0");
+            materileService.save(product);
+            log.info("AI向导自动创建成品物料：{} {}", product.getMateriel(), productName);
+        }
+        return product.getMateriel();
+    }
+
+    /** level=0：为 PG/COMP 子项自动补零部件定义，返回新建数量 */
+    private int ensureComponentDefs(String productName, JSONArray materials) {
+        int created = 0;
+        for (Object o : materials) {
+            JSONObject m = (JSONObject) o;
+            String itemType = m.getStr("itemMatType");
+            if (!"PG".equals(itemType) && !"COMP".equals(itemType)) {
+                continue;
+            }
+            String code = m.getStr("materielItemCode");
+            String name = StrUtil.trimToEmpty(m.getStr("materielItemDesc"));
+            if (componentDefService.isEnabledForProduct(productName, code, name)) {
+                continue;
+            }
+            if (componentDefService.isComponentNameDuplicate(productName, name, null)) {
+                continue;
+            }
+            SpComponentDef def = new SpComponentDef();
+            def.setProductName(productName);
+            def.setComponentCode(componentDefService.nextComponentCode());
+            def.setComponentName(name);
+            def.setComponentType(itemType);
+            def.setRemark("AI智能建模向导自动创建");
+            def.setDeleted("0");
+            componentDefService.save(def);
+            created++;
+        }
+        return created;
+    }
+
+    /** level=1/2：确保表头产品名本身有启用的零部件定义，返回零部件编码作为 BOM 表头编码 */
+    private String ensureHeaderComponentDef(String productName, int level) {
+        String expectedType = level == 1 ? "PG" : "COMP";
+        SpComponentDef def = componentDefService.getOne(new QueryWrapper<SpComponentDef>()
+                .eq("component_name", productName)
+                .eq("component_type", expectedType)
+                .eq("is_deleted", "0").last("limit 1"), false);
+        if (def == null) {
+            def = new SpComponentDef();
+            def.setProductName(productName);
+            def.setComponentCode(componentDefService.nextComponentCode());
+            def.setComponentName(productName);
+            def.setComponentType(expectedType);
+            def.setRemark("AI智能建模向导自动创建");
+            def.setDeleted("0");
+            componentDefService.save(def);
+            log.info("AI向导自动创建零部件定义：{} {}", def.getComponentCode(), productName);
+        }
+        return def.getComponentCode();
+    }
+
+    // ==================== 步骤②：BOM 全链保存并定版 ====================
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public JSONObject saveBomFullChain(JSONObject header, JSONArray items) {
+        if (header == null) {
+            throw new RuntimeException("缺少 BOM 表头信息");
+        }
+        if (items == null || items.isEmpty()) {
+            throw new RuntimeException("请至少保留一个 BOM 子项");
+        }
+
+        int childBomCount = 0;
+        int createdMaterialCount = 0;
+        int childSeq = 0;
+        String childBomCodeBase = "BOM" + System.currentTimeMillis();
+
+        // 对每个 PG/COMP 子项：复用已定版子BOM，或用 subParts 自动创建并定版
+        for (Object o : items) {
+            JSONObject item = (JSONObject) o;
+            String itemType = item.getStr("itemMatType");
+            if (!"PG".equals(itemType) && !"COMP".equals(itemType)) {
+                continue;
+            }
+            String itemCode = StrUtil.trimToEmpty(item.getStr("materielItemCode"));
+            String itemDesc = StrUtil.trimToEmpty(item.getStr("materielItemDesc"));
+            int expectedLevel = "PG".equals(itemType) ? 1 : 2;
+
+            // 已有可用（已定版且有效）的同物料子BOM则直接复用
+            SpBom existing = bomService.getOne(new QueryWrapper<SpBom>()
+                    .eq("materiel_code", itemCode)
+                    .eq("bom_level", expectedLevel)
+                    .eq("lock_status", "locked")
+                    .eq("validity", "有效")
+                    .ne("is_deleted", "1")
+                    .orderByDesc("version_number").last("limit 1"), false);
+            if (existing != null) {
+                item.put("childBomId", existing.getId());
+                continue;
+            }
+
+            // 用 AI 给出的子件清单生成下层 BOM 子项；缺失时自动补一条基础件
+            // 注意：AI 可能在同一组件下给出重名子件，须按物料编码去重合并数量，否则触发「子项重复」校验
+            JSONArray subParts = item.getJSONArray("subParts");
+            Map<String, JSONObject> childItemMap = new LinkedHashMap<>();
+            if (subParts != null) {
+                for (Object sp : subParts) {
+                    JSONObject part = (JSONObject) sp;
+                    String partName = StrUtil.trimToEmpty(part.getStr("name"));
+                    if (StrUtil.isBlank(partName)) {
+                        continue;
+                    }
+                    SpMaterile pm = findMaterile(null, partName);
+                    if (pm == null) {
+                        pm = createMaterial(partName, null, "PART", part.getStr("unit"), "OUT", 1, 0);
+                        createdMaterialCount++;
+                        createInitInventory(pm);
+                    }
+                    BigDecimal num = part.getBigDecimal("num");
+                    if (num == null || num.compareTo(BigDecimal.ZERO) <= 0) {
+                        num = BigDecimal.ONE;
+                    }
+                    JSONObject ci = childItemMap.get(pm.getMateriel());
+                    if (ci != null) {
+                        ci.put("itemNum", ci.getBigDecimal("itemNum").add(num));
+                        continue;
+                    }
+                    ci = new JSONObject();
+                    ci.put("materielItemCode", pm.getMateriel());
+                    ci.put("materielItemDesc", pm.getMaterielDesc());
+                    ci.put("itemMatType", "PART");
+                    ci.put("itemNum", num);
+                    ci.put("itemUnit", StrUtil.blankToDefault(part.getStr("unit"), pm.getUnit()));
+                    childItemMap.put(pm.getMateriel(), ci);
+                }
+            }
+            JSONArray childItems = new JSONArray();
+            int lineNo = 1;
+            for (JSONObject ci : childItemMap.values()) {
+                ci.put("lineNo", String.valueOf(lineNo++));
+                childItems.add(ci);
+            }
+            if (childItems.isEmpty()) {
+                SpMaterile base = findMaterile(null, itemDesc + "基础件");
+                if (base == null) {
+                    base = createMaterial(itemDesc + "基础件", null, "PART", item.getStr("itemUnit"), "OUT", 1, 0);
+                    createdMaterialCount++;
+                    createInitInventory(base);
+                }
+                JSONObject ci = new JSONObject();
+                ci.put("materielItemCode", base.getMateriel());
+                ci.put("materielItemDesc", base.getMaterielDesc());
+                ci.put("itemMatType", "PART");
+                ci.put("itemNum", BigDecimal.ONE);
+                ci.put("itemUnit", base.getUnit());
+                ci.put("lineNo", "1");
+                childItems.add(ci);
+            }
+
+            SpBom childBom = new SpBom();
+            childBom.setBomCode(childBomCodeBase + "-C" + String.format("%02d", ++childSeq));
+            childBom.setMaterielCode(itemCode);
+            childBom.setMaterielDesc(itemDesc);
+            childBom.setVersionNumber("1");
+            childBom.setBomLevel(expectedLevel);
+            childBom.setFactory(header.getStr("factory"));
+            childBom.setRemark("AI智能建模向导自动创建");
+            bomService.saveBomWithItems(childBom, childItems.toString());
+            bomService.lockBom(childBom.getId());
+            childBomCount++;
+
+            item.put("childBomId", childBom.getId());
+        }
+
+        // 保存产品/上层 BOM（子项已带 childBomId）并定版；仅保留 SpBomItem 实体字段，
+        // 并按「编码#类型」去重合并用量（两行可能匹配到同一物料）
+        Map<String, JSONObject> productItemMap = new LinkedHashMap<>();
+        for (Object o : items) {
+            JSONObject item = (JSONObject) o;
+            String key = StrUtil.trimToEmpty(item.getStr("materielItemCode")) + "#" + item.getStr("itemMatType");
+            BigDecimal num = item.getBigDecimal("itemNum");
+            JSONObject pi = productItemMap.get(key);
+            if (pi != null) {
+                BigDecimal old = pi.getBigDecimal("itemNum");
+                pi.put("itemNum", (old == null ? BigDecimal.ZERO : old).add(num == null ? BigDecimal.ZERO : num));
+                continue;
+            }
+            pi = new JSONObject();
+            pi.put("materielItemCode", item.getStr("materielItemCode"));
+            pi.put("materielItemDesc", item.getStr("materielItemDesc"));
+            pi.put("itemMatType", item.getStr("itemMatType"));
+            pi.put("itemNum", num);
+            pi.put("itemUnit", item.getStr("itemUnit"));
+            pi.put("operTyper", item.getStr("operTyper"));
+            pi.put("childBomId", item.getStr("childBomId"));
+            productItemMap.put(key, pi);
+        }
+        JSONArray productItems = new JSONArray();
+        int lineSeq = 1;
+        for (JSONObject pi : productItemMap.values()) {
+            pi.put("lineNo", String.valueOf(lineSeq++));
+            productItems.add(pi);
+        }
+        SpBom bom = new SpBom();
+        bom.setBomCode(StrUtil.trimToEmpty(header.getStr("bomCode")));
+        bom.setMaterielCode(StrUtil.trimToEmpty(header.getStr("materielCode")));
+        bom.setMaterielDesc(StrUtil.trimToEmpty(header.getStr("materielDesc")));
+        bom.setVersionNumber(StrUtil.blankToDefault(header.getStr("versionNumber"), "1"));
+        bom.setBomLevel(header.getInt("bomLevel"));
+        bom.setFactory(header.getStr("factory"));
+        bomService.saveBomWithItems(bom, productItems.toString());
+        bomService.lockBom(bom.getId());
+
+        JSONObject result = new JSONObject();
+        result.put("bomId", bom.getId());
+        result.put("bomCode", bom.getBomCode());
+        result.put("childBomCount", childBomCount);
+        result.put("createdMaterialCount", createdMaterialCount);
+        result.put("locked", true);
+        return result;
+    }
+
+    // ==================== 步骤③：工序补建 + 工艺路线创建 ====================
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public JSONObject createOpersAndFlow(String productName, JSONArray opers) throws Exception {
+        productName = StrUtil.trimToEmpty(productName);
+        if (opers == null || opers.size() < 2) {
+            throw new RuntimeException("工艺路线至少需要两道工序");
+        }
+
+        // 按 sortNum 排序，保证工序链顺序正确
+        List<JSONObject> operList = new ArrayList<>();
+        for (Object o : opers) {
+            operList.add((JSONObject) o);
+        }
+        operList.sort(Comparator.comparingInt(op -> {
+            Integer s = op.getInt("sortNum");
+            return s == null ? Integer.MAX_VALUE : s;
+        }));
+
+        int createdOperCount = 0;
+        for (JSONObject op : operList) {
+            String operId = op.getStr("operId");
+            if (StrUtil.isNotBlank(operId)) {
+                SpOper exist = operService.getById(operId);
+                if (exist == null) {
+                    throw new RuntimeException("工序【" + op.getStr("operDesc") + "】不存在，请刷新匹配后重试");
+                }
+                op.put("oper", exist.getOper());
+                continue;
+            }
+            String desc = StrUtil.trimToEmpty(op.getStr("operDesc"));
+            if (StrUtil.isBlank(desc)) {
+                throw new RuntimeException("存在未填写名称的工序行，请补全后再提交");
+            }
+            // 再按名称匹配一次，防止两步之间他人已创建同名工序
+            SpOper byDesc = operService.getOne(new QueryWrapper<SpOper>()
+                    .eq("oper_desc", desc).last("limit 1"), false);
+            if (byDesc != null) {
+                op.put("operId", byDesc.getId());
+                op.put("oper", byDesc.getOper());
+                op.put("unitId", byDesc.getUnitId());
+                continue;
+            }
+            String unitId = StrUtil.trimToEmpty(op.getStr("unitId"));
+            if (StrUtil.isBlank(unitId)) {
+                throw new RuntimeException("工序【" + desc + "】未绑定加工单元，请先选择");
+            }
+            SpProcessingUnit unit = unitService.getById(unitId);
+            if (unit == null) {
+                throw new RuntimeException("工序【" + desc + "】绑定的加工单元不存在，请重新选择");
+            }
+            BigDecimal hours = positiveOrDefault(op.getBigDecimal("operHours"), BigDecimal.ONE);
+            BigDecimal cycle = positiveOrDefault(op.getBigDecimal("manuCycle"), hours);
+            if (cycle.compareTo(hours) < 0) {
+                cycle = hours;
+            }
+            SpOper n = new SpOper();
+            // 循环内逐条保存，保证 nextOperCode 编码连续
+            n.setOper(operService.nextOperCode());
+            n.setOperDesc(desc);
+            n.setUnitId(unitId);
+            n.setOperHours(hours);
+            n.setManuCycle(cycle);
+            n.setGenPlan("Y");
+            n.setRemark(StrUtil.trimToEmpty(op.getStr("remark")));
+            operService.save(n);
+            createdOperCount++;
+
+            op.put("operId", n.getId());
+            op.put("oper", n.getOper());
+            op.put("matched", true);
+        }
+
+        // 生成唯一流程编码
+        String flowCode = "FL" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        if (flowService.count(new QueryWrapper<SpFlow>().eq("flow", flowCode)) > 0) {
+            flowCode = flowCode + RandomUtil.randomNumbers(2);
+        }
+
+        SpFlowDto dto = new SpFlowDto();
+        dto.setFlow(flowCode);
+        dto.setFlowDesc(productName + "工艺路线(AI向导)");
+        List<SpOperVo> vos = new ArrayList<>();
+        for (JSONObject op : operList) {
+            SpOperVo vo = new SpOperVo();
+            vo.setValue(op.getStr("operId"));
+            vo.setTitle(op.getStr("oper"));
+            vos.add(vo);
+        }
+        dto.setSpOperVoList(vos);
+
+        Result<?> r = flowOperRelationService.addOrUpdate(dto);
+        Object codeObj = r.get("code");
+        if (!(codeObj instanceof Integer) || (Integer) codeObj != 0) {
+            throw new RuntimeException("工艺路线创建失败：" + r.get("msg"));
+        }
+
+        // addOrUpdate 内部用拷贝对象保存，dto 不会回填 id，需按流程编码反查
+        SpFlow saved = flowService.getOne(new QueryWrapper<SpFlow>()
+                .eq("flow", flowCode).last("limit 1"), false);
+        if (saved == null) {
+            throw new RuntimeException("工艺路线创建后未找到，请重试");
+        }
+
+        JSONObject result = new JSONObject();
+        result.put("flowId", saved.getId());
+        result.put("flow", saved.getFlow());
+        result.put("process", saved.getProcess());
+        result.put("createdOperCount", createdOperCount);
+        result.put("opers", new JSONArray(operList));
+        return result;
+    }
+
+    private BigDecimal positiveOrDefault(BigDecimal value, BigDecimal def) {
+        return value == null || value.compareTo(BigDecimal.ZERO) <= 0 ? def : value;
+    }
+
+    // ==================== 步骤④：分配预览 / 工单创建 ====================
+
+    @Override
+    public JSONArray previewAssign(String flowId) {
+        if (StrUtil.isBlank(flowId)) {
+            throw new RuntimeException("缺少工艺路线，请先完成上一步");
+        }
+        List<SpFlowOperRelation> relations = flowOperRelationService.list(
+                new QueryWrapper<SpFlowOperRelation>().eq("flow_id", flowId).orderByAsc("sort_num"));
+        if (relations.isEmpty()) {
+            throw new RuntimeException("工艺路线下没有工序，请先完成上一步");
+        }
+
+        // 同一次预览内已选中者负载 +1，避免所有工序压给同一人
+        Map<String, Integer> sessionLoad = new HashMap<>();
+        JSONArray result = new JSONArray();
+        for (SpFlowOperRelation rel : relations) {
+            JSONObject row = new JSONObject();
+            row.put("operId", rel.getOperId());
+            row.put("oper", rel.getOper());
+            row.put("sortNum", rel.getSortNum());
+
+            SpOper oper = operService.getById(rel.getOperId());
+            row.put("operDesc", oper == null ? "" : oper.getOperDesc());
+            String unitId = oper == null ? null : oper.getUnitId();
+            row.put("unitId", StrUtil.nullToEmpty(unitId));
+            String unitName = "";
+            if (StrUtil.isNotBlank(unitId)) {
+                SpProcessingUnit unit = unitService.getById(unitId);
+                unitName = unit == null ? "" : unit.getUnitName();
+            }
+            row.put("unitName", unitName);
+
+            if (StrUtil.isBlank(unitId)) {
+                row.put("warn", "该工序未绑定加工单元，无法自动分配");
+                result.add(row);
+                continue;
+            }
+            List<Map<String, Object>> candidates = assignService.pickCandidatesByUnit(unitId);
+            if (candidates.isEmpty()) {
+                row.put("warn", "该工序加工单元未绑定班组或班组无人，请先维护「加工单元定义/班组员工定义」");
+                result.add(row);
+                continue;
+            }
+            // 叠加本次预览的临时负载后取最小者（候选列表已按库内负载升序）
+            Map<String, Object> best = null;
+            long bestLoad = Long.MAX_VALUE;
+            for (Map<String, Object> c : candidates) {
+                String uid = String.valueOf(c.get("userId"));
+                long load = toLong(c.get("currentLoad")) + sessionLoad.getOrDefault(uid, 0);
+                if (load < bestLoad) {
+                    bestLoad = load;
+                    best = c;
+                }
+            }
+            String userId = String.valueOf(best.get("userId"));
+            row.put("teamId", best.get("teamId"));
+            row.put("teamName", best.get("teamName"));
+            row.put("userId", userId);
+            row.put("userName", best.get("userName"));
+            row.put("currentLoad", bestLoad);
+            sessionLoad.put(userId, sessionLoad.getOrDefault(userId, 0) + 1);
+            result.add(row);
+        }
+        return result;
+    }
+
+    private long toLong(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
+    }
+
+    @Override
+    public JSONArray assignCandidates(String unitId) {
+        if (StrUtil.isBlank(unitId)) {
+            throw new RuntimeException("缺少加工单元");
+        }
+        return new JSONArray(assignService.pickCandidatesByUnit(unitId));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public JSONObject createOrderWithAssign(JSONObject orderJson, JSONArray assigns, SysUser designer) {
+        if (orderJson == null) {
+            throw new RuntimeException("工单信息不能为空");
+        }
+        Integer qty = orderJson.getInt("qty");
+        if (qty == null || qty <= 0) {
+            throw new RuntimeException("工单数量必须大于 0");
+        }
+        String materiel = StrUtil.trimToEmpty(orderJson.getStr("materiel"));
+        String materielDesc = StrUtil.trimToEmpty(orderJson.getStr("materielDesc"));
+        if (StrUtil.isBlank(materiel) || StrUtil.isBlank(materielDesc)) {
+            throw new RuntimeException("缺少工单物料，请先完成 BOM 保存");
+        }
+        if (materileService.count(new QueryWrapper<SpMaterile>()
+                .eq("materiel", materiel).ne("is_deleted", "1")) == 0) {
+            throw new RuntimeException("工单物料【" + materiel + "】不存在");
+        }
+        String flowId = StrUtil.trimToEmpty(orderJson.getStr("flowId"));
+        if (StrUtil.isBlank(flowId) || flowService.getById(flowId) == null) {
+            throw new RuntimeException("缺少有效的工艺路线，请先完成上一步");
+        }
+        Date start = parsePlanTime(orderJson.getStr("planStartTime"));
+        Date end = parsePlanTime(orderJson.getStr("planEndTime"));
+        if (start == null || end == null) {
+            throw new RuntimeException("请填写有效的计划开始和结束时间");
+        }
+        if (end.before(start)) {
+            throw new RuntimeException("计划结束时间不能早于计划开始时间");
+        }
+
+        // 分配校验：须覆盖工艺路线全部工序且均已指定执行人
+        List<SpFlowOperRelation> relations = flowOperRelationService.list(
+                new QueryWrapper<SpFlowOperRelation>().eq("flow_id", flowId).orderByAsc("sort_num"));
+        if (relations.isEmpty()) {
+            throw new RuntimeException("工艺路线下没有工序");
+        }
+        Map<String, JSONObject> assignMap = new HashMap<>();
+        if (assigns != null) {
+            for (Object o : assigns) {
+                JSONObject a = (JSONObject) o;
+                assignMap.put(StrUtil.trimToEmpty(a.getStr("operId")), a);
+            }
+        }
+        for (SpFlowOperRelation rel : relations) {
+            JSONObject a = assignMap.get(rel.getOperId());
+            if (a == null || StrUtil.isBlank(a.getStr("userId"))) {
+                String name = StrUtil.blankToDefault(a == null ? null : a.getStr("operDesc"), rel.getOper());
+                throw new RuntimeException("工序【" + name + "】未指定执行人，请完成人员分配后再提交");
+            }
+        }
+
+        // 工单编号服务端生成，忽略前端传入，防止重复提交产生重复单号
+        String orderCode = "WO" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        if (orderService.count(new QueryWrapper<SpOrder>().eq("order_code", orderCode)) > 0) {
+            orderCode = orderCode + RandomUtil.randomNumbers(2);
+            if (orderService.count(new QueryWrapper<SpOrder>().eq("order_code", orderCode)) > 0) {
+                throw new RuntimeException("工单编号生成冲突，请稍后重试");
+            }
+        }
+
+        SpOrder order = new SpOrder();
+        order.setOrderCode(orderCode);
+        order.setOrderDescription(StrUtil.trimToEmpty(orderJson.getStr("orderDescription")));
+        order.setQty(qty);
+        order.setOrderType("P");
+        order.setFlowId(flowId);
+        order.setMateriel(materiel);
+        order.setMaterielDesc(materielDesc);
+        order.setPlanStartTime(orderJson.getStr("planStartTime"));
+        order.setPlanEndTime(orderJson.getStr("planEndTime"));
+        order.setStatue(STATUE_CREATED_PENDING_APPROVAL);
+        if (designer != null) {
+            order.setDesignerId(designer.getId());
+            order.setDesignerName(StringUtils.defaultIfBlank(designer.getName(), designer.getUsername()));
+        }
+        orderService.save(order);
+
+        List<SpOrderOperAssign> assignEntities = new ArrayList<>();
+        for (SpFlowOperRelation rel : relations) {
+            JSONObject a = assignMap.get(rel.getOperId());
+            SpOrderOperAssign entity = new SpOrderOperAssign();
+            entity.setOrderId(order.getId());
+            entity.setOrderCode(orderCode);
+            entity.setFlowId(flowId);
+            entity.setOperId(rel.getOperId());
+            entity.setOper(rel.getOper());
+            entity.setOperDesc(a.getStr("operDesc"));
+            entity.setSortNum(rel.getSortNum());
+            entity.setUnitId(a.getStr("unitId"));
+            entity.setTeamId(a.getStr("teamId"));
+            entity.setUserId(a.getStr("userId"));
+            entity.setUserName(a.getStr("userName"));
+            entity.setStatus("0");
+            entity.setDeleted("0");
+            assignEntities.add(entity);
+        }
+        assignService.saveBatch(assignEntities);
+
+        JSONObject result = new JSONObject();
+        result.put("orderId", order.getId());
+        result.put("orderCode", orderCode);
+        result.put("assignCount", assignEntities.size());
+        return result;
+    }
+
+    /** 解析计划时间（与 SpOrderController 保持一致的多格式容错） */
+    private Date parsePlanTime(String value) {
+        if (StrUtil.isBlank(value)) {
+            return null;
+        }
+        List<String> patterns = Arrays.asList("yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-dd");
+        for (String pattern : patterns) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+                sdf.setLenient(false);
+                return sdf.parse(value);
+            } catch (ParseException ignore) {
+            }
+        }
+        return null;
+    }
+}

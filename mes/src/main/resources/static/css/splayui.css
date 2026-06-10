@@ -217,8 +217,18 @@
 
 .layui-layout-admin .layui-logo img {
     display: inline-block;
-    height: 28px;
     vertical-align: middle;
+}
+
+.layui-layout-admin .layui-logo .sp-logo-icon {
+    height: 36px;
+    width: auto;
+}
+
+.layui-layout-admin .layui-logo .sp-logo-text {
+    height: 32px;
+    width: auto;
+    margin-left: 8px;
 }
 
 .scale img {
@@ -242,8 +252,18 @@
     width: 60px !important;
 }
 
-.splayui-admin .layui-layout-admin .layui-logo h1 {
+.splayui-admin .layui-layout-admin .layui-logo h1,
+.splayui-admin .layui-layout-admin .layui-logo .sp-logo-text {
     display: none;
+}
+
+.splayui-admin .layui-layout-admin .layui-logo {
+    text-align: center;
+}
+
+.splayui-admin .layui-layout-admin .layui-logo .sp-logo-icon {
+    height: 32px;
+    margin: 0;
 }
 
 /* ============================================================

@@ -127,8 +127,7 @@ UPDATE `sp_sys_menu` SET `parent_id` = '17', `grade` = '3', `sort_num` = 1, `upd
 -- System management children
 UPDATE `sp_sys_menu` SET `parent_id` = '10', `grade` = '3', `sort_num` = 1, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = '101';
 UPDATE `sp_sys_menu` SET `parent_id` = '10', `grade` = '3', `sort_num` = 2, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = '102';
-UPDATE `sp_sys_menu` SET `parent_id` = '10', `grade` = '3', `sort_num` = 3, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = 'menu_perm_mgr';
-UPDATE `sp_sys_menu` SET `parent_id` = 'menu_perm_mgr', `grade` = '4', `sort_num` = 1, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = '103';
+UPDATE `sp_sys_menu` SET `parent_id` = '10', `grade` = '3', `sort_num` = 3, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = '103';
 UPDATE `sp_sys_menu` SET `parent_id` = '10', `grade` = '3', `sort_num` = 4, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = '104';
 UPDATE `sp_sys_menu` SET `parent_id` = '10', `grade` = '3', `sort_num` = 5, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = '105';
 UPDATE `sp_sys_menu` SET `parent_id` = '10', `grade` = '3', `sort_num` = 6, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = '106';
@@ -155,7 +154,7 @@ WHERE r.code IN ('admin', '888888')
     '131', 'component_def', '152',
     '153', '151', '154', '155', '156',
     '121', '161', '141', '171',
-    '101', '102', 'menu_perm_mgr', '103', '104', '105', '106'
+    '101', '102', '103', '104', '105', '106'
   )
   AND NOT EXISTS (
     SELECT 1 FROM `sp_sys_role_menu` srm WHERE srm.role_id = r.id AND srm.menu_id = m.id

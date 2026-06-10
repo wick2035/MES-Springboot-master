@@ -756,13 +756,9 @@ SELECT REPLACE(UUID(),'-',''), 'r_mes_007', id, NOW(), 'admin', NOW(), 'admin'
 FROM sp_sys_menu WHERE code IN ('currency', 'Digitalplatform', 'plandg');
 
 -- ----------------------------
--- 8. 添加"权限管理"目录菜单（角色管理的上级目录）
+-- 8. 角色管理直接挂在"系统管理"目录下（已取消多余的"权限管理"中间目录，见 menu-role-flatten-upgrade-20260609.sql）
 -- ----------------------------
-INSERT IGNORE INTO `sp_sys_menu` (id, code, name, url, parent_id, grade, sort_num, type, permission, icon, descr, create_time, create_username, update_time, update_username)
-VALUES ('menu_perm_mgr', 'permManage', '权限管理', '#', '10', '3', 3, '0', '', 'layui-icon-lock', '权限管理目录', NOW(), 'admin', NOW(), 'admin');
-
--- 将角色管理挂到权限管理节点下
-UPDATE `sp_sys_menu` SET parent_id = 'menu_perm_mgr', grade = '4', sort_num = 1 WHERE id = '103';
+UPDATE `sp_sys_menu` SET parent_id = '10', grade = '3', sort_num = 3 WHERE id = '103';
 
 -- ----------------------------
 -- 9. 给 code='888888' 的角色（系统管理员）分配全部菜单
@@ -1730,8 +1726,7 @@ UPDATE `sp_sys_menu` SET `parent_id` = '17', `grade` = '3', `sort_num` = 1, `upd
 
 UPDATE `sp_sys_menu` SET `parent_id` = '10', `grade` = '3', `sort_num` = 1, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = '101';
 UPDATE `sp_sys_menu` SET `parent_id` = '10', `grade` = '3', `sort_num` = 2, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = '102';
-UPDATE `sp_sys_menu` SET `parent_id` = '10', `grade` = '3', `sort_num` = 3, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = 'menu_perm_mgr';
-UPDATE `sp_sys_menu` SET `parent_id` = 'menu_perm_mgr', `grade` = '4', `sort_num` = 1, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = '103';
+UPDATE `sp_sys_menu` SET `parent_id` = '10', `grade` = '3', `sort_num` = 3, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = '103';
 UPDATE `sp_sys_menu` SET `parent_id` = '10', `grade` = '3', `sort_num` = 4, `update_time` = NOW(), `update_username` = 'admin' WHERE `id` = '104';
 
 INSERT INTO `sp_sys_role_menu` (id, role_id, menu_id, create_time, create_username, update_time, update_username)
@@ -1754,7 +1749,7 @@ WHERE r.code IN ('admin', '888888')
     '131', 'component_def', '152',
     '153', '151', '154', '155', '156',
     '121', '161', '141', '171',
-    '101', '102', 'menu_perm_mgr', '103', '104'
+    '101', '102', '103', '104'
   )
   AND NOT EXISTS (
     SELECT 1 FROM `sp_sys_role_menu` srm WHERE srm.role_id = r.id AND srm.menu_id = m.id

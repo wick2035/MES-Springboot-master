@@ -64,8 +64,9 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         homeInfo.put("url", "admin/welcome-ui");
 
         Map<String, String> logoInfo = new HashMap<>(4);
-        logoInfo.put("name", "黑科制造MES");
-        logoInfo.put("image", "/image/logo.png");
+        logoInfo.put("name", "");
+        logoInfo.put("image", "/image/mes-logo1.png");
+        logoInfo.put("textImage", "/image/mes-logo2.png");
         logoInfo.put("url", "");
 
         Map<String, Object> menuInfo = new LinkedHashMap<>(8);
@@ -198,8 +199,9 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         homeInfo.put("url", "admin/welcome-ui");
 
         Map<String, String> logoInfo = new HashMap<>(4);
-        logoInfo.put("name", "黑科制造MES");
-        logoInfo.put("image", "/image/logo.png");
+        logoInfo.put("name", "");
+        logoInfo.put("image", "/image/mes-logo1.png");
+        logoInfo.put("textImage", "/image/mes-logo2.png");
         logoInfo.put("url", "");
 
         QueryWrapper<SysMenu> qw = new QueryWrapper<>();
