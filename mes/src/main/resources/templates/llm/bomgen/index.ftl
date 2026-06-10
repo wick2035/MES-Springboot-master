@@ -583,7 +583,7 @@
                         return;
                     }
                     var d = res.data || {};
-                    wizard.bom = { bomCode: d.bomCode, headerMaterielCode: payload.header.materielCode, materielDesc: payload.header.materielDesc };
+                    wizard.bom = { bomId: d.bomId, bomCode: d.bomCode, headerMaterielCode: payload.header.materielCode, materielDesc: payload.header.materielDesc };
                     wizard.done[2] = true;
                     layer.msg('BOM 已保存并定版' + (d.childBomCount ? '，自动生成子BOM ' + d.childBomCount + ' 个' : ''), { icon: 1 });
                     renderOpers();
@@ -687,7 +687,8 @@
             lockBtn($btn);
             postJson('/llm/bom-wizard/flow/create', {
                 productName: wizard.gen.productName,
-                opers: opers
+                opers: opers,
+                bomId: wizard.bom.bomId
             }, function (res) {
                 layer.close(loadIdx);
                 if (res.code !== 0) {
@@ -697,7 +698,10 @@
                 }
                 wizard.flow = res.data || {};
                 wizard.done[3] = true;
-                layer.msg('工艺路线创建成功' + ((res.data && res.data.createdOperCount) ? '，新建工序 ' + res.data.createdOperCount + ' 道' : ''), { icon: 1 });
+                var msg = '工艺路线创建成功';
+                if (res.data && res.data.createdOperCount) msg += '，新建工序 ' + res.data.createdOperCount + ' 道';
+                if (res.data && res.data.routeCount) msg += '；已生成工艺规划 ' + res.data.routeCount + ' 节点并预填工艺内容（编制中）';
+                layer.msg(msg, { icon: 1 });
                 initOrderStep();
                 renderStep(4);
             });
@@ -811,9 +815,14 @@
                 }
                 wizard.done[4] = true;
                 var d = res.data || {};
+                var routeLine = '';
+                if (wizard.flow.routeCount) {
+                    routeLine = '工艺规划：<b>' + esc(wizard.flow.routeCount) + '</b> 节点（编制中，可在「工艺内容编制」补充图片后点完成）<br>';
+                }
                 $('#js-done-summary').html(
                     'BOM编码：<b>' + esc(wizard.bom.bomCode) + '</b>（物料 ' + esc(wizard.bom.headerMaterielCode) + '）<br>'
                     + '工艺路线：<b>' + esc(wizard.flow.flow) + '</b>　' + esc(wizard.flow.process || '') + '<br>'
+                    + routeLine
                     + '工单编号：<b>' + esc(d.orderCode) + '</b>（待审批，可在「工单下达」中审批）<br>'
                     + '工序人员分配：<b>' + esc(d.assignCount) + '</b> 条');
                 renderStep(5);

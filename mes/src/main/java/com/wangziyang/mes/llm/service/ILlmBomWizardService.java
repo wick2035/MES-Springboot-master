@@ -37,13 +37,16 @@ public interface ILlmBomWizardService {
     JSONObject saveBomFullChain(JSONObject header, JSONArray items);
 
     /**
-     * 补建缺失工序并创建工艺路线（sp_flow + sp_flow_oper_relation）。
+     * 补建缺失工序并创建工艺路线（sp_flow + sp_flow_oper_relation）；
+     * 当传入 bomId 时，额外完成：关联物料工艺路线、初始化工艺规划树（sp_process_route）、
+     * 按 BOM 节点绑定工序、锁定规划，并按 opers 的内容字段预填工艺内容（状态置「编制中」）。
      *
      * @param productName 产品名称（用于流程描述）
-     * @param opers       工序数组，operId 为空的行将新建工序（需 unitId）
-     * @return {flowId, flow, process, createdOperCount, opers}
+     * @param opers       工序数组，operId 为空的行将新建工序（需 unitId），含 contentText 等工艺内容字段
+     * @param bomId       步骤②保存定版的产品 BOM ID，可空（空则跳过工艺规划与内容预填）
+     * @return {flowId, flow, process, createdOperCount, opers, routeCount, contentFilledCount}
      */
-    JSONObject createOpersAndFlow(String productName, JSONArray opers) throws Exception;
+    JSONObject createOpersAndFlow(String productName, JSONArray opers, String bomId) throws Exception;
 
     /**
      * 按工艺路线预览人员分配（只读，不落库）。

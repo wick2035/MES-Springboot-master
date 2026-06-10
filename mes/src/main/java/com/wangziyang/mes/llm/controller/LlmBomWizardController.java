@@ -88,7 +88,7 @@ public class LlmBomWizardController extends BaseController {
         try {
             JSONObject req = JSONUtil.parseObj(body);
             return Result.success(wizardService.createOpersAndFlow(
-                    req.getStr("productName"), req.getJSONArray("opers")));
+                    req.getStr("productName"), req.getJSONArray("opers"), req.getStr("bomId")));
         } catch (Exception e) {
             return Result.failure(e.getMessage());
         }

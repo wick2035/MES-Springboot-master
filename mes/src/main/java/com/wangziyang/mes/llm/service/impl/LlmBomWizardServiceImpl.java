@@ -22,15 +22,21 @@ import com.wangziyang.mes.order.service.ISpOrderService;
 import com.wangziyang.mes.system.entity.SysUser;
 import com.wangziyang.mes.technology.dto.SpFlowDto;
 import com.wangziyang.mes.technology.entity.SpBom;
+import com.wangziyang.mes.technology.entity.SpBomItem;
 import com.wangziyang.mes.technology.entity.SpComponentDef;
 import com.wangziyang.mes.technology.entity.SpFlow;
 import com.wangziyang.mes.technology.entity.SpFlowOperRelation;
 import com.wangziyang.mes.technology.entity.SpOper;
+import com.wangziyang.mes.technology.entity.SpProcessMaterialRel;
+import com.wangziyang.mes.technology.entity.SpProcessRoute;
+import com.wangziyang.mes.technology.mapper.SpBomItemMapper;
 import com.wangziyang.mes.technology.service.ISpBomService;
 import com.wangziyang.mes.technology.service.ISpComponentDefService;
 import com.wangziyang.mes.technology.service.ISpFlowOperRelationService;
 import com.wangziyang.mes.technology.service.ISpFlowService;
 import com.wangziyang.mes.technology.service.ISpOperService;
+import com.wangziyang.mes.technology.service.ISpProcessContentService;
+import com.wangziyang.mes.technology.service.ISpProcessRouteService;
 import com.wangziyang.mes.technology.vo.SpOperVo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -99,6 +105,15 @@ public class LlmBomWizardServiceImpl implements ILlmBomWizardService {
 
     @Autowired
     private ISpWarehouseLocationService warehouseLocationService;
+
+    @Autowired
+    private ISpProcessRouteService processRouteService;
+
+    @Autowired
+    private ISpProcessContentService processContentService;
+
+    @Autowired
+    private SpBomItemMapper bomItemMapper;
 
     // ==================== 步骤②：物料一键补建 ====================
 
@@ -481,7 +496,7 @@ public class LlmBomWizardServiceImpl implements ILlmBomWizardService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public JSONObject createOpersAndFlow(String productName, JSONArray opers) throws Exception {
+    public JSONObject createOpersAndFlow(String productName, JSONArray opers, String bomId) throws Exception {
         productName = StrUtil.trimToEmpty(productName);
         if (opers == null || opers.size() < 2) {
             throw new RuntimeException("工艺路线至少需要两道工序");
@@ -588,7 +603,179 @@ public class LlmBomWizardServiceImpl implements ILlmBomWizardService {
         result.put("process", saved.getProcess());
         result.put("createdOperCount", createdOperCount);
         result.put("opers", new JSONArray(operList));
+
+        // ===== 关联物料工艺路线 + 初始化工艺规划树 + 绑定工序 + 锁定 + 预填工艺内容 =====
+        if (StrUtil.isNotBlank(bomId)) {
+            buildProcessRouteAndContent(bomId, saved, operList, result);
+        } else {
+            result.put("routeCount", 0);
+            result.put("contentFilledCount", 0);
+        }
         return result;
+    }
+
+    /**
+     * 为已定版 BOM 构建工艺规划与工艺内容，让三个工艺页面（流程管理/内容编制/产品工艺查询）
+     * 对 AI 生成的 BOM 有完整数据。整段处于 createOpersAndFlow 的同一事务内。
+     */
+    private void buildProcessRouteAndContent(String bomId, SpFlow flow, List<JSONObject> operList, JSONObject result) {
+        // 物料关联工艺路线（sp_materile.flow_id/flow_desc）
+        SpBom bom = bomService.getById(bomId);
+        if (bom != null) {
+            SpMaterile material = materileService.getOne(new QueryWrapper<SpMaterile>()
+                    .eq("materiel", bom.getMaterielCode()).ne("is_deleted", "1").last("limit 1"), false);
+            if (material != null) {
+                material.setFlowId(flow.getId());
+                material.setFlowDesc(flow.getFlowDesc());
+                materileService.updateById(material);
+            }
+        }
+
+        // 跳过条件（避免 initRoutes 抛异常污染整个事务，导致 flow 一起回滚）：
+        // ① 本 BOM 已有锁定规划（重试场景）；② 同产品编码已存在他单的锁定规划（同名产品重跑）
+        String rootCode = bom == null ? null : "NGY_3_" + bom.getMaterielCode();
+        boolean conflict = bom != null && processRouteService.count(new QueryWrapper<SpProcessRoute>()
+                .ne("bom_id", bomId)
+                .eq("lock_status", "locked")
+                .and(w -> w.eq("route_code", rootCode).or().likeRight("route_code", rootCode + "_"))) > 0;
+        if (processRouteService.isLocked(bomId) || conflict) {
+            result.put("routeCount", 0);
+            result.put("contentFilledCount", 0);
+            result.put("routesSkipped", true);
+            return;
+        }
+
+        // 初始化工艺规划树：根节点 + 各 PG/COMP 节点
+        int routeCount = processRouteService.initRoutes(bomId);
+
+        // operId → 工序内容字段映射（用于预填）；同时准备工序列表供失配兜底轮转
+        Map<String, JSONObject> operContentMap = new LinkedHashMap<>();
+        List<String> flowOperIds = new ArrayList<>();
+        for (JSONObject op : operList) {
+            String oid = op.getStr("operId");
+            if (StrUtil.isNotBlank(oid)) {
+                operContentMap.put(oid, op);
+                flowOperIds.add(oid);
+            }
+        }
+        String lastOperId = flowOperIds.isEmpty() ? null : flowOperIds.get(flowOperIds.size() - 1);
+
+        // 为每个 route 节点绑定工序（按 BOM 子项 operTyper 匹配；失配轮转兜底）
+        List<SpProcessRoute> routes = processRouteService.listByBomId(bomId);
+        int rotate = 0;
+        for (SpProcessRoute route : routes) {
+            String operId;
+            if (StrUtil.isBlank(route.getParentRouteId())) {
+                // 根节点（产品本身）：绑总装/最后一道工序
+                operId = lastOperId;
+            } else {
+                operId = resolveOperForNode(route, flowOperIds, rotate++);
+            }
+            if (StrUtil.isNotBlank(operId)) {
+                processRouteService.bindOper(route.getId(), operId);
+            }
+        }
+
+        // 锁定整棵工艺规划（非根节点均已绑定工序）
+        processRouteService.lockAll(bomId);
+
+        // 逐节点预填工艺内容（状态自动变为「编制中」）
+        int contentFilled = 0;
+        for (SpProcessRoute route : processRouteService.listByBomId(bomId)) {
+            if (StrUtil.isBlank(route.getOperId())) {
+                continue;
+            }
+            fillProcessContent(route, operContentMap.get(route.getOperId()));
+            contentFilled++;
+        }
+
+        result.put("routeCount", routeCount);
+        result.put("contentFilledCount", contentFilled);
+    }
+
+    /**
+     * 为工艺节点选工序：先按 BOM 子项 operTyper 匹配工序名（oper_desc，且须在本次工艺路线内），
+     * 失配则轮转取本次工艺路线的工序，保证每个非根节点都有工序可绑。
+     */
+    private String resolveOperForNode(SpProcessRoute route, List<String> flowOperIds, int rotate) {
+        if (StrUtil.isNotBlank(route.getBomItemId())) {
+            SpBomItem item = bomItemMapper.selectById(route.getBomItemId());
+            if (item != null && StrUtil.isNotBlank(item.getOperTyper())) {
+                SpOper oper = operService.getOne(new QueryWrapper<SpOper>()
+                        .eq("oper_desc", StrUtil.trim(item.getOperTyper())).last("limit 1"), false);
+                if (oper != null && flowOperIds.contains(oper.getId())) {
+                    return oper.getId();
+                }
+            }
+        }
+        if (flowOperIds.isEmpty()) {
+            return null;
+        }
+        return flowOperIds.get(rotate % flowOperIds.size());
+    }
+
+    /** 用 AI 给出的工艺内容字段预填一个工艺节点；缺失字段用模板兜底，并写入备料清单 */
+    private void fillProcessContent(SpProcessRoute route, JSONObject opContent) {
+        String routeId = route.getId();
+        String operName = StrUtil.blankToDefault(route.getNodeName(), "本工序");
+        String contentText = contentOrDefault(opContent, "contentText",
+                "按照标准作业指导书完成【" + operName + "】的加工/装配作业，作业完成后自检合格再流转下道工序。");
+        String requireText = contentOrDefault(opContent, "requireText",
+                "外观无损伤、装配到位、尺寸与规格符合图纸要求，关键参数检验合格。");
+        String precautionText = contentOrDefault(opContent, "precautionText",
+                "规范佩戴劳保用品，按工艺参数操作，注意设备与人身安全，防止物料磕碰污染。");
+        String techDocDesc = contentOrDefault(opContent, "techDocDesc",
+                "参见该工序对应的作业指导书与技术图纸。");
+
+        processContentService.saveStep2Content(routeId, contentText, null);
+        processContentService.saveStep3Require(routeId, requireText, "Y", null);
+        processContentService.saveStep4Precaution(routeId, precautionText, null);
+        processContentService.saveStep6TechDoc(routeId, techDocDesc, null, null);
+
+        // 备料清单：根节点取顶层 BOM 一级子项，零部件节点取其子 BOM 的 PART 子项
+        List<SpProcessMaterialRel> rels = buildMaterialRels(routeId, route);
+        if (!rels.isEmpty()) {
+            processContentService.saveStep7Materials(routeId, rels);
+        }
+    }
+
+    private String contentOrDefault(JSONObject opContent, String key, String def) {
+        if (opContent == null) {
+            return def;
+        }
+        return StrUtil.blankToDefault(opContent.getStr(key), def);
+    }
+
+    /** 构建工艺节点的备料清单：从对应 BOM 头的子项物料汇总 */
+    private List<SpProcessMaterialRel> buildMaterialRels(String routeId, SpProcessRoute route) {
+        String bomHeadId = null;
+        if (StrUtil.isBlank(route.getParentRouteId())) {
+            // 根节点：备料 = 顶层产品 BOM 的一级子项
+            bomHeadId = route.getBomId();
+        } else if (StrUtil.isNotBlank(route.getBomItemId())) {
+            // 零部件节点：备料 = 该子项关联子 BOM 的子项（基础零件）
+            SpBomItem item = bomItemMapper.selectById(route.getBomItemId());
+            if (item != null) {
+                bomHeadId = item.getChildBomId();
+            }
+        }
+        List<SpProcessMaterialRel> rels = new ArrayList<>();
+        if (StrUtil.isBlank(bomHeadId)) {
+            return rels;
+        }
+        for (SpBomItem child : bomItemMapper.listByBomHeadId(bomHeadId)) {
+            SpMaterile m = materileService.getOne(new QueryWrapper<SpMaterile>()
+                    .eq("materiel", child.getMaterielItemCode()).ne("is_deleted", "1").last("limit 1"), false);
+            if (m == null) {
+                continue;
+            }
+            SpProcessMaterialRel rel = new SpProcessMaterialRel();
+            rel.setRouteId(routeId);
+            rel.setMaterielId(m.getId());
+            rel.setReqQty(child.getItemNum() == null ? BigDecimal.ONE : child.getItemNum());
+            rels.add(rel);
+        }
+        return rels;
     }
 
     private BigDecimal positiveOrDefault(BigDecimal value, BigDecimal def) {

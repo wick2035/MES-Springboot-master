@@ -191,7 +191,8 @@ public class LlmBomGenServiceImpl implements ILlmBomGenService {
                 + "\"itemNum\":数量,\"itemUnit\":\"单位\",\"operTyper\":\"所属工序名\",\"itemMatType\":\"PART或COMP或PG\","
                 + "\"matType\":\"PART或COMP或PG\",\"matSource\":\"SELF或OUT\",\"leadTime\":提前期天数,\"safetyStock\":安全库存数量,"
                 + "\"subParts\":[{\"name\":\"基础零件名称\",\"num\":数量,\"unit\":\"单位\"}]}],"
-                + "\"opers\":[{\"operDesc\":\"工序名称\",\"sortNum\":顺序号,\"operHours\":工时小时,\"manuCycle\":制造周期小时,\"remark\":\"工序说明\"}]}。"
+                + "\"opers\":[{\"operDesc\":\"工序名称\",\"sortNum\":顺序号,\"operHours\":工时小时,\"manuCycle\":制造周期小时,\"remark\":\"工序说明\","
+                + "\"contentText\":\"工序操作步骤简述\",\"requireText\":\"工序质量要求\",\"precautionText\":\"安全与注意事项\",\"techDocDesc\":\"技术文档说明\"}]}。"
                 + "字段约束："
                 + "itemMatType/matType 取值：PART=零件、COMP=组件、PG=半成品；"
                 + "matSource 取值：SELF=自制（需要加工装配的）、OUT=外购（标准件/采购件）；"
@@ -200,7 +201,9 @@ public class LlmBomGenServiceImpl implements ILlmBomGenService {
                 + "名称要具体到真实零件，如主板模块给出 PCB基板、主控芯片、内存颗粒、供电模块；"
                 + "同一组件内子零件名称不得重复）；itemMatType 为 PART 时 subParts 给空数组。"
                 + "opers 为该产品的加工/装配工序序列，按先后顺序给出 5-10 道，"
-                + "operHours 和 manuCycle 均为正整数小时，且 manuCycle 大于等于 operHours。";
+                + "operHours 和 manuCycle 均为正整数小时，且 manuCycle 大于等于 operHours；"
+                + "每道工序的 contentText/requireText/precautionText/techDocDesc 各 30-60 字，"
+                + "用于自动生成工艺内容编制，须结合该工序的实际作业写具体，不要空泛。";
     }
 
     private String buildUserPrompt(String productName, String productDesc, String structureHint, int level) {
