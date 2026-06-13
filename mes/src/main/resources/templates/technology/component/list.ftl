@@ -63,13 +63,19 @@
 
 <script type="text/html" id="js-record-table-toolbar-right">
     <a class="layui-btn layui-btn-xs" lay-event="edit" title="编辑">
-        <i class="layui-icon layui-icon-edit"></i>
+        <i class="layui-icon layui-icon-edit"></i>编辑
     </a>
-    <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="disable" title="启用/禁用">
-        <i class="layui-icon">&#xe690;</i>
+    {{# if(d.deleted === '0'){ }}
+    <a class="layui-btn layui-btn-xs sp-toggle-btn sp-toggle-btn-disable" lay-event="disable" title="禁用" aria-label="禁用">
+        <i class="fa fa-ban"></i>禁用
     </a>
+    {{# } else { }}
+    <a class="layui-btn layui-btn-xs sp-toggle-btn sp-toggle-btn-enable" lay-event="disable" title="启用" aria-label="启用">
+        <i class="fa fa-check-circle"></i>启用
+    </a>
+    {{# } }}
     <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete" title="删除">
-        <i class="layui-icon layui-icon-delete"></i>
+        <i class="layui-icon layui-icon-delete"></i>删除
     </a>
 </script>
 
@@ -105,7 +111,7 @@
                 { field: 'remark', title: '备注' },
                 { field: 'updateTime', title: '更新时间', width: 160 },
                 { fixed: 'right', field: 'operate', title: '操作',
-                    toolbar: '#js-record-table-toolbar-right', unresize: true, width: 150 }
+                    toolbar: '#js-record-table-toolbar-right', unresize: true, width: 300 }
             ]]
         });
 

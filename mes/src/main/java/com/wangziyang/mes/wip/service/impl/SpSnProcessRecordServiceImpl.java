@@ -7,8 +7,10 @@ import com.wangziyang.mes.order.entity.SpOrder;
 import com.wangziyang.mes.order.service.ISpOrderService;
 import com.wangziyang.mes.technology.entity.SpFlowOperRelation;
 import com.wangziyang.mes.technology.entity.SpOper;
+import com.wangziyang.mes.technology.entity.SpProcessRoute;
 import com.wangziyang.mes.technology.mapper.SpFlowOperRelationMapper;
 import com.wangziyang.mes.technology.service.ISpOperService;
+import com.wangziyang.mes.technology.service.ISpProcessRouteService;
 import com.wangziyang.mes.wip.entity.SpSnProcessRecord;
 import com.wangziyang.mes.wip.mapper.SpSnProcessRecordMapper;
 import com.wangziyang.mes.wip.request.SpSnScanReq;
@@ -18,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,11 +29,18 @@ import java.util.stream.Collectors;
 public class SpSnProcessRecordServiceImpl extends ServiceImpl<SpSnProcessRecordMapper, SpSnProcessRecord>
         implements ISpSnProcessRecordService {
 
+    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final int WORK_ORDER_DISPATCHED = 5;
+    private static final String WORK_STATUS_STARTED = "STARTED";
+
     @Autowired
     private ISpOrderService orderService;
 
     @Autowired
     private ISpOperService operService;
+
+    @Autowired
+    private ISpProcessRouteService processRouteService;
 
     @Autowired
     private SpFlowOperRelationMapper flowOperRelationMapper;
@@ -87,6 +98,7 @@ public class SpSnProcessRecordServiceImpl extends ServiceImpl<SpSnProcessRecordM
         record.setStatus(status);
         record.setRemark(StringUtils.trimToEmpty(req.getRemark()));
         save(record);
+        markWorkOrderStarted(order);
 
         if ("OK".equals(status)) {
             completedOperIds.add(current.getOperId());
@@ -137,7 +149,32 @@ public class SpSnProcessRecordServiceImpl extends ServiceImpl<SpSnProcessRecordM
     private List<SpFlowOperRelation> routeByFlowId(String flowId) {
         QueryWrapper<SpFlowOperRelation> qw = new QueryWrapper<>();
         qw.eq("flow_id", flowId).orderByAsc("sort_num");
-        return flowOperRelationMapper.selectList(qw);
+        List<SpFlowOperRelation> relations = flowOperRelationMapper.selectList(qw);
+        if (relations != null && !relations.isEmpty()) {
+            return relations;
+        }
+        List<SpProcessRoute> routes = processRouteService.list(new QueryWrapper<SpProcessRoute>()
+                .eq("bom_id", flowId)
+                .eq("is_deleted", "0")
+                .eq("lock_status", "locked")
+                .isNotNull("oper_id")
+                .ne("oper_id", "")
+                .orderByAsc("route_code"));
+        if (routes == null || routes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<SpFlowOperRelation> fallback = new ArrayList<>();
+        int sort = 1;
+        for (SpProcessRoute route : routes) {
+            SpOper oper = StringUtils.isBlank(route.getOperId()) ? null : operService.getById(route.getOperId());
+            SpFlowOperRelation rel = new SpFlowOperRelation();
+            rel.setFlowId(flowId);
+            rel.setOperId(route.getOperId());
+            rel.setOper(oper == null ? route.getOperId() : oper.getOper());
+            rel.setSortNum(sort++);
+            fallback.add(rel);
+        }
+        return fallback;
     }
 
     private Set<String> completedOperIds(String orderId, String sn) {
@@ -153,6 +190,20 @@ public class SpSnProcessRecordServiceImpl extends ServiceImpl<SpSnProcessRecordM
                 .eq("oper_id", operId)
                 .eq("status", "OK");
         return count(qw) > 0;
+    }
+
+    private void markWorkOrderStarted(SpOrder order) {
+        if (order == null
+                || order.getStatue() == null
+                || order.getStatue() != WORK_ORDER_DISPATCHED
+                || WORK_STATUS_STARTED.equals(order.getWorkStatus())) {
+            return;
+        }
+        SpOrder update = new SpOrder();
+        update.setId(order.getId());
+        update.setWorkStatus(WORK_STATUS_STARTED);
+        update.setWorkStartTime(LocalDateTime.now().format(DT_FMT));
+        orderService.updateById(update);
     }
 
     private String operDesc(SpFlowOperRelation relation) {

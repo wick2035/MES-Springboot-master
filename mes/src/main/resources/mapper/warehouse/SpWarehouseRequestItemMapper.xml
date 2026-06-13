@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.warehouse.mapper.SpWarehouseRequestItemMapper">
+
+    <resultMap id="BaseResultMap" type="com.wangziyang.mes.warehouse.entity.SpWarehouseRequestItem">
+        <id column="id" property="id"/>
+        <result column="request_id" property="requestId"/>
+        <result column="material_id" property="materialId"/>
+        <result column="material_code" property="materialCode"/>
+        <result column="material_name" property="materialName"/>
+        <result column="warehouse_id" property="warehouseId"/>
+        <result column="location_id" property="locationId"/>
+        <result column="batch_no" property="batchNo"/>
+        <result column="request_qty" property="requestQty"/>
+        <result column="confirmed_qty" property="confirmedQty"/>
+        <result column="unit" property="unit"/>
+        <result column="status" property="status"/>
+        <result column="source_item_id" property="sourceItemId"/>
+        <result column="remark" property="remark"/>
+        <result column="is_deleted" property="deleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_username" property="createUsername"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="update_username" property="updateUsername"/>
+        <result column="request_no" property="requestNo"/>
+        <result column="business_type" property="businessType"/>
+        <result column="warehouse_code" property="warehouseCode"/>
+        <result column="warehouse_name" property="warehouseName"/>
+        <result column="location_code" property="locationCode"/>
+    </resultMap>
+
+    <select id="pageItems" resultMap="BaseResultMap">
+        SELECT
+            i.*,
+            r.request_no,
+            r.business_type,
+            w.warehouse_code,
+            w.warehouse_name,
+            l.location_code
+        FROM sp_warehouse_request_item i
+        LEFT JOIN sp_warehouse_request r ON i.request_id = r.id
+        LEFT JOIN sp_warehouse w ON i.warehouse_id = w.id
+        LEFT JOIN sp_warehouse_location l ON i.location_id = l.id
+        WHERE i.is_deleted = '0'
+        <if test="req.requestNoLike != null and req.requestNoLike != ''">
+            AND r.request_no LIKE CONCAT('%', #{req.requestNoLike}, '%')
+        </if>
+        <if test="req.businessType != null and req.businessType != ''">
+            AND r.business_type = #{req.businessType}
+        </if>
+        <if test="req.status != null and req.status != ''">
+            AND i.status = #{req.status}
+        </if>
+        <if test="req.warehouseId != null and req.warehouseId != ''">
+            AND i.warehouse_id = #{req.warehouseId}
+        </if>
+        <if test="req.materialLike != null and req.materialLike != ''">
+            AND (i.material_code LIKE CONCAT('%', #{req.materialLike}, '%')
+                 OR i.material_name LIKE CONCAT('%', #{req.materialLike}, '%'))
+        </if>
+        <if test="req.batchNoLike != null and req.batchNoLike != ''">
+            AND i.batch_no LIKE CONCAT('%', #{req.batchNoLike}, '%')
+        </if>
+        ORDER BY i.update_time DESC
+    </select>
+</mapper>

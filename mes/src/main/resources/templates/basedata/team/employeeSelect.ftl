@@ -8,13 +8,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <#include "${request.contextPath}/common/common.ftl">
     <style>
-        .sp-search-row { padding: 8px 4px; }
-        .sp-tree-box { border: 1px solid #e6e6e6; border-radius: 4px; padding: 8px; height: 430px; overflow: auto; margin: 0 4px; }
-        .sp-tip { color: #999; font-size: 12px; padding: 4px; }
+        html, body { height: 100%; overflow: hidden; }
+        body { background: var(--sp-bg); }
+        .sp-user-select { height: 100%; border: 0; border-radius: 0; box-shadow: none; }
+        .sp-user-select .splayui-main {
+            height: 100%;
+            margin: 0;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+        .sp-search-row {
+            flex: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            border: 1px solid var(--sp-border);
+            border-radius: var(--sp-radius);
+            background: var(--sp-surface);
+        }
+        .sp-search-row .layui-inline { flex: 1; margin: 0; }
+        .sp-search-row .layui-input { width: 100% !important; display: block !important; }
+        .sp-tree-box {
+            flex: 1;
+            min-height: 0;
+            border: 1px solid var(--sp-border);
+            border-radius: var(--sp-radius);
+            padding: 8px;
+            overflow: auto;
+            margin: 8px 0 0;
+            background: var(--sp-surface);
+        }
+        .sp-tip {
+            flex: none;
+            color: var(--sp-text-muted);
+            font-size: 12px;
+            line-height: 1.6;
+            padding: 8px 2px 0;
+        }
+        .layui-tree-entry:hover { background: var(--sp-primary-tint); }
+        .layui-tree-txt { color: var(--sp-text-secondary); }
     </style>
 </head>
 <body>
-<div class="splayui-container">
+<div class="splayui-container sp-user-select">
     <div class="splayui-main">
         <div class="sp-search-row layui-form">
             <div class="layui-inline">

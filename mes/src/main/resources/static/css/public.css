@@ -27,6 +27,27 @@ body {
     padding: 4px 14px 14px;
 }
 
+/* Keep generated Layui tables away from container edges. */
+.splayui-main > .layui-table-view,
+.splayui-main > .sp-section > .layui-table-view,
+.splayui-main > form + .layui-table-view,
+.splayui-main > .layui-form + .layui-table-view,
+.panel > .layui-table-view,
+.layui-card-body > .layui-table-view {
+    width: calc(100% - 24px) !important;
+    margin: 10px 12px 14px;
+    box-sizing: border-box;
+}
+
+.splayui-main > .sp-section > .layui-table-view {
+    margin-top: 8px;
+}
+
+.splayui-main > .layui-table-view:first-child,
+.panel > .layui-table-view:first-child {
+    margin-top: 12px;
+}
+
 /* 查询条 / 操作按钮栏之间的分隔感 */
 .splayui-main > .layui-form + .layui-btn-container,
 .splayui-main > #js-search-form + .layui-btn-container {

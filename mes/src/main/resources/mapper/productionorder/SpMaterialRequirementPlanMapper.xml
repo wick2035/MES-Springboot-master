@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.productionorder.mapper.SpMaterialRequirementPlanMapper">
+
+    <resultMap id="BaseResultMap" type="com.wangziyang.mes.productionorder.entity.SpMaterialRequirementPlan">
+        <id column="id" property="id"/>
+        <result column="production_order_id" property="productionOrderId"/>
+        <result column="production_order_no" property="productionOrderNo"/>
+        <result column="order_item_id" property="orderItemId"/>
+        <result column="product_serial_no" property="productSerialNo"/>
+        <result column="product_materiel" property="productMateriel"/>
+        <result column="product_name" property="productName"/>
+        <result column="material_id" property="materialId"/>
+        <result column="material_code" property="materialCode"/>
+        <result column="material_name" property="materialName"/>
+        <result column="material_type" property="materialType"/>
+        <result column="material_source" property="materialSource"/>
+        <result column="unit" property="unit"/>
+        <result column="bom_level" property="bomLevel"/>
+        <result column="bom_path" property="bomPath"/>
+        <result column="gross_requirement" property="grossRequirement"/>
+        <result column="available_stock" property="availableStock"/>
+        <result column="safety_stock" property="safetyStock"/>
+        <result column="net_requirement" property="netRequirement"/>
+        <result column="requirement_date" property="requirementDate"/>
+        <result column="lead_time_days" property="leadTimeDays"/>
+        <result column="release_date" property="releaseDate"/>
+        <result column="delivery_status" property="deliveryStatus"/>
+        <result column="inbound_status" property="inboundStatus"/>
+        <result column="inbound_request_id" property="inboundRequestId"/>
+        <result column="inbound_request_no" property="inboundRequestNo"/>
+        <result column="outbound_status" property="outboundStatus"/>
+        <result column="outbound_request_id" property="outboundRequestId"/>
+        <result column="outbound_request_no" property="outboundRequestNo"/>
+        <result column="calc_batch_no" property="calcBatchNo"/>
+        <result column="calc_time" property="calcTime"/>
+        <result column="remark" property="remark"/>
+        <result column="is_deleted" property="deleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_username" property="createUsername"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="update_username" property="updateUsername"/>
+    </resultMap>
+
+    <sql id="PlanFilters">
+        p.is_deleted = '0'
+        AND p.material_id IS NOT NULL
+        AND p.material_id != ''
+        <if test="req.productionOrderNoLike != null and req.productionOrderNoLike != ''">
+            AND p.production_order_no LIKE CONCAT('%', #{req.productionOrderNoLike}, '%')
+        </if>
+        <if test="req.productLike != null and req.productLike != ''">
+            AND (p.product_materiel LIKE CONCAT('%', #{req.productLike}, '%')
+                 OR p.product_name LIKE CONCAT('%', #{req.productLike}, '%')
+                 OR p.product_serial_no LIKE CONCAT('%', #{req.productLike}, '%'))
+        </if>
+        <if test="req.materialLike != null and req.materialLike != ''">
+            AND (p.material_code LIKE CONCAT('%', #{req.materialLike}, '%')
+                 OR p.material_name LIKE CONCAT('%', #{req.materialLike}, '%'))
+        </if>
+        <if test="req.deliveryStatus != null and req.deliveryStatus != ''">
+            AND p.delivery_status = #{req.deliveryStatus}
+        </if>
+        <if test="req.inboundStatus != null and req.inboundStatus != ''">
+            AND p.inbound_status = #{req.inboundStatus}
+        </if>
+        <if test="req.outboundStatus != null and req.outboundStatus != ''">
+            AND p.outbound_status = #{req.outboundStatus}
+        </if>
+        <if test="req.materialSource != null and req.materialSource != ''">
+            AND p.material_source = #{req.materialSource}
+        </if>
+        <if test="req.requirementDateBegin != null and req.requirementDateBegin != ''">
+            AND p.requirement_date &gt;= #{req.requirementDateBegin}
+        </if>
+        <if test="req.requirementDateEnd != null and req.requirementDateEnd != ''">
+            AND p.requirement_date &lt;= #{req.requirementDateEnd}
+        </if>
+    </sql>
+
+    <select id="pageList" resultMap="BaseResultMap">
+        SELECT
+            p.id,
+            p.production_order_id,
+            p.production_order_no,
+            p.order_item_id,
+            p.product_serial_no,
+            p.product_materiel,
+            p.product_name,
+            p.material_id,
+            p.material_code,
+            p.material_name,
+            p.material_type,
+            p.material_source,
+            p.unit,
+            p.bom_level,
+            p.bom_path,
+            p.gross_requirement,
+            COALESCE(inv.available_stock, 0) AS available_stock,
+            p.safety_stock,
+            GREATEST(p.gross_requirement + p.safety_stock - COALESCE(inv.available_stock, 0), 0) AS net_requirement,
+            p.requirement_date,
+            p.lead_time_days,
+            p.release_date,
+            p.delivery_status,
+            p.inbound_status,
+            p.inbound_request_id,
+            p.inbound_request_no,
+            p.outbound_status,
+            p.outbound_request_id,
+            p.outbound_request_no,
+            p.calc_batch_no,
+            p.calc_time,
+            p.remark,
+            p.is_deleted,
+            p.create_time,
+            p.create_username,
+            p.update_time,
+            p.update_username
+        FROM sp_material_requirement_plan p
+        LEFT JOIN (
+            SELECT materiel_id, SUM(qty) AS available_stock
+            FROM sp_inventory
+            WHERE is_deleted = '0'
+              AND stock_status = 'AVAILABLE'
+              AND qty &gt; 0
+            GROUP BY materiel_id
+        ) inv ON inv.materiel_id = p.material_id
+        WHERE <include refid="PlanFilters"/>
+        ORDER BY p.requirement_date ASC, p.material_code ASC, p.update_time DESC
+    </select>
+
+    <select id="weekSummary" resultType="java.util.HashMap">
+        SELECT
+            YEARWEEK(STR_TO_DATE(p.requirement_date, '%Y-%m-%d'), 1) AS weekKey,
+            MIN(p.requirement_date) AS weekStartDate,
+            MAX(p.requirement_date) AS weekEndDate,
+            COUNT(1) AS lineCount,
+            COUNT(DISTINCT p.production_order_id) AS orderCount,
+            SUM(p.gross_requirement) AS grossRequirement,
+            SUM(GREATEST(p.gross_requirement + p.safety_stock - COALESCE(inv.available_stock, 0), 0)) AS netRequirement,
+            SUM(CASE WHEN p.delivery_status = 'WAIT' THEN GREATEST(p.gross_requirement + p.safety_stock - COALESCE(inv.available_stock, 0), 0) ELSE 0 END) AS waitReleaseQty,
+            SUM(CASE WHEN p.delivery_status = 'RELEASED' THEN GREATEST(p.gross_requirement + p.safety_stock - COALESCE(inv.available_stock, 0), 0) ELSE 0 END) AS releasedQty,
+            SUM(CASE WHEN p.inbound_status = 'GENERATED' THEN GREATEST(p.gross_requirement + p.safety_stock - COALESCE(inv.available_stock, 0), 0) ELSE 0 END) AS generatedInboundQty
+        FROM sp_material_requirement_plan p
+        LEFT JOIN (
+            SELECT materiel_id, SUM(qty) AS available_stock
+            FROM sp_inventory
+            WHERE is_deleted = '0'
+              AND stock_status = 'AVAILABLE'
+              AND qty &gt; 0
+            GROUP BY materiel_id
+        ) inv ON inv.materiel_id = p.material_id
+        WHERE <include refid="PlanFilters"/>
+        GROUP BY YEARWEEK(STR_TO_DATE(p.requirement_date, '%Y-%m-%d'), 1)
+        ORDER BY weekKey ASC
+    </select>
+</mapper>

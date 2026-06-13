@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.warehouse.mapper.SpWarehouseRequestMapper">
+
+    <resultMap id="BaseResultMap" type="com.wangziyang.mes.warehouse.entity.SpWarehouseRequest">
+        <id column="id" property="id"/>
+        <result column="request_no" property="requestNo"/>
+        <result column="business_type" property="businessType"/>
+        <result column="source_type" property="sourceType"/>
+        <result column="source_id" property="sourceId"/>
+        <result column="source_no" property="sourceNo"/>
+        <result column="warehouse_id" property="warehouseId"/>
+        <result column="status" property="status"/>
+        <result column="item_count" property="itemCount"/>
+        <result column="total_qty" property="totalQty"/>
+        <result column="apply_username" property="applyUsername"/>
+        <result column="apply_time" property="applyTime"/>
+        <result column="confirm_username" property="confirmUsername"/>
+        <result column="confirm_time" property="confirmTime"/>
+        <result column="remark" property="remark"/>
+        <result column="is_deleted" property="deleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_username" property="createUsername"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="update_username" property="updateUsername"/>
+        <result column="warehouse_code" property="warehouseCode"/>
+        <result column="warehouse_name" property="warehouseName"/>
+        <result column="confirmed_count" property="confirmedCount"/>
+    </resultMap>
+
+    <sql id="RequestFilters">
+        r.is_deleted = '0'
+        <if test="req.businessType != null and req.businessType != ''">
+            AND r.business_type = #{req.businessType}
+        </if>
+        <if test="req.status != null and req.status != ''">
+            AND r.status = #{req.status}
+        </if>
+        <if test="req.requestNoLike != null and req.requestNoLike != ''">
+            AND r.request_no LIKE CONCAT('%', #{req.requestNoLike}, '%')
+        </if>
+        <if test="req.sourceNoLike != null and req.sourceNoLike != ''">
+            AND r.source_no LIKE CONCAT('%', #{req.sourceNoLike}, '%')
+        </if>
+        <if test="req.warehouseId != null and req.warehouseId != ''">
+            AND r.warehouse_id = #{req.warehouseId}
+        </if>
+        <if test="req.beginDate != null and req.beginDate != ''">
+            AND r.apply_time &gt;= #{req.beginDate}
+        </if>
+        <if test="req.endDate != null and req.endDate != ''">
+            AND r.apply_time &lt;= #{req.endDate}
+        </if>
+    </sql>
+
+    <select id="pageList" resultMap="BaseResultMap">
+        SELECT
+            r.*,
+            w.warehouse_code,
+            w.warehouse_name,
+            COALESCE(ic.confirmed_count, 0) AS confirmed_count
+        FROM sp_warehouse_request r
+        LEFT JOIN sp_warehouse w ON r.warehouse_id = w.id
+        LEFT JOIN (
+            SELECT request_id, SUM(CASE WHEN status = 'CONFIRMED' THEN 1 ELSE 0 END) AS confirmed_count
+            FROM sp_warehouse_request_item
+            WHERE is_deleted = '0'
+            GROUP BY request_id
+        ) ic ON r.id = ic.request_id
+        WHERE <include refid="RequestFilters"/>
+        ORDER BY r.update_time DESC
+    </select>
+
+    <select id="ledger" resultType="java.util.HashMap">
+        SELECT
+            w.warehouse_code AS warehouseCode,
+            w.warehouse_name AS warehouseName,
+            m.materiel AS materialCode,
+            m.materiel_desc AS materialName,
+            SUM(CASE WHEN t.direction = 'IN' THEN t.qty ELSE 0 END) AS inboundQty,
+            SUM(CASE WHEN t.direction = 'OUT' THEN t.qty ELSE 0 END) AS outboundQty,
+            COALESCE(inv.qty, 0) AS balanceQty,
+            MAX(t.operate_time) AS lastOperateTime
+        FROM sp_warehouse_transaction t
+        LEFT JOIN sp_warehouse w ON t.warehouse_id = w.id
+        LEFT JOIN sp_materile m ON t.material_id = m.id
+        LEFT JOIN (
+            SELECT warehouse_id, materiel_id, SUM(qty) qty
+            FROM sp_inventory
+            WHERE is_deleted = '0'
+            GROUP BY warehouse_id, materiel_id
+        ) inv ON inv.warehouse_id = t.warehouse_id AND inv.materiel_id = t.material_id
+        WHERE 1 = 1
+        <if test="req.warehouseId != null and req.warehouseId != ''">
+            AND t.warehouse_id = #{req.warehouseId}
+        </if>
+        <if test="req.materialLike != null and req.materialLike != ''">
+            AND (m.materiel LIKE CONCAT('%', #{req.materialLike}, '%')
+                OR m.materiel_desc LIKE CONCAT('%', #{req.materialLike}, '%'))
+        </if>
+        <if test="req.beginDate != null and req.beginDate != ''">
+            AND t.operate_time &gt;= #{req.beginDate}
+        </if>
+        <if test="req.endDate != null and req.endDate != ''">
+            AND t.operate_time &lt;= #{req.endDate}
+        </if>
+        GROUP BY t.warehouse_id, t.material_id, w.warehouse_code, w.warehouse_name, m.materiel, m.materiel_desc, inv.qty
+        ORDER BY w.warehouse_code, m.materiel
+    </select>
+</mapper>

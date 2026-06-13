@@ -195,9 +195,31 @@ body {
 .layui-table .layui-btn-xs + .layui-btn-xs {
     margin-left: 6px;
 }
-.layui-btn .layui-icon {
+.layui-btn .layui-icon,
+.layui-btn .fa {
     font-size: 13px;
     margin-right: 3px;
+}
+
+.layui-btn.sp-toggle-btn-enable {
+    background-color: var(--sp-success) !important;
+    border-color: var(--sp-success) !important;
+    color: #fff !important;
+}
+.layui-btn.sp-toggle-btn-enable:hover {
+    background-color: #15803D !important;
+    border-color: #15803D !important;
+    color: #fff !important;
+}
+.layui-btn.sp-toggle-btn-disable {
+    background-color: var(--sp-danger) !important;
+    border-color: var(--sp-danger) !important;
+    color: #fff !important;
+}
+.layui-btn.sp-toggle-btn-disable:hover {
+    background-color: #B91C1C !important;
+    border-color: #B91C1C !important;
+    color: #fff !important;
 }
 
 /* ============================================================
@@ -355,6 +377,7 @@ body {
 .layui-table-view {
     border-radius: var(--sp-radius);
     border: 1px solid var(--sp-border);
+    overflow: hidden;
 }
 .layui-table-tool {
     background-color: var(--sp-surface-2);
@@ -362,6 +385,98 @@ body {
 }
 .layui-table-page {
     border-top: 1px solid var(--sp-border);
+    padding: 7px 10px;
+    box-sizing: border-box;
+}
+
+/* Production plan center tables: inset table shell with side spacing. */
+.sp-production-table-view {
+    width: calc(100% - 24px) !important;
+    margin: 14px 12px 16px !important;
+    border: 1px solid var(--sp-border) !important;
+    border-radius: var(--sp-radius-lg);
+    background-color: var(--sp-surface);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+.sp-production-table-view .layui-table-tool {
+    padding: 11px 14px;
+    background-color: var(--sp-surface);
+    border-bottom: 1px solid var(--sp-border);
+}
+.sp-production-table-view .layui-table-box {
+    border-radius: 0;
+}
+.sp-production-table-view .layui-table-header,
+.sp-production-table-view .layui-table-header .layui-table {
+    background-color: var(--sp-surface-2) !important;
+}
+.sp-production-table-view .layui-table th,
+.sp-production-table-view .layui-table td {
+    padding: 10px 0;
+}
+.sp-production-table-view .layui-table th {
+    font-size: 14px;
+    font-weight: 700;
+}
+.sp-production-table-view .layui-table-cell {
+    padding-left: 18px;
+    padding-right: 18px;
+    box-sizing: border-box;
+}
+.sp-production-table-view .layui-table-col-special .layui-table-cell {
+    padding-left: 10px;
+    padding-right: 10px;
+    text-align: center;
+}
+.sp-production-table-view td[data-field="operate"] .layui-table-cell,
+.sp-production-table-view td[data-off="true"] .layui-table-cell,
+.sp-production-table-view .sp-table-action-cell {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+.sp-production-table-view .layui-table-body tr:nth-child(even),
+.sp-production-table-view .layui-table-main tr:nth-child(even) {
+    background-color: #F7FAFF;
+}
+.sp-production-table-view .layui-table-page {
+    min-height: 56px;
+    padding: 10px 14px;
+    background-color: var(--sp-surface);
+}
+.sp-production-detail-table {
+    padding: 14px 16px 16px;
+    background: var(--sp-bg);
+    box-sizing: border-box;
+}
+.sp-production-detail-table .layui-table,
+.sp-production-detail-table table {
+    width: 100%;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--sp-border);
+    border-radius: var(--sp-radius-lg);
+    background: var(--sp-surface);
+    overflow: hidden;
+    box-sizing: border-box;
+}
+.sp-production-detail-table .layui-table th,
+.sp-production-detail-table .layui-table td,
+.sp-production-detail-table table th,
+.sp-production-detail-table table td {
+    padding: 12px 18px;
+    border-color: var(--sp-border);
+}
+.sp-production-detail-table .layui-table th,
+.sp-production-detail-table table th {
+    background: var(--sp-surface-2);
+    color: var(--sp-text-secondary);
+    font-weight: 700;
+}
+.sp-production-detail-table .layui-table tbody tr:nth-child(even),
+.sp-production-detail-table table tbody tr:nth-child(even) {
+    background: #F7FAFF;
 }
 /* 表格内排序/工具图标 */
 .layui-table-sort .layui-edge {
@@ -389,6 +504,144 @@ body {
 }
 .layui-table td[data-field="operate"] .layui-table-grid-down {
     display: none !important;
+}
+
+/* Shared action-cell layout for generated toolbar columns. */
+.layui-table-view .sp-table-action-td,
+.layui-table-view td[data-field="operate"],
+.layui-table-view td[data-off="true"] {
+    overflow: visible !important;
+}
+
+.layui-table-view th[data-field="operate"] .layui-table-cell,
+.layui-table-view th[data-off="true"] .layui-table-cell {
+    padding-left: 0;
+    padding-right: 0;
+    text-align: center;
+}
+
+.layui-table-view .sp-table-action-cell,
+.layui-table-view td[data-field="operate"] .layui-table-cell,
+.layui-table-view td[data-off="true"] .layui-table-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    gap: var(--sp-table-action-gap, 6px);
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: calc(var(--sp-table-action-height, 24px) + 4px);
+    overflow: hidden !important;
+    text-overflow: clip;
+    white-space: nowrap;
+    box-sizing: border-box;
+    padding: 0 6px;
+}
+
+.layui-table-view .sp-table-action-cell .layui-btn,
+.layui-table-view td[data-field="operate"] .layui-table-cell .layui-btn,
+.layui-table-view td[data-off="true"] .layui-table-cell .layui-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    max-width: 92px;
+    height: var(--sp-table-action-height, 24px);
+    line-height: var(--sp-table-action-height, 24px);
+    padding: 0 var(--sp-table-action-pad-x, 7px);
+    margin: 2px 0 !important;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: visible;
+}
+
+.layui-table-view .sp-table-action-cell .layui-btn .layui-icon,
+.layui-table-view .sp-table-action-cell .layui-btn .fa,
+.layui-table-view td[data-field="operate"] .layui-table-cell .layui-btn .layui-icon,
+.layui-table-view td[data-field="operate"] .layui-table-cell .layui-btn .fa,
+.layui-table-view td[data-off="true"] .layui-table-cell .layui-btn .layui-icon,
+.layui-table-view td[data-off="true"] .layui-table-cell .layui-btn .fa {
+    flex: none;
+    margin-right: 3px;
+}
+
+.layui-table-view .sp-table-action-cell .sp-table-btn-text,
+.layui-table-view td[data-field="operate"] .layui-table-cell .sp-table-btn-text,
+.layui-table-view td[data-off="true"] .layui-table-cell .sp-table-btn-text {
+    display: inline-block;
+    min-width: 0;
+    overflow: visible;
+    text-overflow: clip;
+    vertical-align: top;
+}
+
+.layui-table-view .sp-table-action-cell.sp-action-compact,
+.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-compact,
+.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-compact {
+    gap: var(--sp-table-action-gap, 4px);
+}
+
+.layui-table-view .sp-table-action-cell.sp-action-wrap,
+.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-wrap,
+.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-wrap {
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: space-evenly;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+.layui-table-view .sp-table-action-cell.sp-action-compact .layui-btn,
+.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-compact .layui-btn,
+.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-compact .layui-btn {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 34px;
+    padding: 0 var(--sp-table-action-pad-x, 5px);
+}
+
+.layui-table-view .sp-table-action-cell.sp-action-wrap .layui-btn,
+.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-wrap .layui-btn,
+.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-wrap .layui-btn {
+    flex: 1 1 calc(50% - var(--sp-table-action-gap, 4px));
+    max-width: 100%;
+    height: auto;
+    min-height: var(--sp-table-action-height, 24px);
+    line-height: 16px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    white-space: normal;
+}
+
+.layui-table-view .sp-table-action-cell.sp-action-wrap .layui-btn .sp-table-btn-text,
+.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-wrap .layui-btn .sp-table-btn-text,
+.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-wrap .layui-btn .sp-table-btn-text {
+    white-space: normal;
+}
+
+.layui-table-view .sp-table-action-cell.sp-action-compact .layui-btn .layui-icon,
+.layui-table-view .sp-table-action-cell.sp-action-compact .layui-btn .fa,
+.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-compact .layui-btn .layui-icon,
+.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-compact .layui-btn .fa,
+.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-compact .layui-btn .layui-icon,
+.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-compact .layui-btn .fa {
+    margin-right: 2px;
+}
+
+.layui-table-view .sp-table-action-cell.sp-action-compact .layui-btn.sp-table-button-no-icon,
+.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-compact .layui-btn.sp-table-button-no-icon,
+.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-compact .layui-btn.sp-table-button-no-icon {
+    flex-basis: auto;
+    width: auto;
+    min-width: 34px;
+    padding: 0 5px;
+}
+
+.layui-table-fixed-r,
+.layui-table-fixed-r .layui-table-body {
+    overflow: visible;
 }
 
 /* 分页 laypage */

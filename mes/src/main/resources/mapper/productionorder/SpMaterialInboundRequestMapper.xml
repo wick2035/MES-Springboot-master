@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.productionorder.mapper.SpMaterialInboundRequestMapper">
+
+    <resultMap id="BaseResultMap" type="com.wangziyang.mes.productionorder.entity.SpMaterialInboundRequest">
+        <id column="id" property="id"/>
+        <result column="request_no" property="requestNo"/>
+        <result column="production_order_id" property="productionOrderId"/>
+        <result column="production_order_no" property="productionOrderNo"/>
+        <result column="source_batch_no" property="sourceBatchNo"/>
+        <result column="status" property="status"/>
+        <result column="item_count" property="itemCount"/>
+        <result column="total_net_qty" property="totalNetQty"/>
+        <result column="remark" property="remark"/>
+        <result column="is_deleted" property="deleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_username" property="createUsername"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="update_username" property="updateUsername"/>
+    </resultMap>
+
+    <select id="pageList" resultMap="BaseResultMap">
+        SELECT r.*
+        FROM sp_material_inbound_request r
+        WHERE r.is_deleted = '0'
+        <if test="req.requestNoLike != null and req.requestNoLike != ''">
+            AND r.request_no LIKE CONCAT('%', #{req.requestNoLike}, '%')
+        </if>
+        <if test="req.productionOrderNoLike != null and req.productionOrderNoLike != ''">
+            AND r.production_order_no LIKE CONCAT('%', #{req.productionOrderNoLike}, '%')
+        </if>
+        <if test="req.status != null and req.status != ''">
+            AND r.status = #{req.status}
+        </if>
+        ORDER BY r.update_time DESC
+    </select>
+</mapper>

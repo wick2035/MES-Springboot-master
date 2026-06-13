@@ -124,6 +124,13 @@
                     field: 'unit', title: '单位', width: 80,
                     templet: function (d) { return d.unit || ''; }
                 }, {
+                    field: 'stockStatus', title: '库存状态', width: 100,
+                    templet: function (d) {
+                        return d.stockStatus === 'AVAILABLE'
+                            ? '<span class="sp-badge sp-badge-success">可用</span>'
+                            : (d.stockStatus || '');
+                    }
+                }, {
                     field: 'updateTime', title: '更新时间', width: 170
                 }, {
                     fixed: 'right', field: 'operate', title: '操作',

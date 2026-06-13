@@ -43,15 +43,17 @@
     </div>
 </script>
 <script type="text/html" id="js-record-table-toolbar-right">
-    <a class="layui-btn layui-btn-xs" lay-event="edit"><i class="layui-icon layui-icon-edit"></i>编辑</a>
-    <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="disable">
-        {{# if(d.status === '1'){ }}
-        <i class="layui-icon">&#xe651;</i>禁用
-        {{# } else { }}
-        <i class="layui-icon">&#xe652;</i>启用
-        {{# } }}
+    <a class="layui-btn layui-btn-xs" lay-event="edit" title="编辑"><i class="layui-icon layui-icon-edit"></i>编辑</a>
+    {{# if(d.status === '1'){ }}
+    <a class="layui-btn layui-btn-xs sp-toggle-btn sp-toggle-btn-disable" lay-event="disable" title="禁用" aria-label="禁用">
+        <i class="fa fa-ban"></i>禁用
     </a>
-    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete"><i class="layui-icon layui-icon-delete"></i>删除</a>
+    {{# } else { }}
+    <a class="layui-btn layui-btn-xs sp-toggle-btn sp-toggle-btn-enable" lay-event="disable" title="启用" aria-label="启用">
+        <i class="fa fa-check-circle"></i>启用
+    </a>
+    {{# } }}
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete" title="删除"><i class="layui-icon layui-icon-delete"></i>删除</a>
 </script>
 
 <script>
@@ -71,7 +73,7 @@
                         return d.status === '1' ? '启用' : '停用';
                     }
                 },
-                {fixed: 'right', title: '操作', toolbar: '#js-record-table-toolbar-right', unresize: true, width: 220}
+                {fixed: 'right', title: '操作', toolbar: '#js-record-table-toolbar-right', unresize: true, width: 300}
             ]]
         });
         $(function () { form.render(); });

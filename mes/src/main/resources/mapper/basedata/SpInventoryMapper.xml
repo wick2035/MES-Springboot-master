@@ -10,6 +10,7 @@
         <result column="batch_no" property="batchNo" jdbcType="VARCHAR"/>
         <result column="qty" property="qty" jdbcType="DECIMAL"/>
         <result column="unit" property="unit" jdbcType="VARCHAR"/>
+        <result column="stock_status" property="stockStatus" jdbcType="VARCHAR"/>
         <result column="is_deleted" property="deleted" jdbcType="VARCHAR"/>
         <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
         <result column="create_username" property="createUsername" jdbcType="VARCHAR"/>
@@ -37,6 +38,7 @@
             it.batch_no,
             it.qty,
             it.unit,
+            it.stock_status,
             it.is_deleted,
             it.create_time,
             it.create_username,
@@ -66,6 +68,12 @@
         <if test="req.locationCodeLike != null and req.locationCodeLike != ''">
             AND wl.location_code LIKE CONCAT('%', #{req.locationCodeLike}, '%')
         </if>
+        <if test="req.batchNoLike != null and req.batchNoLike != ''">
+            AND it.batch_no LIKE CONCAT('%', #{req.batchNoLike}, '%')
+        </if>
+        <if test="req.stockStatus != null and req.stockStatus != ''">
+            AND it.stock_status = #{req.stockStatus}
+        </if>
         ORDER BY it.update_time DESC
     </select>
 
@@ -79,6 +87,7 @@
             it.batch_no,
             it.qty,
             it.unit,
+            it.stock_status,
             wl.location_code AS location_code,
             wl.group_no AS group_no,
             wl.row_no AS row_no,

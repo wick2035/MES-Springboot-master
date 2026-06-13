@@ -10,6 +10,7 @@ import com.wangziyang.mes.basedata.mapper.SpInventoryMapper;
 import com.wangziyang.mes.basedata.request.SpInventoryReq;
 import com.wangziyang.mes.basedata.service.ISpInventoryService;
 import com.wangziyang.mes.basedata.service.ISpMaterileService;
+import com.wangziyang.mes.warehouse.WarehouseConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,9 @@ public class SpInventoryServiceImpl extends ServiceImpl<SpInventoryMapper, SpInv
             record.setQty(BigDecimal.ZERO);
         }
         record.setDeleted("0");
+        if (StringUtils.isBlank(record.getStockStatus())) {
+            record.setStockStatus(WarehouseConstants.STOCK_AVAILABLE);
+        }
 
         // 编辑场景：直接更新
         if (StringUtils.isNotEmpty(record.getId())) {
@@ -75,6 +79,7 @@ public class SpInventoryServiceImpl extends ServiceImpl<SpInventoryMapper, SpInv
         if (exist != null) {
             exist.setQty(exist.getQty() == null ? record.getQty() : exist.getQty().add(record.getQty()));
             exist.setUnit(record.getUnit());
+            exist.setStockStatus(record.getStockStatus());
             updateById(exist);
         } else {
             save(record);

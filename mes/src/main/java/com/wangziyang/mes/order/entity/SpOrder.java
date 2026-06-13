@@ -1,5 +1,6 @@
 package com.wangziyang.mes.order.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.wangziyang.mes.common.BaseEntity;
 
 /**
@@ -88,6 +89,75 @@ public class SpOrder extends BaseEntity {
      * 审批时间
      */
     private String approveTime;
+
+    private String workStatus;
+
+    private String workStartTime;
+
+    private String completeStatus;
+
+    private String completeTime;
+
+    private String completeUsername;
+
+    private String deliveryStatus;
+
+    private String deliveryTime;
+
+    private String deliveryUsername;
+
+    /**
+     * 澶囨敞
+     */
+    private String remark;
+
+    @TableField(exist = false)
+    private String sourceOrderNo;
+
+    @TableField(exist = false)
+    private String sourceOrderItemId;
+
+    @TableField(exist = false)
+    private String sourceBomCode;
+
+    @TableField(exist = false)
+    private String sourceBomVersion;
+
+    @TableField(exist = false)
+    private String approvalStatusName;
+
+    @TableField(exist = false)
+    private String equipmentAssignStatusName;
+
+    @TableField(exist = false)
+    private String employeeAssignStatusName;
+
+    @TableField(exist = false)
+    private String dispatchStatusName;
+
+    @TableField(exist = false)
+    private String mainStatusName;
+
+    @TableField(exist = false)
+    private String workStatusName;
+
+    @TableField(exist = false)
+    private String completeStatusName;
+
+    @TableField(exist = false)
+    private String deliveryStatusName;
+
+    @TableField(exist = false)
+    private Boolean canComplete;
+
+    @TableField(exist = false)
+    private Boolean canDeliver;
+
+    @TableField(exist = false)
+    private String completeBlockReason;
+
+    @TableField(exist = false)
+    private String deliveryBlockReason;
 
     public String getOrderCode() {
         return orderCode;
@@ -200,6 +270,206 @@ public class SpOrder extends BaseEntity {
         this.approveTime = approveTime;
     }
 
+    public String getWorkStatus() {
+        return workStatus;
+    }
+
+    public void setWorkStatus(String workStatus) {
+        this.workStatus = workStatus;
+    }
+
+    public String getWorkStartTime() {
+        return workStartTime;
+    }
+
+    public void setWorkStartTime(String workStartTime) {
+        this.workStartTime = workStartTime;
+    }
+
+    public String getCompleteStatus() {
+        return completeStatus;
+    }
+
+    public void setCompleteStatus(String completeStatus) {
+        this.completeStatus = completeStatus;
+    }
+
+    public String getCompleteTime() {
+        return completeTime;
+    }
+
+    public void setCompleteTime(String completeTime) {
+        this.completeTime = completeTime;
+    }
+
+    public String getCompleteUsername() {
+        return completeUsername;
+    }
+
+    public void setCompleteUsername(String completeUsername) {
+        this.completeUsername = completeUsername;
+    }
+
+    public String getDeliveryStatus() {
+        return deliveryStatus;
+    }
+
+    public void setDeliveryStatus(String deliveryStatus) {
+        this.deliveryStatus = deliveryStatus;
+    }
+
+    public String getDeliveryTime() {
+        return deliveryTime;
+    }
+
+    public void setDeliveryTime(String deliveryTime) {
+        this.deliveryTime = deliveryTime;
+    }
+
+    public String getDeliveryUsername() {
+        return deliveryUsername;
+    }
+
+    public void setDeliveryUsername(String deliveryUsername) {
+        this.deliveryUsername = deliveryUsername;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    public String getSourceOrderNo() {
+        return sourceOrderNo;
+    }
+
+    public void setSourceOrderNo(String sourceOrderNo) {
+        this.sourceOrderNo = sourceOrderNo;
+    }
+
+    public String getSourceOrderItemId() {
+        return sourceOrderItemId;
+    }
+
+    public void setSourceOrderItemId(String sourceOrderItemId) {
+        this.sourceOrderItemId = sourceOrderItemId;
+    }
+
+    public String getSourceBomCode() {
+        return sourceBomCode;
+    }
+
+    public void setSourceBomCode(String sourceBomCode) {
+        this.sourceBomCode = sourceBomCode;
+    }
+
+    public String getSourceBomVersion() {
+        return sourceBomVersion;
+    }
+
+    public void setSourceBomVersion(String sourceBomVersion) {
+        this.sourceBomVersion = sourceBomVersion;
+    }
+
+    public String getApprovalStatusName() {
+        return approvalStatusName;
+    }
+
+    public void setApprovalStatusName(String approvalStatusName) {
+        this.approvalStatusName = approvalStatusName;
+    }
+
+    public String getEquipmentAssignStatusName() {
+        return equipmentAssignStatusName;
+    }
+
+    public void setEquipmentAssignStatusName(String equipmentAssignStatusName) {
+        this.equipmentAssignStatusName = equipmentAssignStatusName;
+    }
+
+    public String getEmployeeAssignStatusName() {
+        return employeeAssignStatusName;
+    }
+
+    public void setEmployeeAssignStatusName(String employeeAssignStatusName) {
+        this.employeeAssignStatusName = employeeAssignStatusName;
+    }
+
+    public String getDispatchStatusName() {
+        return dispatchStatusName;
+    }
+
+    public void setDispatchStatusName(String dispatchStatusName) {
+        this.dispatchStatusName = dispatchStatusName;
+    }
+
+    public String getMainStatusName() {
+        return mainStatusName;
+    }
+
+    public void setMainStatusName(String mainStatusName) {
+        this.mainStatusName = mainStatusName;
+    }
+
+    public String getWorkStatusName() {
+        return workStatusName;
+    }
+
+    public void setWorkStatusName(String workStatusName) {
+        this.workStatusName = workStatusName;
+    }
+
+    public String getCompleteStatusName() {
+        return completeStatusName;
+    }
+
+    public void setCompleteStatusName(String completeStatusName) {
+        this.completeStatusName = completeStatusName;
+    }
+
+    public String getDeliveryStatusName() {
+        return deliveryStatusName;
+    }
+
+    public void setDeliveryStatusName(String deliveryStatusName) {
+        this.deliveryStatusName = deliveryStatusName;
+    }
+
+    public Boolean getCanComplete() {
+        return canComplete;
+    }
+
+    public void setCanComplete(Boolean canComplete) {
+        this.canComplete = canComplete;
+    }
+
+    public Boolean getCanDeliver() {
+        return canDeliver;
+    }
+
+    public void setCanDeliver(Boolean canDeliver) {
+        this.canDeliver = canDeliver;
+    }
+
+    public String getCompleteBlockReason() {
+        return completeBlockReason;
+    }
+
+    public void setCompleteBlockReason(String completeBlockReason) {
+        this.completeBlockReason = completeBlockReason;
+    }
+
+    public String getDeliveryBlockReason() {
+        return deliveryBlockReason;
+    }
+
+    public void setDeliveryBlockReason(String deliveryBlockReason) {
+        this.deliveryBlockReason = deliveryBlockReason;
+    }
+
     @Override
     public String toString() {
         return "SpOrder{" +
@@ -218,6 +488,15 @@ public class SpOrder extends BaseEntity {
             ", approveUserId=" + approveUserId +
             ", approveUsername=" + approveUsername +
             ", approveTime=" + approveTime +
+            ", workStatus=" + workStatus +
+            ", workStartTime=" + workStartTime +
+            ", completeStatus=" + completeStatus +
+            ", completeTime=" + completeTime +
+            ", completeUsername=" + completeUsername +
+            ", deliveryStatus=" + deliveryStatus +
+            ", deliveryTime=" + deliveryTime +
+            ", deliveryUsername=" + deliveryUsername +
+            ", remark=" + remark +
         "}";
     }
 }

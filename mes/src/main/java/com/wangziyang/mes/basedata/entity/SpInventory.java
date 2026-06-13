@@ -29,6 +29,7 @@ public class SpInventory extends BaseEntity {
     private BigDecimal qty;
     /** 单位（保存时从物料带出） */
     private String unit;
+    private String stockStatus;
 
     /** 状态 0正常 1删除 */
     @TableField(value = "is_deleted")
@@ -79,6 +80,9 @@ public class SpInventory extends BaseEntity {
 
     public String getUnit() { return unit; }
     public void setUnit(String unit) { this.unit = unit; }
+
+    public String getStockStatus() { return stockStatus; }
+    public void setStockStatus(String stockStatus) { this.stockStatus = stockStatus; }
 
     public String getDeleted() { return deleted; }
     public void setDeleted(String deleted) { this.deleted = deleted; }

@@ -16,6 +16,8 @@ public class SpInventoryReq extends BasePageReq {
     private String materielLike;
     /** 库位编码（模糊） */
     private String locationCodeLike;
+    private String batchNoLike;
+    private String stockStatus;
 
     public String getWarehouseId() { return warehouseId; }
     public void setWarehouseId(String warehouseId) { this.warehouseId = warehouseId; }
@@ -25,4 +27,10 @@ public class SpInventoryReq extends BasePageReq {
 
     public String getLocationCodeLike() { return locationCodeLike; }
     public void setLocationCodeLike(String locationCodeLike) { this.locationCodeLike = locationCodeLike; }
+
+    public String getBatchNoLike() { return batchNoLike; }
+    public void setBatchNoLike(String batchNoLike) { this.batchNoLike = batchNoLike; }
+
+    public String getStockStatus() { return stockStatus; }
+    public void setStockStatus(String stockStatus) { this.stockStatus = stockStatus; }
 }

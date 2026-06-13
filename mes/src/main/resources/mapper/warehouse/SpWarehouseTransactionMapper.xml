@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.warehouse.mapper.SpWarehouseTransactionMapper">
+
+    <select id="pageList" resultType="java.util.HashMap">
+        SELECT
+            t.*,
+            w.warehouse_code AS warehouseCode,
+            w.warehouse_name AS warehouseName,
+            l.location_code AS locationCode,
+            m.materiel AS materialCode,
+            m.materiel_desc AS materialName
+        FROM sp_warehouse_transaction t
+        LEFT JOIN sp_warehouse w ON t.warehouse_id = w.id
+        LEFT JOIN sp_warehouse_location l ON t.location_id = l.id
+        LEFT JOIN sp_materile m ON t.material_id = m.id
+        WHERE 1 = 1
+        <if test="req.requestNoLike != null and req.requestNoLike != ''">
+            AND t.request_no LIKE CONCAT('%', #{req.requestNoLike}, '%')
+        </if>
+        <if test="req.businessType != null and req.businessType != ''">
+            AND t.business_type = #{req.businessType}
+        </if>
+        <if test="req.direction != null and req.direction != ''">
+            AND t.direction = #{req.direction}
+        </if>
+        <if test="req.warehouseId != null and req.warehouseId != ''">
+            AND t.warehouse_id = #{req.warehouseId}
+        </if>
+        <if test="req.materialLike != null and req.materialLike != ''">
+            AND (m.materiel LIKE CONCAT('%', #{req.materialLike}, '%')
+                OR m.materiel_desc LIKE CONCAT('%', #{req.materialLike}, '%'))
+        </if>
+        <if test="req.batchNoLike != null and req.batchNoLike != ''">
+            AND t.batch_no LIKE CONCAT('%', #{req.batchNoLike}, '%')
+        </if>
+        <if test="req.beginDate != null and req.beginDate != ''">
+            AND t.operate_time &gt;= #{req.beginDate}
+        </if>
+        <if test="req.endDate != null and req.endDate != ''">
+            AND t.operate_time &lt;= #{req.endDate}
+        </if>
+        ORDER BY t.operate_time DESC, t.update_time DESC
+    </select>
+</mapper>

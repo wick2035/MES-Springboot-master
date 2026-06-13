@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>流程办理</title>
+    <#include "${request.contextPath}/common/common.ftl">
+    <#include "${request.contextPath}/workflow/common/style.ftl">
+    <style>
+        .wf-action-group .layui-btn-xs {
+            min-width: 58px;
+        }
+        .wf-handle-form-link {
+            color: #0369a1;
+            font-weight: 700;
+        }
+        .wf-handle-form-link:hover {
+            color: #0f766e;
+        }
+    </style>
+</head>
+<body>
+<div class="wf-shell">
+    <div class="wf-page-head wf-handle-head">
+        <div class="wf-page-head-inner">
+            <div>
+                <div class="wf-page-kicker"><i class="fa fa-check-square-o"></i> 流程配置工具 · 流程办理</div>
+                <h1 class="wf-page-title">流程办理</h1>
+                <div class="wf-page-copy">集中处理当前用户可办理的审批任务，打开业务表单、填写审批意见、查看轨迹，并将办理结果同步到对应业务单据。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="wf-stat-grid">
+        <div class="wf-stat" style="--wf-accent:#f59e0b;">
+            <div class="wf-stat-label"><span>待办理</span><i class="fa fa-inbox"></i></div>
+            <div class="wf-stat-value" data-summary="todo">-</div>
+            <div class="wf-stat-note">当前需要处理的任务</div>
+        </div>
+        <div class="wf-stat" style="--wf-accent:#22c55e;">
+            <div class="wf-stat-label"><span>已通过</span><i class="fa fa-check-circle"></i></div>
+            <div class="wf-stat-value" data-summary="done">-</div>
+            <div class="wf-stat-note">已提交审批意见</div>
+        </div>
+        <div class="wf-stat" style="--wf-accent:#ef4444;">
+            <div class="wf-stat-label"><span>已退回</span><i class="fa fa-times-circle"></i></div>
+            <div class="wf-stat-value" data-summary="rejected">-</div>
+            <div class="wf-stat-note">业务需重新调整</div>
+        </div>
+        <div class="wf-stat" style="--wf-accent:#14b8a6;">
+            <div class="wf-stat-label"><span>超过 24 小时</span><i class="fa fa-bell-o"></i></div>
+            <div class="wf-stat-value" data-summary="overdue">-</div>
+            <div class="wf-stat-note">建议马上处理</div>
+        </div>
+    </div>
+
+    <div class="wf-panel">
+        <div class="wf-filter-row">
+            <form id="js-search-form" class="layui-form wf-search" lay-filter="js-q-form-filter">
+                <div class="layui-form-item">
+                    <div class="layui-inline">
+                        <label class="layui-form-label">关键词</label>
+                        <div class="layui-input-inline"><input type="text" name="keyword" placeholder="任务 / 节点 / 单据号" class="layui-input"></div>
+                    </div>
+                    <div class="layui-inline">
+                        <label class="layui-form-label">业务类型</label>
+                        <div class="layui-input-inline"><input type="text" name="businessType" placeholder="ORDER_APPROVAL" class="layui-input"></div>
+                    </div>
+                    <div class="layui-inline">
+                        <label class="layui-form-label">状态</label>
+                        <div class="layui-input-inline">
+                            <select name="status">
+                                <option value="">全部</option>
+                                <option value="todo" selected>待办理</option>
+                                <option value="done">已通过</option>
+                                <option value="rejected">已退回</option>
+                                <option value="revoked">已撤回</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-inline">
+                        <button class="layui-btn" lay-submit lay-filter="js-search-filter"><i class="layui-icon layui-icon-search"></i>查询</button>
+                        <button type="button" class="layui-btn layui-btn-primary" id="js-reset"><i class="fa fa-undo"></i>重置</button>
+                    </div>
+                </div>
+            </form>
+            <div class="wf-quick-tabs" id="js-status-tabs">
+                <button type="button" class="wf-quick-tab" data-status="">全部</button>
+                <button type="button" class="wf-quick-tab on" data-status="todo">待办理</button>
+                <button type="button" class="wf-quick-tab" data-status="done">已通过</button>
+                <button type="button" class="wf-quick-tab" data-status="rejected">已退回</button>
+                <button type="button" class="wf-quick-tab" data-status="revoked">已撤回</button>
+            </div>
+        </div>
+        <div class="wf-table-wrap">
+            <table class="layui-hide" id="js-record-table" lay-filter="js-record-table-filter"></table>
+        </div>
+    </div>
+</div>
+
+<script type="text/html" id="js-business-code-tpl">
+    <span class="wf-code-pill">{{ d.businessCode || '-' }}</span>
+</script>
+<script type="text/html" id="js-form-title-tpl">
+    <div class="wf-main-cell">
+        <b>{{ d.formTitle || d.taskName || '-' }}</b>
+        <span>{{ businessTypeName(d.businessType) }} · {{ d.businessType || '-' }}</span>
+    </div>
+</script>
+<script type="text/html" id="js-task-tpl">
+    <div class="wf-main-cell">
+        <b>{{ d.taskName || '-' }}</b>
+        <span>{{ d.nodeKey || '-' }}</span>
+    </div>
+</script>
+<script type="text/html" id="js-node-tpl">
+    <span class="wf-node-mark"><i class="fa fa-location-arrow"></i>{{ d.nodeName || '-' }}</span>
+</script>
+<script type="text/html" id="js-status-tpl">
+    {{# if(d.status === 'done'){ }}<span class="wf-badge ok">已通过</span>{{# } else if(d.status === 'rejected'){ }}<span class="wf-badge danger">已退回</span>{{# } else if(d.status === 'revoked'){ }}<span class="wf-badge gray">已撤回</span>{{# } else { }}<span class="wf-badge warn">待办理</span>{{# } }}
+</script>
+<script type="text/html" id="js-record-table-toolbar-right">
+    <div class="wf-action-group">
+        <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="trace"><i class="fa fa-sitemap"></i>轨迹</a>
+        {{# if(d.status === 'todo'){ }}
+        <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="form"><i class="fa fa-file-text-o"></i>表单</a>
+        <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="complete"><i class="layui-icon layui-icon-ok"></i>通过</a>
+        {{# if(d.allowReturn === 1){ }}<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="reject"><i class="layui-icon layui-icon-close"></i>退回</a>{{# } }}
+        {{# if(d.allowTransfer === 1){ }}<a class="layui-btn layui-btn-xs" lay-event="transfer"><i class="fa fa-share"></i>转办</a>{{# } }}
+        {{# if(d.allowEntrust === 1){ }}<a class="layui-btn layui-btn-xs" lay-event="entrust"><i class="fa fa-handshake-o"></i>委托</a>{{# } }}
+        {{# if(d.allowRevoke === 1){ }}<a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="revoke"><i class="fa fa-undo"></i>撤回</a>{{# } }}
+        {{# } }}
+    </div>
+</script>
+<script>
+    function businessTypeName(value) {
+        if (value === 'ORDER_APPROVAL') return '生产订单审批';
+        return value || '-';
+    }
+    layui.use(['form', 'table', 'layer', 'spTable'], function () {
+        var form = layui.form, table = layui.table, layer = layui.layer, spTable = layui.spTable;
+        var tableIns = spTable.render({
+            url: '${request.contextPath}/workflow/task/page',
+            toolbar: false,
+            where: {status: 'todo'},
+            cols: [[
+                {field:'businessCode', title:'业务单号', width:170, templet:'#js-business-code-tpl'},
+                {field:'formTitle', title:'业务表单', minWidth:230, templet:'#js-form-title-tpl'},
+                {field:'taskName', title:'办理事项', minWidth:170, templet:'#js-task-tpl'},
+                {field:'nodeName', title:'当前节点', width:145, templet:'#js-node-tpl'},
+                {field:'assigneeName', title:'处理人/角色', width:150, templet:function(d){ return escapeHtml(d.assigneeName || '-'); }},
+                {field:'status', title:'状态', width:96, templet:'#js-status-tpl'},
+                {field:'startTime', title:'到达时间', width:170},
+                {field:'completeTime', title:'办理时间', width:170, templet:function(d){ return d.completeTime || '<span class="wf-muted">待办理</span>'; }},
+                {field:'opinion', title:'办理意见', minWidth:190, templet:function(d){ return escapeHtml(d.opinion || '-'); }},
+                {fixed:'right', title:'办理', toolbar:'#js-record-table-toolbar-right', width:420}
+            ]],
+            done: function(){ loadSummary(); }
+        });
+
+        form.on('submit(js-search-filter)', function(data){
+            setActiveTab(data.field.status || '');
+            reloadTable(data.field);
+            return false;
+        });
+
+        $('#js-reset').on('click', function(){
+            $('#js-search-form')[0].reset();
+            form.val('js-q-form-filter', {status:'todo'});
+            setActiveTab('todo');
+            form.render();
+            reloadTable(getSearch());
+        });
+
+        $('#js-status-tabs').on('click', '.wf-quick-tab', function(){
+            var status = $(this).data('status') || '';
+            form.val('js-q-form-filter', {status: status});
+            setActiveTab(status);
+            reloadTable(getSearch());
+        });
+
+        table.on('tool(js-record-table-filter)', function(obj){
+            if (obj.event === 'trace') openTraceForTask(obj.data);
+            if (obj.event === 'form') openBusinessForm(obj.data);
+            if (obj.event === 'complete') submitDecision(obj.data.id, 'complete', '确认通过该审批任务吗？', '同意');
+            if (obj.event === 'reject') submitDecision(obj.data.id, 'reject', '请输入退回意见', '退回');
+            if (obj.event === 'transfer') submitReassign(obj.data.id, 'transfer', '转办');
+            if (obj.event === 'entrust') submitReassign(obj.data.id, 'entrust', '委托');
+            if (obj.event === 'revoke') submitDecision(obj.data.id, 'revoke', '请输入撤回原因', '撤回流程');
+        });
+
+        function openBusinessForm(row) {
+            var url = normalizeUrl(row.pcFormUrl);
+            if (!url) { layer.msg('该任务未配置表单地址'); return; }
+            layer.open({type:2, title: row.formTitle || '业务表单', area:['980px','720px'], content:url});
+        }
+
+        function openTraceForTask(row) {
+            spUtil.ajax({
+                url:'${request.contextPath}/workflow/instance/tasks',
+                data:{instanceId:row.instanceId},
+                success:function(res){ openTrace(row, res.data || []); }
+            });
+        }
+
+        function normalizeUrl(url) {
+            if (!url) return '';
+            if (/^https?:\/\//i.test(url)) return url;
+            return '${request.contextPath}' + (url.charAt(0) === '/' ? url : '/' + url);
+        }
+
+        function submitDecision(taskId, action, title, defaultText) {
+            layer.prompt({title:title, value:defaultText, formType:2}, function(value, index){
+                spUtil.ajax({
+                    url:'${request.contextPath}/workflow/task/' + action,
+                    type:'POST',
+                    serializable:true,
+                    data:{taskId:taskId, opinion:value},
+                    success:function(){ reloadTable(getSearch()); layer.close(index); }
+                });
+            });
+        }
+
+        function submitReassign(taskId, action, label) {
+            layer.prompt({title:'请输入目标用户ID', formType:0}, function(userId, idx1){
+                layer.close(idx1);
+                layer.prompt({title:'请输入' + label + '说明', value:label, formType:2}, function(opinion, idx2){
+                    spUtil.ajax({
+                        url:'${request.contextPath}/workflow/task/' + action,
+                        type:'POST',
+                        serializable:true,
+                        data:{taskId:taskId, targetUserId:userId, opinion:opinion},
+                        success:function(){ reloadTable(getSearch()); layer.close(idx2); }
+                    });
+                });
+            });
+        }
+
+        function reloadTable(where) {
+            tableIns.reload({where: where, page:{curr:1}});
+            loadSummary(where);
+        }
+
+        function loadSummary(where) {
+            spUtil.ajax({
+                url:'${request.contextPath}/workflow/task/summary',
+                data: where || getSearch(),
+                errNoTip: true,
+                success:function(res){
+                    var data = res.data || {};
+                    $('[data-summary]').each(function(){
+                        var key = $(this).data('summary');
+                        $(this).text(data[key] == null ? 0 : data[key]);
+                    });
+                }
+            });
+        }
+
+        function getSearch() {
+            var data = {};
+            $.each($('#js-search-form').serializeArray(), function(_, item){ data[item.name] = item.value; });
+            return data;
+        }
+
+        function setActiveTab(status) {
+            $('#js-status-tabs .wf-quick-tab').removeClass('on');
+            $('#js-status-tabs .wf-quick-tab[data-status="' + status + '"]').addClass('on');
+        }
+
+        function openTrace(row, tasks) {
+            var html = '<div class="wf-trace-dialog">';
+            html += '<div class="wf-trace-head"><div><b>'+escapeHtml(row.formTitle || row.taskName || '-')+'</b><span>'+escapeHtml(row.businessCode || '-')+' · '+businessTypeName(row.businessType)+'</span></div><div>'+taskStatusBadge(row.status)+'</div></div>';
+            if (!tasks.length) {
+                html += '<div class="wf-empty">暂无任务轨迹</div>';
+            } else {
+                html += '<div class="wf-timeline">';
+                $.each(tasks, function(i, t){
+                    var status = t.status || 'todo';
+                    html += '<div class="wf-timeline-item '+escapeHtml(status)+'">';
+                    html += '<div class="wf-timeline-dot"><i class="fa '+statusIcon(status)+'"></i></div>';
+                    html += '<div class="wf-timeline-body">';
+                    html += '<div class="wf-timeline-title"><span>'+escapeHtml(t.nodeName || t.taskName || '-')+'</span>'+taskStatusBadge(status)+'</div>';
+                    html += '<div class="wf-timeline-meta">';
+                    html += '<span>处理人：'+escapeHtml(t.assigneeName || '-')+'</span>';
+                    html += '<span>到达：'+escapeHtml(t.startTime || '-')+'</span>';
+                    html += '<span>办理：'+escapeHtml(t.completeTime || '待办理')+'</span>';
+                    html += '</div>';
+                    if (t.opinion) html += '<div class="wf-timeline-opinion">意见：'+escapeHtml(t.opinion)+'</div>';
+                    html += '</div></div>';
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+            layer.open({type:1, title:'流程轨迹', area:['860px','560px'], content:html});
+        }
+
+        function taskStatusBadge(status) {
+            if (status === 'done') return '<span class="wf-badge ok">已通过</span>';
+            if (status === 'rejected') return '<span class="wf-badge danger">已退回</span>';
+            if (status === 'revoked') return '<span class="wf-badge gray">已撤回</span>';
+            return '<span class="wf-badge warn">待办理</span>';
+        }
+        function statusIcon(status) {
+            if (status === 'done') return 'fa-check';
+            if (status === 'rejected') return 'fa-times';
+            if (status === 'revoked') return 'fa-undo';
+            return 'fa-clock-o';
+        }
+        function escapeHtml(s){ return String(s || '').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+        form.render();
+        loadSummary(getSearch());
+    });
+</script>
+</body>
+</html>
