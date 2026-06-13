@@ -122,7 +122,7 @@
                 {field:'startUsername', title:'发起人', width:110, templet:function(d){ return escapeHtml(d.startUsername || '-'); }},
                 {field:'startTime', title:'发起时间', width:170},
                 {field:'endTime', title:'结束时间', width:170, templet:function(d){ return d.endTime || '<span class="wf-muted">未结束</span>'; }},
-                {fixed:'right', title:'操作', toolbar:'#js-record-table-toolbar-right', width:96}
+                {fixed:'right', title:'操作', toolbar:'#js-record-table-toolbar-right'}
             ]],
             done: function(){ loadSummary(); }
         });

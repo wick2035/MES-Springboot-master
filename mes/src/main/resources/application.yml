@@ -13,6 +13,8 @@ spring:
       max-request-size: 50MB
 
 mes:
+  schema:
+    init-menus: false
   file:
     upload-path: D:/mes/upload
     access-prefix: /upload

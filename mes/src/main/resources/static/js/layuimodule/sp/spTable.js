@@ -12,7 +12,7 @@ layui.define(['table'], function (exports) {
         var width = 0;
         text = text || '';
         for (var i = 0; i < text.length; i++) {
-            width += text.charCodeAt(i) > 255 ? 13 : 7;
+            width += text.charCodeAt(i) > 255 ? 12 : 6.5;
         }
         return width;
     }
@@ -23,7 +23,7 @@ layui.define(['table'], function (exports) {
         var padding = $button.hasClass('layui-btn-xs') ? 18 : ($button.hasClass('layui-btn-sm') ? 24 : 32);
         var minWidth = text ? 42 : 30;
 
-        return Math.max(minWidth, getTextWidth(text) + (hasIcon ? 17 : 0) + padding);
+        return Math.max(minWidth, getTextWidth(text) + (hasIcon ? 20 : 0) + padding);
     }
 
     function estimateToolbarWidth(toolbarSelector) {
@@ -50,15 +50,29 @@ layui.define(['table'], function (exports) {
             return 0;
         }
 
-        var total = 42;
+        var widthsByEvent = {};
+        var eventOrder = [];
         $buttons.each(function (index) {
-            total += estimateButtonWidth($(this));
+            var $button = $(this);
+            var eventKey = $button.attr('lay-event') || ('__button_' + index);
+            var width = estimateButtonWidth($button);
+            if (!widthsByEvent.hasOwnProperty(eventKey)) {
+                widthsByEvent[eventKey] = width;
+                eventOrder.push(eventKey);
+            } else {
+                widthsByEvent[eventKey] = Math.max(widthsByEvent[eventKey], width);
+            }
+        });
+
+        var total = 42;
+        $.each(eventOrder, function (index, eventKey) {
+            total += widthsByEvent[eventKey];
             if (index > 0) {
                 total += 8;
             }
         });
 
-        return Math.ceil(total);
+        return Math.ceil(total + 16);
     }
 
     function isActionToolbarColumn(column) {
@@ -89,9 +103,11 @@ layui.define(['table'], function (exports) {
                     return;
                 }
 
-                var desiredWidth = Math.max(96, Math.min(toolbarWidth, 360));
+                var maxToolbarWidth = parseInt(column.maxToolbarWidth, 10) || 760;
+                var desiredWidth = Math.max(110, Math.min(toolbarWidth, maxToolbarWidth));
                 column.width = desiredWidth;
                 column.minWidth = desiredWidth;
+                delete column.fixed;
             });
         });
     }
@@ -219,7 +235,7 @@ layui.define(['table'], function (exports) {
                 var $actionCells = $view.find('td[data-off="true"], td[data-field="operate"]');
                 $actionCells.addClass('sp-table-action-td');
                 $actionCells.find('.layui-table-cell').addClass('sp-table-action-cell').css({
-                    'overflow': 'visible',
+                    'overflow': 'hidden',
                     'text-overflow': 'clip'
                 });
                 $actionCells.find('.layui-table-grid-down').hide();

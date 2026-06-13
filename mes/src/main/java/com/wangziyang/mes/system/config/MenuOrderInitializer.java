@@ -1,6 +1,7 @@
 package com.wangziyang.mes.system.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -14,8 +15,15 @@ public class MenuOrderInitializer {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Value("${mes.schema.init-menus:false}")
+    private boolean initMenus;
+
     @EventListener(ApplicationReadyEvent.class)
     public void applySidebarOrder() {
+        if (!initMenus) {
+            return;
+        }
+
         jdbcTemplate.execute("UPDATE `sp_sys_menu` SET `parent_id` = '1', `grade` = '2', "
                 + "`sort_num` = CASE `id` "
                 + "WHEN '10' THEN 1 "

@@ -218,7 +218,7 @@
         var hasIcon = $button.find('.layui-icon, .fa').length > 0;
         var padding = $button.hasClass('layui-btn-xs') ? 18 : ($button.hasClass('layui-btn-sm') ? 24 : 32);
         var minWidth = text ? 42 : 30;
-        return Math.max(minWidth, textWidth(text) + (hasIcon ? 17 : 0) + padding);
+        return Math.max(minWidth, textWidth(text) + (hasIcon ? 20 : 0) + padding);
     }
 
     function estimateToolbarWidth(toolbarSelector) {
@@ -240,15 +240,29 @@
             return 0;
         }
 
-        var total = 42;
+        var widthsByEvent = {};
+        var eventOrder = [];
         $buttons.each(function (index) {
-            total += estimateTemplateButtonWidth($(this));
+            var $button = $(this);
+            var eventKey = $button.attr('lay-event') || ('__button_' + index);
+            var width = estimateTemplateButtonWidth($button);
+            if (!widthsByEvent.hasOwnProperty(eventKey)) {
+                widthsByEvent[eventKey] = width;
+                eventOrder.push(eventKey);
+            } else {
+                widthsByEvent[eventKey] = Math.max(widthsByEvent[eventKey], width);
+            }
+        });
+
+        var total = 42;
+        $.each(eventOrder, function (index, eventKey) {
+            total += widthsByEvent[eventKey];
             if (index > 0) {
                 total += 8;
             }
         });
 
-        return Math.ceil(total);
+        return Math.ceil(total + 16);
     }
 
     function isActionToolbarColumn(column) {
@@ -279,9 +293,11 @@
                     return;
                 }
 
-                var desiredWidth = Math.max(96, Math.min(toolbarWidth, 360));
+                var maxToolbarWidth = parseInt(column.maxToolbarWidth, 10) || 760;
+                var desiredWidth = Math.max(110, Math.min(toolbarWidth, maxToolbarWidth));
                 column.width = desiredWidth;
                 column.minWidth = desiredWidth;
+                delete column.fixed;
             });
         });
     }
@@ -299,7 +315,7 @@
         var width = 0;
         text = text || '';
         for (var i = 0; i < text.length; i++) {
-            width += text.charCodeAt(i) > 255 ? 13 : 7;
+            width += text.charCodeAt(i) > 255 ? 12 : 6.5;
         }
         return width;
     }
@@ -361,8 +377,16 @@
 
         var available = Math.floor($cell.innerWidth() || $cell.closest('td').innerWidth() || 0);
         if (available <= 0) {
+            var retries = parseInt($cell.data('spFitRetry'), 10) || 0;
+            if (retries < 3) {
+                $cell.data('spFitRetry', retries + 1);
+                window.setTimeout(function () {
+                    fitActionCell(cell);
+                }, 100);
+            }
             return;
         }
+        $cell.data('spFitRetry', 0);
 
         var rowHeight = Math.floor($cell.closest('tr').outerHeight() || 36);
         var buttonHeight = Math.max(18, Math.min(24, rowHeight - 12));
@@ -405,15 +429,21 @@
 
     function scheduleFitTableActionButtons(root) {
         if (root) {
-            window.setTimeout(function () {
-                fitTableActionButtons(root);
-            }, 0);
+            window.requestAnimationFrame(function () {
+                window.setTimeout(function () {
+                    fitTableActionButtons(root);
+                }, 50);
+            });
             return;
         }
 
         window.clearTimeout(actionButtonTimer);
         actionButtonTimer = window.setTimeout(function () {
-            fitTableActionButtons();
+            window.requestAnimationFrame(function () {
+                window.setTimeout(function () {
+                    fitTableActionButtons();
+                }, 50);
+            });
         }, 0);
     }
 

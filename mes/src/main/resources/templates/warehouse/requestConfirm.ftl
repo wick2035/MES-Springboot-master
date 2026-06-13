@@ -142,8 +142,39 @@ layui.use(['form','table','layer','spTable'],function(){
         $('#syncBtn').show();
     }
 
+    function syncGridHeight(){
+        var $grid=$('.wh-grid');
+        if($(window).width()<=1120){
+            $grid.css('height','auto');
+            return;
+        }
+        var gridTop=$grid.offset().top;
+        var height=$(window).height()-gridTop-14;
+        $grid.css('height',Math.max(height,560)+'px');
+    }
+    function getTableHeight(selector){
+        syncGridHeight();
+        var $table=$(selector), $panel=$table.closest('.wh-panel'), $view=$table.next('.layui-table-view');
+        var top=0;
+        if($view.length){
+            top=$view.offset().top-$panel.offset().top;
+        }else{
+            $table.prevAll(':visible').each(function(){
+                top += $(this).outerHeight(true);
+            });
+        }
+        return Math.max(Math.floor($panel.innerHeight()-top),260);
+    }
+    function resizeMainTables(){
+        window.clearTimeout(resizeMainTables.timer);
+        resizeMainTables.timer=window.setTimeout(function(){
+            table.reload('requestTable',{height:getTableHeight('#requestTable')});
+            table.reload('itemTable',{height:getTableHeight('#itemTable')});
+        },120);
+    }
+
     var requestTable=spTable.render({
-        elem:'#requestTable',url:contextPath + '/warehouse/request/page',height:'full-205',where:{businessType:businessType},
+        elem:'#requestTable',url:contextPath + '/warehouse/request/page',height:getTableHeight('#requestTable'),where:{businessType:businessType},
         cols:[[
             {field:'requestNo',title:'单号',width:154,style:'font-weight:800;color:#1d4ed8;'},
             {field:'sourceNo',title:'来源单',width:136},
@@ -154,7 +185,7 @@ layui.use(['form','table','layer','spTable'],function(){
         ]]
     });
     var itemTable=spTable.render({
-        elem:'#itemTable',url:contextPath + '/warehouse/request/items',height:'full-405',where:{businessType:businessType,requestNoLike:'__NO_DATA__'},
+        elem:'#itemTable',url:contextPath + '/warehouse/request/items',height:getTableHeight('#itemTable'),where:{businessType:businessType,requestNoLike:'__NO_DATA__'},
         cols:[[
             {field:'materialCode',title:'物料',minWidth:210,templet:'#materialTpl'},
             {field:'requestQty',title:'申请数',width:92},
@@ -164,7 +195,7 @@ layui.use(['form','table','layer','spTable'],function(){
             {field:'warehouseName',title:'库房',width:130,templet:function(d){return d.warehouseName||d.warehouseCode||'';}},
             {field:'locationCode',title:'库位',width:140},
             {field:'status',title:'状态',width:90,templet:'#itemStatusTpl'},
-            {fixed:'right',title:'操作',toolbar:'#itemOpTpl',width:96}
+            {fixed:'right',title:'操作',toolbar:'#itemOpTpl'}
         ]]
     });
     table.render({elem:'#allocationTable',data:[],height:188,cols:[[
@@ -178,6 +209,7 @@ layui.use(['form','table','layer','spTable'],function(){
     ]],done:function(){
         $('#allocationTable').next('.layui-table-view').addClass('sp-production-table-view');
     }});
+    $(window).on('resize',resizeMainTables);
 
     if(businessType==='PLAN_IN'){sync('/warehouse/plan-inbound/sync',false);}
     $('#syncBtn').on('click',function(){sync('/warehouse/plan-inbound/sync',true);});
@@ -314,6 +346,18 @@ layui.use(['form','table','layer','spTable'],function(){
             form.on('select(cWarehouse)',function(data){loadLocations(data.value,row.materialId,row.locationId);});
         },yes:function(index){
             var data=form.val('confirmForm');
+            if(!data.warehouseId){
+                layer.msg('请选择库房');
+                return false;
+            }
+            if(!data.locationId){
+                layer.msg('请选择库位');
+                return false;
+            }
+            if(!data.qty || parseFloat(data.qty) <= 0){
+                layer.msg('请输入大于 0 的数量');
+                return false;
+            }
             $.ajax({url:contextPath + '/warehouse/request/confirm-item',type:'POST',contentType:'application/json;charset=UTF-8',data:JSON.stringify(data),success:function(res){
                 if(res.code===0){layer.close(index);layer.msg('登账完成');itemTable.reload();requestTable.reload();}
                 else{layer.alert(res.msg||'登账失败');}

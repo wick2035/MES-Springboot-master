@@ -1,6 +1,7 @@
 package com.wangziyang.mes.order.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -14,6 +15,9 @@ public class OrderApprovalSchemaInitializer implements ApplicationRunner {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Value("${mes.schema.init-menus:false}")
+    private boolean initMenus;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -47,7 +51,9 @@ public class OrderApprovalSchemaInitializer implements ApplicationRunner {
                 "CREATE INDEX `idx_order_complete_status` ON `sp_order` (`complete_status`)");
         addIndexIfMissing("idx_order_delivery_status",
                 "CREATE INDEX `idx_order_delivery_status` ON `sp_order` (`delivery_status`)");
-        initOrderLifecycleMenus();
+        if (initMenus) {
+            initOrderLifecycleMenus();
+        }
     }
 
     private void addColumnIfMissing(String columnName, String ddl) {

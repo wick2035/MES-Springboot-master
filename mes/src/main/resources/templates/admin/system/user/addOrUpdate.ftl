@@ -247,7 +247,7 @@
                         <label class="layui-form-label">分配角色</label>
                         <div class="layui-input-block">
                             <#list sysRoles as sysRole>
-                                <input type="checkbox" name="sysRoleIds[]" title="${sysRole.name}" value="${sysRole.id}" <#if sysRole.checked>checked</#if>>
+                                <input type="checkbox" name="sysRoleIds" title="${sysRole.name}" value="${sysRole.id}" <#if sysRole.checked>checked</#if>>
                             </#list>
                         </div>
                     </div>

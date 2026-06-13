@@ -1,6 +1,7 @@
 package com.wangziyang.mes.warehouse.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -12,11 +13,16 @@ public class WarehouseManagementSchemaInitializer implements ApplicationRunner {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Value("${mes.schema.init-menus:false}")
+    private boolean initMenus;
+
     @Override
     public void run(ApplicationArguments args) {
         createTables();
         migrateColumns();
-        ensureMenus();
+        if (initMenus) {
+            ensureMenus();
+        }
     }
 
     private void createTables() {

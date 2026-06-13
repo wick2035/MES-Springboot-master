@@ -488,7 +488,7 @@ body {
 /* 对带 toolbar 的列（LayUI 渲染时自动加 data-off="true"），
    取消 overflow hidden，让按钮全部可见 */
 .layui-table td[data-off="true"] .layui-table-cell {
-    overflow: visible !important;
+    overflow: hidden !important;
     text-overflow: clip;
 }
 
@@ -499,7 +499,7 @@ body {
 
 /* 兜底：field="operate" 或 data-field="operate" 的列同样处理 */
 .layui-table td[data-field="operate"] .layui-table-cell {
-    overflow: visible !important;
+    overflow: hidden !important;
     text-overflow: clip;
 }
 .layui-table td[data-field="operate"] .layui-table-grid-down {
@@ -510,14 +510,14 @@ body {
 .layui-table-view .sp-table-action-td,
 .layui-table-view td[data-field="operate"],
 .layui-table-view td[data-off="true"] {
-    overflow: visible !important;
+    overflow: hidden !important;
 }
 
 .layui-table-view th[data-field="operate"] .layui-table-cell,
 .layui-table-view th[data-off="true"] .layui-table-cell {
-    padding-left: 0;
-    padding-right: 0;
-    text-align: center;
+    padding-left: 6px;
+    padding-right: 6px;
+    text-align: left;
 }
 
 .layui-table-view .sp-table-action-cell,
@@ -525,7 +525,7 @@ body {
 .layui-table-view td[data-off="true"] .layui-table-cell {
     display: flex;
     align-items: center;
-    justify-content: space-evenly;
+    justify-content: flex-start;
     gap: var(--sp-table-action-gap, 6px);
     width: 100%;
     max-width: 100%;
@@ -535,7 +535,7 @@ body {
     text-overflow: clip;
     white-space: nowrap;
     box-sizing: border-box;
-    padding: 0 6px;
+    padding: 0 8px;
 }
 
 .layui-table-view .sp-table-action-cell .layui-btn,
@@ -544,10 +544,10 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex: 1 1 0;
+    flex: 0 0 auto;
     width: auto;
     min-width: 0;
-    max-width: 92px;
+    max-width: none;
     height: var(--sp-table-action-height, 24px);
     line-height: var(--sp-table-action-height, 24px);
     padding: 0 var(--sp-table-action-pad-x, 7px);
@@ -588,7 +588,7 @@ body {
 .layui-table-view td[data-off="true"] .layui-table-cell.sp-action-wrap {
     flex-wrap: wrap;
     align-content: center;
-    justify-content: space-evenly;
+    justify-content: flex-start;
     padding-top: 2px;
     padding-bottom: 2px;
 }
@@ -598,14 +598,14 @@ body {
 .layui-table-view td[data-off="true"] .layui-table-cell.sp-action-compact .layui-btn {
     flex: 1 1 0;
     width: auto;
-    min-width: 34px;
+    min-width: 30px;
     padding: 0 var(--sp-table-action-pad-x, 5px);
 }
 
 .layui-table-view .sp-table-action-cell.sp-action-wrap .layui-btn,
 .layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-wrap .layui-btn,
 .layui-table-view td[data-off="true"] .layui-table-cell.sp-action-wrap .layui-btn {
-    flex: 1 1 calc(50% - var(--sp-table-action-gap, 4px));
+    flex: 0 1 auto;
     max-width: 100%;
     height: auto;
     min-height: var(--sp-table-action-height, 24px);
@@ -635,13 +635,13 @@ body {
 .layui-table-view td[data-off="true"] .layui-table-cell.sp-action-compact .layui-btn.sp-table-button-no-icon {
     flex-basis: auto;
     width: auto;
-    min-width: 34px;
+    min-width: 30px;
     padding: 0 5px;
 }
 
 .layui-table-fixed-r,
 .layui-table-fixed-r .layui-table-body {
-    overflow: visible;
+    overflow: hidden;
 }
 
 /* 分页 laypage */
