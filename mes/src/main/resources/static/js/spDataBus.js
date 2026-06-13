@@ -214,11 +214,13 @@
     }
 
     function estimateTemplateButtonWidth($button) {
+        // 与 theme.css 操作列按钮口径一致：左右内边距 10px(共 20)、
+        // 图标固定盒宽 14 + margin 4 = 18，外加每按钮 4px 安全余量。
         var text = $.trim($button.clone().children().remove().end().text()).replace(/\s+/g, '');
         var hasIcon = $button.find('.layui-icon, .fa').length > 0;
-        var padding = $button.hasClass('layui-btn-xs') ? 18 : ($button.hasClass('layui-btn-sm') ? 24 : 32);
-        var minWidth = text ? 42 : 30;
-        return Math.max(minWidth, textWidth(text) + (hasIcon ? 20 : 0) + padding);
+        var padding = 20;
+        var minWidth = text ? 48 : 32;
+        return Math.max(minWidth, textWidth(text) + (hasIcon ? 18 : 0) + padding + 4);
     }
 
     function estimateToolbarWidth(toolbarSelector) {
@@ -254,15 +256,16 @@
             }
         });
 
-        var total = 42;
+        // 列宽 = 各按钮宽之和 + 按钮间距(gap 6，与 CSS 一致) + 单元格左右内边距(8*2)
+        var total = 0;
         $.each(eventOrder, function (index, eventKey) {
             total += widthsByEvent[eventKey];
             if (index > 0) {
-                total += 8;
+                total += 6;
             }
         });
 
-        return Math.ceil(total + 16);
+        return Math.ceil(total + 16 + 6);
     }
 
     function isActionToolbarColumn(column) {
@@ -375,55 +378,84 @@
 
         $cell.addClass('sp-table-action-cell');
 
-        var available = Math.floor($cell.innerWidth() || $cell.closest('td').innerWidth() || 0);
-        if (available <= 0) {
-            var retries = parseInt($cell.data('spFitRetry'), 10) || 0;
-            if (retries < 3) {
-                $cell.data('spFitRetry', retries + 1);
-                window.setTimeout(function () {
-                    fitActionCell(cell);
-                }, 100);
-            }
-            return;
-        }
-        $cell.data('spFitRetry', 0);
-
-        var rowHeight = Math.floor($cell.closest('tr').outerHeight() || 36);
-        var buttonHeight = Math.max(18, Math.min(24, rowHeight - 12));
-        var gap = available < 140 ? 4 : 6;
-        var padX = available < 160 ? 5 : 7;
-        var iconSize = Math.max(20, Math.min(24, buttonHeight));
-        var fullWidth = 0;
-        var compactWidth = 0;
-
-        $buttons.each(function (index) {
-            var meta = prepareActionButton(this);
-            fullWidth += meta.fullWidth + (padX * 2 - 14);
-            compactWidth += meta.compactWidth;
-            if (index > 0) {
-                fullWidth += gap;
-                compactWidth += gap;
-            }
+        // 统一固定几何：逐个准备按钮（包裹文字 span、补全 title/aria-label），
+        // 不再按可用宽度压缩或换行，保证按钮尺寸全局一致、图标与文字完整显示。
+        // 列宽已由 estimateToolbarWidth 估足，无需运行期再测量裁剪。
+        $buttons.each(function () {
+            prepareActionButton(this);
         });
 
-        var shouldCompact = fullWidth > available;
-        var shouldWrap = shouldCompact && compactWidth > available;
+        // 清除历史动态压缩/换行状态与内联几何变量，回落到 theme.css 默认口径。
+        $cell.removeClass('sp-action-compact sp-action-wrap');
+        if (cell && cell.style && cell.style.removeProperty) {
+            cell.style.removeProperty('--sp-table-action-height');
+            cell.style.removeProperty('--sp-table-action-icon-size');
+            cell.style.removeProperty('--sp-table-action-gap');
+            cell.style.removeProperty('--sp-table-action-pad-x');
+        }
+    }
 
-        $cell
-            .toggleClass('sp-action-compact', shouldCompact)
-            .toggleClass('sp-action-wrap', shouldWrap)
-            .css({
-                '--sp-table-action-height': buttonHeight + 'px',
-                '--sp-table-action-icon-size': iconSize + 'px',
-                '--sp-table-action-gap': (shouldWrap ? Math.max(2, gap - 2) : gap) + 'px',
-                '--sp-table-action-pad-x': padX + 'px'
+    function isActionBodyCell($td) {
+        return $td.is('[data-off="true"], [data-field="operate"]') || $td.find('.sp-table-action-cell, .layui-btn').length > 0;
+    }
+
+    // 以表体动作列为基准对齐表头：
+    // 1) LayUI 表头 th 的 data-field 在未设 field 时取列下标数字，纯 CSS 无法稳定命中，
+    //    故按列下标把对应表头 th 标记 sp-table-action-th 后由 CSS 居中。
+    // 2) 即便表头表体都居中，垂直滚动条占位(layui patch)或固定列宽差会让「表头列」与
+    //    「表体列」整列横向错位，居中点并不重合。故再实测表体单元格内容中心，与表头标题
+    //    中心比对，用 translateX 把表头标题精确移到表体按钮列的 x 位置。
+    // 必须按「区」配对：主表头↔主表体、固定列表头↔固定列表体（fixed:'right' 时 LayUI
+    // 会单独渲染 .layui-table-fixed-r）。表头与其表体在 DOM 中互为同级。
+    function alignActionHeaders($view) {
+        $view.find('.layui-table-header').each(function () {
+            var $header = $(this);
+            var $headerCells = $header.find('thead tr').last().children('th');
+            if (!$headerCells.length) {
+                return;
+            }
+            var $bodyRow = $header.siblings('.layui-table-body').first().find('tbody tr').first();
+            if (!$bodyRow.length) {
+                return;
+            }
+            $bodyRow.children('td').each(function (idx) {
+                var $td = $(this);
+                if (!isActionBodyCell($td)) {
+                    return;
+                }
+                var $th = $headerCells.eq(idx);
+                if (!$th.length) {
+                    return;
+                }
+                $th.addClass('sp-table-action-th');
+
+                var $thCell = $th.children('.layui-table-cell');
+                var $tdCell = $td.children('.layui-table-cell');
+                if (!$thCell.length || !$tdCell.length) {
+                    return;
+                }
+                // 先清零上次的位移再测量，避免叠加
+                $thCell.css('transform', '');
+                var tdRect = $tdCell[0].getBoundingClientRect();
+                var thRect = $thCell[0].getBoundingClientRect();
+                if (!tdRect.width || !thRect.width) {
+                    return;
+                }
+                var delta = (tdRect.left + tdRect.width / 2) - (thRect.left + thRect.width / 2);
+                if (Math.abs(delta) >= 1) {
+                    $thCell.css('transform', 'translateX(' + Math.round(delta) + 'px)');
+                }
             });
+        });
     }
 
     function fitTableActionButtons(root) {
         var $root = root ? $(root) : $('.layui-table-view');
         $root.find('td[data-off="true"] .layui-table-cell, td[data-field="operate"] .layui-table-cell, .sp-table-action-cell').each(function () {
             fitActionCell(this);
+        });
+        $root.filter('.layui-table-view').add($root.find('.layui-table-view')).each(function () {
+            alignActionHeaders($(this));
         });
     }
 

@@ -8,7 +8,6 @@ import com.wangziyang.mes.common.BaseController;
 import com.wangziyang.mes.common.Result;
 import com.wangziyang.mes.llm.service.ILlmBomGenService;
 import com.wangziyang.mes.llm.service.ILlmBomWizardService;
-import com.wangziyang.mes.system.entity.SysUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,7 +21,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
  *
  * 步骤① 复用 /llm/bom-gen/generate 生成草稿；
  * 步骤② 物料一键补建后复用 /technology/bom/save-with-items 保存 BOM；
- * 步骤③④ 由本控制器承接：工序/工艺路线创建、人员分配预览与工单创建。
+ * 步骤③④ 由本控制器承接：工序/工艺路线创建、人员分配建议预览与生产订单生成。
  */
 @Controller
 @RequestMapping("/llm/bom-wizard")
@@ -120,25 +119,15 @@ public class LlmBomWizardController extends BaseController {
         }
     }
 
-    /** 步骤④：创建工单（statue=1 待审批）+ 保存工序人员分配 */
-    @PostMapping("/order/create-with-assign")
+    /** 步骤④：生成生产订单草稿（进入生产计划中心后续确认/工单/派工/下发） */
+    @PostMapping("/production-order/create")
     @ResponseBody
-    public Result createOrderWithAssign(@RequestBody String body) {
+    public Result createProductionOrder(@RequestBody String body) {
         try {
             JSONObject req = JSONUtil.parseObj(body);
-            SysUser designer = currentUser();
-            return Result.success(wizardService.createOrderWithAssign(
-                    req.getJSONObject("order"), req.getJSONArray("assigns"), designer));
+            return Result.success(wizardService.createProductionOrder(req.getJSONObject("order")));
         } catch (Exception e) {
             return Result.failure(e.getMessage());
-        }
-    }
-
-    private SysUser currentUser() {
-        try {
-            return getSysUser();
-        } catch (Exception ignore) {
-            return null;
         }
     }
 }

@@ -69,10 +69,10 @@
 <!--行操作模板-->
 <script type="text/html" id="js-inventory-toolbar-right">
     <a class="layui-btn layui-btn-xs" lay-event="edit" title="编辑">
-        <i class="layui-icon layui-icon-edit"></i>
+        <i class="layui-icon layui-icon-edit"></i>编辑
     </a>
     <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete" title="出库(删除)">
-        <i class="layui-icon layui-icon-delete"></i>
+        <i class="layui-icon layui-icon-delete"></i>出库
     </a>
 </script>
 

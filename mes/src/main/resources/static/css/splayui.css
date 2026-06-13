@@ -936,8 +936,8 @@ a {
     display: flex;
     align-items: center;
     gap: 12px;
-    height: 58px;
-    padding: 0 16px;
+    height: 264px;
+    padding: 0 20px;
     border-bottom: 1px solid var(--sp-border);
 }
 
@@ -953,6 +953,7 @@ a {
     outline: 0;
     background: transparent;
     font-size: 18px;
+    line-height: 1.5;
     color: var(--sp-text);
     font-family: var(--sp-font);
 }

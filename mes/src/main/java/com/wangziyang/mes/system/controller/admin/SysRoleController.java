@@ -58,6 +58,8 @@ public class SysRoleController extends BaseController {
     @ResponseBody
     public Result page(SysRolePageReq req) {
         QueryWrapper<SysRole> qw = new QueryWrapper<>();
+        // 已删除的角色不再展示（is_deleted: 0正常 / 1删除 / 2禁用）
+        qw.ne("is_deleted", "1");
         if (StringUtils.isNotEmpty(req.getNameLike())) {
             qw.likeRight("name", req.getNameLike());
         }

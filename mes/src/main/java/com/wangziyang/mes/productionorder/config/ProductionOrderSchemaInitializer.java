@@ -79,6 +79,7 @@ public class ProductionOrderSchemaInitializer implements ApplicationRunner {
                 + "`target_capacity` decimal(10,2) NOT NULL DEFAULT 5.00,"
                 + "`computed_start_date` varchar(32) DEFAULT NULL,"
                 + "`computed_delivery_date` varchar(32) DEFAULT NULL,"
+                + "`material_ready_date` varchar(32) DEFAULT NULL,"
                 + "`adjust_note` varchar(500) DEFAULT NULL,"
                 + "`work_order_id` varchar(64) DEFAULT NULL,"
                 + "`work_order_code` varchar(64) DEFAULT NULL,"
@@ -264,6 +265,8 @@ public class ProductionOrderSchemaInitializer implements ApplicationRunner {
                 "ALTER TABLE `sp_production_order_item` ADD COLUMN `computed_start_date` varchar(32) DEFAULT NULL AFTER `target_capacity`");
         addColumnIfMissing("sp_production_order_item", "computed_delivery_date",
                 "ALTER TABLE `sp_production_order_item` ADD COLUMN `computed_delivery_date` varchar(32) DEFAULT NULL AFTER `computed_start_date`");
+        addColumnIfMissing("sp_production_order_item", "material_ready_date",
+                "ALTER TABLE `sp_production_order_item` ADD COLUMN `material_ready_date` varchar(32) DEFAULT NULL AFTER `computed_delivery_date`");
         addColumnIfMissing("sp_production_order_item", "work_order_id",
                 "ALTER TABLE `sp_production_order_item` ADD COLUMN `work_order_id` varchar(64) DEFAULT NULL AFTER `adjust_note`");
         addColumnIfMissing("sp_production_order_item", "work_order_code",

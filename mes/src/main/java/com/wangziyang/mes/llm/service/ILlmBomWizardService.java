@@ -2,7 +2,6 @@ package com.wangziyang.mes.llm.service;
 
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
-import com.wangziyang.mes.system.entity.SysUser;
 
 /**
  * AI 智能建模分步向导服务。
@@ -10,7 +9,7 @@ import com.wangziyang.mes.system.entity.SysUser;
  * 串联向导各步骤的落库动作：
  * 步骤② 未匹配物料一键入库（含 BOM 前置条件自动补齐）；
  * 步骤③ 缺失工序补建 + 工艺路线创建；
- * 步骤④ 工单创建 + 工序人员负载均衡分配。
+ * 步骤④ 生成生产订单草稿（进入生产计划中心后续确认/工单/派工/下发），并提供只读排人建议。
  */
 public interface ILlmBomWizardService {
 
@@ -64,12 +63,12 @@ public interface ILlmBomWizardService {
     JSONArray assignCandidates(String unitId);
 
     /**
-     * 创建工单（statue=1 待审批，走现有审批流）并保存工序人员分配。
+     * 生成生产订单草稿（含单条产品明细），复用生产计划中心 saveOrder 校验BOM/排产并生成工序排产明细。
+     * 后续的确认、生成工单、设备/员工派工、配套出库(MRP)、生产计划下发均在「生产计划中心」完成。
      *
-     * @param orderJson 工单信息：orderDescription/qty/materiel/materielDesc/flowId/planStartTime/planEndTime
-     * @param assigns   分配数组，须覆盖工艺路线全部工序且 userId 非空
-     * @param designer  设计人（当前登录用户）
-     * @return {orderId, orderCode, assignCount}
+     * @param orderJson 生产订单信息：sourceType(FORECAST/DEMAND)/qty/materiel/materielDesc/bomId/bomCode/
+     *                  customerName(需求订单必填)/planStartDate(预测)/planDeliveryDate(需求)/targetCapacity/leadTimeDays/remark
+     * @return {productionOrderId, orderNo, sourceType}
      */
-    JSONObject createOrderWithAssign(JSONObject orderJson, JSONArray assigns, SysUser designer);
+    JSONObject createProductionOrder(JSONObject orderJson);
 }

@@ -56,13 +56,13 @@
     <div class="wz-line"></div>
     <div class="wz-step" data-step="3"><span class="num">3</span><span class="txt">工艺审核</span></div>
     <div class="wz-line"></div>
-    <div class="wz-step" data-step="4"><span class="num">4</span><span class="txt">工单与排人</span></div>
+    <div class="wz-step" data-step="4"><span class="num">4</span><span class="txt">生产订单</span></div>
 </div>
 <div style="margin: 4px 12px 0 12px;"><span class="sp-tip">向导状态保存在页面内存中，刷新页面将从头开始</span></div>
 
 <!-- ====================== 步骤① 产品信息 ====================== -->
 <div class="sp-card step-panel" id="step-1">
-    <div class="sp-card-title"><i class="fa fa-magic"></i> AI 辅助生成 BOM <span class="sp-tip">输入产品信息，AI 生成 BOM 草稿与工序序列，逐步审核后建立工单</span></div>
+    <div class="sp-card-title"><i class="fa fa-magic"></i> AI 辅助生成 BOM <span class="sp-tip">输入产品信息，AI 生成 BOM 草稿与工序序列，逐步审核后生成生产订单</span></div>
     <form class="layui-form" lay-filter="gen-form">
         <div class="layui-form-item">
             <div class="layui-inline">
@@ -181,14 +181,23 @@
     </div>
 </div>
 
-<!-- ====================== 步骤④ 工单与排人 ====================== -->
+<!-- ====================== 步骤④ 生产订单生成 ====================== -->
 <div class="sp-card step-panel" id="step-4">
-    <div class="sp-card-title"><i class="fa fa-file-text-o"></i> 工单建立 <span class="sp-tip">工单创建后进入现有审批流（待审批）</span></div>
+    <div class="sp-card-title"><i class="fa fa-file-text-o"></i> 生产订单生成 <span class="sp-tip">生成生产订单草稿后，请到「生产计划中心 → 生产订单录入」继续确认、生成工单、设备/员工派工与计划下发</span></div>
     <div class="wz-summary" id="js-flow-summary" style="margin-bottom:10px;"></div>
+
+    <div id="js-order-area">
     <form class="layui-form" lay-filter="order-form">
         <div class="layui-form-item">
+            <label class="layui-form-label">订单类型</label>
+            <div class="layui-input-block">
+                <input type="radio" name="sourceType" value="FORECAST" title="预测订单（正向排产，按开工日期）" lay-filter="sourceType" checked>
+                <input type="radio" name="sourceType" value="DEMAND" title="需求订单（逆向排产，按交付日期）" lay-filter="sourceType">
+            </div>
+        </div>
+        <div class="layui-form-item">
             <div class="layui-inline">
-                <label class="layui-form-label">工单物料</label>
+                <label class="layui-form-label">产品物料</label>
                 <div class="layui-input-inline"><input type="text" id="o-materiel" class="layui-input" readonly style="background:#f5f7fa;"></div>
             </div>
             <div class="layui-inline">
@@ -196,27 +205,35 @@
                 <div class="layui-input-inline"><input type="text" id="o-materielDesc" class="layui-input" readonly style="background:#f5f7fa;"></div>
             </div>
             <div class="layui-inline">
-                <label class="layui-form-label">工单数量</label>
+                <label class="layui-form-label">订单数量</label>
                 <div class="layui-input-inline"><input type="number" id="o-qty" class="layui-input" min="1" value="1"></div>
             </div>
         </div>
         <div class="layui-form-item">
-            <div class="layui-inline">
-                <label class="layui-form-label">计划开始</label>
-                <div class="layui-input-inline"><input type="text" id="o-planStart" class="layui-input" placeholder="yyyy-MM-dd HH:mm:ss" readonly></div>
+            <div class="layui-inline" id="o-customer-wrap" style="display:none;">
+                <label class="layui-form-label">客户名称</label>
+                <div class="layui-input-inline"><input type="text" id="o-customer" class="layui-input" placeholder="需求订单必填"></div>
+            </div>
+            <div class="layui-inline" id="o-start-wrap">
+                <label class="layui-form-label">计划开工日期</label>
+                <div class="layui-input-inline"><input type="text" id="o-planStart" class="layui-input" placeholder="yyyy-MM-dd" readonly></div>
+            </div>
+            <div class="layui-inline" id="o-delivery-wrap" style="display:none;">
+                <label class="layui-form-label">计划交付日期</label>
+                <div class="layui-input-inline"><input type="text" id="o-planDelivery" class="layui-input" placeholder="yyyy-MM-dd" readonly></div>
             </div>
             <div class="layui-inline">
-                <label class="layui-form-label">计划结束</label>
-                <div class="layui-input-inline"><input type="text" id="o-planEnd" class="layui-input" placeholder="yyyy-MM-dd HH:mm:ss" readonly></div>
+                <label class="layui-form-label">目标产能</label>
+                <div class="layui-input-inline"><input type="number" id="o-capacity" class="layui-input" min="1" value="5" title="每日产出件数，用于排产计算"></div>
             </div>
-            <div class="layui-inline" style="width:38%;">
-                <label class="layui-form-label">工单描述</label>
-                <div class="layui-input-inline" style="width:70%;"><input type="text" id="o-desc" class="layui-input" placeholder="可选"></div>
-            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">订单备注</label>
+            <div class="layui-input-block"><input type="text" id="o-desc" class="layui-input" placeholder="可选"></div>
         </div>
     </form>
 
-    <div class="sp-card-title" style="margin-top:6px;"><i class="fa fa-users"></i> 工序人员分配 <span class="sp-tip">按「加工单元→班组→员工」自动负载均衡，可手动改人</span></div>
+    <div class="sp-card-title" style="margin-top:6px;"><i class="fa fa-users"></i> 工序人员分配（参考建议） <span class="sp-tip">按「加工单元→班组→员工」负载均衡给出建议，仅供参考，不会落库；实际派工请在「设备作业派工 / 员工作业派工」完成</span></div>
     <table class="bom-table">
         <thead>
         <tr>
@@ -224,7 +241,7 @@
             <th style="width:16%">工序</th>
             <th style="width:16%">加工单元</th>
             <th style="width:14%">班组</th>
-            <th style="width:14%">执行人</th>
+            <th style="width:14%">建议执行人</th>
             <th style="width:8%">当前负载</th>
             <th style="width:18%">提示</th>
             <th style="width:8%">操作</th>
@@ -233,9 +250,12 @@
         <tbody id="js-assigns"></tbody>
     </table>
     <div style="margin-top:12px;">
-        <button type="button" class="layui-btn layui-btn-primary layui-btn-sm" id="js-refresh-assign"><i class="fa fa-refresh"></i> 重新自动分配</button>
-        <button type="button" class="layui-btn layui-btn-sm" id="js-create-order"><i class="fa fa-check"></i> 创建工单并完成</button>
+        <button type="button" class="layui-btn layui-btn-primary layui-btn-sm" id="js-refresh-assign"><i class="fa fa-refresh"></i> 重新计算建议</button>
+        <button type="button" class="layui-btn layui-btn-sm" id="js-create-order"><i class="fa fa-check"></i> 生成生产订单并完成</button>
     </div>
+    </div>
+
+    <div id="js-order-na" style="display:none; padding:10px 4px; color:#666; font-size:13px; line-height:1.8;"></div>
 </div>
 
 <!-- ====================== 完成页 ====================== -->
@@ -255,8 +275,8 @@
         var layer = layui.layer;
         var laydate = layui.laydate;
 
-        laydate.render({ elem: '#o-planStart', type: 'datetime' });
-        laydate.render({ elem: '#o-planEnd', type: 'datetime' });
+        laydate.render({ elem: '#o-planStart', type: 'date' });
+        laydate.render({ elem: '#o-planDelivery', type: 'date' });
 
         // ==================== 向导状态（内存） ====================
         var wizard = {
@@ -266,7 +286,8 @@
             draft: { items: [], opers: [] },// AI 草稿
             bom: {},                        // {bomCode, headerMaterielCode}
             flow: {},                       // {flowId, flow, process}
-            assigns: [],                    // 步骤④ 分配行
+            assigns: [],                    // 步骤④ 排人建议行（参考，不落库）
+            productionOrder: {},            // 步骤④ 生成的生产订单 {productionOrderId, orderNo, sourceType}
             units: []                       // 加工单元列表
         };
 
@@ -707,12 +728,54 @@
             });
         });
 
-        // ==================== 步骤④：工单与排人 ====================
+        // ==================== 步骤④：生产订单生成 ====================
+        function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+        function dateStr(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+        function toggleOrderType(type) {
+            if (type === 'DEMAND') {
+                $('#o-customer-wrap').show();
+                $('#o-delivery-wrap').show();
+                $('#o-start-wrap').hide();
+            } else {
+                $('#o-customer-wrap').hide();
+                $('#o-delivery-wrap').hide();
+                $('#o-start-wrap').show();
+            }
+        }
         function initOrderStep() {
+            var level = String(wizard.gen.bomLevel || '0');
             $('#o-materiel').val(wizard.bom.headerMaterielCode || '');
             $('#o-materielDesc').val(wizard.bom.materielDesc || wizard.gen.productName);
-            $('#o-desc').val((wizard.gen.productName || '') + ' AI智能建模工单');
+            $('#o-desc').val((wizard.gen.productName || '') + ' AI智能建模生产订单');
             $('#js-flow-summary').html('工艺路线：<b>' + esc(wizard.flow.flow || '') + '</b>　时序：<b>' + esc(wizard.flow.process || '') + '</b>');
+
+            // 生产订单仅面向成品（0层）；半成品/组件层级到此即完成BOM+工艺建模
+            if (level !== '0') {
+                $('#js-order-area').hide();
+                $('#js-order-na').show().html(
+                    '本向导已完成<b>' + (level === '1' ? '半成品' : '组件') + '</b>的 BOM 与工艺建模并定版。<br>'
+                    + '生产订单仅面向<b>成品（0层）</b>，本层级无需生成生产订单。<br>'
+                    + '如需投产，请在<b>成品</b>的建模向导中生成生产订单，再到「生产计划中心」推进。<br><br>'
+                    + '<button type="button" class="layui-btn layui-btn-sm" id="js-finish-na"><i class="fa fa-check"></i> 完成</button>');
+                $('#js-finish-na').off('click').on('click', function () {
+                    wizard.done[4] = true;
+                    $('#js-done-summary').html(
+                        'BOM编码：<b>' + esc(wizard.bom.bomCode) + '</b>（物料 ' + esc(wizard.bom.headerMaterielCode) + '）<br>'
+                        + '工艺路线：<b>' + esc(wizard.flow.flow) + '</b>　' + esc(wizard.flow.process || '') + '<br>'
+                        + (level === '1' ? '半成品' : '组件') + 'BOM 与工艺已定版，可在成品建模时作为子BOM复用。');
+                    renderStep(5);
+                });
+                return;
+            }
+            $('#js-order-area').show();
+            $('#js-order-na').hide();
+
+            // 默认计划日期：今天 / 今天+5 天
+            var today = new Date();
+            $('#o-planStart').val(dateStr(today));
+            $('#o-planDelivery').val(dateStr(new Date(today.getTime() + 5 * 86400000)));
+            form.render();
+            toggleOrderType($('input[name=sourceType]:checked').val() || 'FORECAST');
             previewAssign();
         }
         function assignRowHtml(a, idx) {
@@ -779,52 +842,55 @@
             }, 'json');
         });
 
+        form.on('radio(sourceType)', function (data) { toggleOrderType(data.value); });
+
         $('#js-create-order').on('click', function () {
             var $btn = $(this);
+            var type = $('input[name=sourceType]:checked').val() || 'FORECAST';
             var qty = parseInt($('#o-qty').val());
-            if (!qty || qty <= 0) { layer.msg('工单数量必须大于 0'); return; }
-            if (!$('#o-planStart').val() || !$('#o-planEnd').val()) { layer.msg('请选择计划开始和结束时间'); return; }
-            for (var i = 0; i < wizard.assigns.length; i++) {
-                if (!wizard.assigns[i].userId) {
-                    layer.alert('工序【' + (wizard.assigns[i].operDesc || wizard.assigns[i].oper) + '】未指定执行人，'
-                        + '请先在「加工单元定义」绑定班组、「班组员工定义」维护成员，或点击改人手动指定。',
-                        { icon: 2, title: '人员分配不完整' });
-                    return;
-                }
-            }
-            var payload = {
-                order: {
-                    orderDescription: $('#o-desc').val(),
-                    qty: qty,
-                    materiel: $('#o-materiel').val(),
-                    materielDesc: $('#o-materielDesc').val(),
-                    flowId: wizard.flow.flowId,
-                    planStartTime: $('#o-planStart').val(),
-                    planEndTime: $('#o-planEnd').val()
-                },
-                assigns: wizard.assigns
+            if (!qty || qty <= 0) { layer.msg('订单数量必须大于 0'); return; }
+            var order = {
+                sourceType: type,
+                qty: qty,
+                materiel: $('#o-materiel').val(),
+                materielDesc: $('#o-materielDesc').val(),
+                bomId: wizard.bom.bomId,
+                bomCode: wizard.bom.bomCode,
+                targetCapacity: parseFloat($('#o-capacity').val()) || 5,
+                remark: $('#o-desc').val()
             };
+            if (type === 'DEMAND') {
+                if (!$.trim($('#o-customer').val())) { layer.msg('需求订单必须填写客户名称'); return; }
+                if (!$('#o-planDelivery').val()) { layer.msg('请选择计划交付日期'); return; }
+                order.customerName = $.trim($('#o-customer').val());
+                order.planDeliveryDate = $('#o-planDelivery').val();
+            } else {
+                if (!$('#o-planStart').val()) { layer.msg('请选择计划开工日期'); return; }
+                order.planStartDate = $('#o-planStart').val();
+            }
             var loadIdx = layer.load(2);
             lockBtn($btn);
-            postJson('/llm/bom-wizard/order/create-with-assign', payload, function (res) {
+            postJson('/llm/bom-wizard/production-order/create', { order: order }, function (res) {
                 layer.close(loadIdx);
                 if (res.code !== 0) {
                     unlockBtn($btn);
-                    layer.alert(res.msg || '工单创建失败', { icon: 2, title: '工单创建未通过' });
+                    layer.alert(res.msg || '生产订单生成失败', { icon: 2, title: '生产订单生成未通过' });
                     return;
                 }
                 wizard.done[4] = true;
                 var d = res.data || {};
+                wizard.productionOrder = d;
                 var routeLine = '';
                 if (wizard.flow.routeCount) {
                     routeLine = '工艺规划：<b>' + esc(wizard.flow.routeCount) + '</b> 节点（编制中，可在「工艺内容编制」补充图片后点完成）<br>';
                 }
+                var typeName = d.sourceType === 'FORECAST' ? '预测订单' : '需求订单';
                 $('#js-done-summary').html(
                     'BOM编码：<b>' + esc(wizard.bom.bomCode) + '</b>（物料 ' + esc(wizard.bom.headerMaterielCode) + '）<br>'
                     + '工艺路线：<b>' + esc(wizard.flow.flow) + '</b>　' + esc(wizard.flow.process || '') + '<br>'
                     + routeLine
-                    + '工单编号：<b>' + esc(d.orderCode) + '</b>（待审批，可在「工单下达」中审批）<br>'
-                    + '工序人员分配：<b>' + esc(d.assignCount) + '</b> 条');
+                    + '生产订单：<b>' + esc(d.orderNo) + '</b>（' + typeName + '，草稿）<br>'
+                    + '下一步：到「<b>生产计划中心 → 生产订单录入</b>」对该订单依次<b>确认 → 生成工单 → 设备/员工派工 → 配套出库(MRP) → 生产计划下发</b>。');
                 renderStep(5);
             });
         });

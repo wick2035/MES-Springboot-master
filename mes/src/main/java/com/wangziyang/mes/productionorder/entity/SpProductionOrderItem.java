@@ -47,6 +47,8 @@ public class SpProductionOrderItem extends BaseEntity {
 
     private String computedDeliveryDate;
 
+    private String materialReadyDate;
+
     private String adjustNote;
 
     private String workOrderId;
@@ -187,6 +189,14 @@ public class SpProductionOrderItem extends BaseEntity {
 
     public void setComputedDeliveryDate(String computedDeliveryDate) {
         this.computedDeliveryDate = computedDeliveryDate;
+    }
+
+    public String getMaterialReadyDate() {
+        return materialReadyDate;
+    }
+
+    public void setMaterialReadyDate(String materialReadyDate) {
+        this.materialReadyDate = materialReadyDate;
     }
 
     public String getAdjustNote() {

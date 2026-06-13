@@ -43,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -93,6 +94,9 @@ public class SpProductionOrderServiceImpl extends ServiceImpl<SpProductionOrderM
 
     private static final BigDecimal DEFAULT_CAPACITY = new BigDecimal("5");
     private static final int DEFAULT_LEAD_TIME = 1;
+    private static final int WORK_HOURS_PER_DAY = 8;
+    private static final LocalTime SHIFT_START = LocalTime.of(8, 0);
+    private static final LocalTime SHIFT_END = LocalTime.of(16, 0);
     private static final int WORK_ORDER_PENDING_APPROVAL = 1;
     private static final int WORK_ORDER_APPROVED = 2;
     private static final int WORK_ORDER_DISPATCHED = 5;
@@ -835,22 +839,12 @@ public class SpProductionOrderServiceImpl extends ServiceImpl<SpProductionOrderM
     }
 
     private void rebuildOperationPlans(SpProductionOrder order, List<SpProductionOrderItem> items) {
+        // 明细级日期（建议开工/预计交付/建议备料）已由 normalizeItem 按产能/日口径算定，
+        // 此处仅在该区间内铺排工序级时间线，不再回写覆盖明细日期，保证前端预览=入库值。
         for (SpProductionOrderItem item : items) {
             List<SpProductionOrderOperPlan> plans = buildOperationPlans(order, item);
             if (!plans.isEmpty()) {
                 operPlanService.saveBatch(plans);
-                item.setComputedStartDate(plans.get(0).getPlanStartTime().substring(0, 10));
-                SpProductionOrderOperPlan last = plans.get(plans.size() - 1);
-                if (SCHEDULE_FORWARD.equals(order.getSchedulingMethod())) {
-                    LocalDate end = parseDate(last.getPlanEndTime(), LocalDate.now());
-                    item.setComputedDeliveryDate(addWorkDays(end, item.getLeadTimeDays()).toString());
-                    if (StringUtils.isBlank(item.getPlanDeliveryDate())) {
-                        item.setPlanDeliveryDate(item.getComputedDeliveryDate());
-                    }
-                } else {
-                    item.setComputedDeliveryDate(item.getPlanDeliveryDate());
-                }
-                itemService.updateById(item);
             }
         }
     }
@@ -866,52 +860,61 @@ public class SpProductionOrderServiceImpl extends ServiceImpl<SpProductionOrderM
         if (steps.isEmpty()) {
             return plans;
         }
-        int relationCount = steps.size();
-        BigDecimal fallbackTotalHours = new BigDecimal(productionDays(item) * 24);
-        BigDecimal fallbackHours = fallbackTotalHours.divide(new BigDecimal(relationCount), 2, RoundingMode.HALF_UP);
 
-        if (SCHEDULE_FORWARD.equals(order.getSchedulingMethod())) {
-            LocalDateTime cursor = parseDate(item.getPlanStartDate(), LocalDate.now()).atTime(LocalTime.of(8, 0));
-            for (RouteStep step : steps) {
-                SpProductionOrderOperPlan plan = newPlan(order, item, route.flowId, step, fallbackHours);
-                plan.setPlanStartTime(cursor.format(DT_FMT));
-                cursor = cursor.plusMinutes(plan.getDurationHours().multiply(new BigDecimal("60")).setScale(0, RoundingMode.CEILING).longValue());
-                plan.setPlanEndTime(cursor.format(DT_FMT));
-                plans.add(plan);
+        // 唯一基准=产能/日：整单生产总工时 = productionDays × 班次工时，
+        // 再按各工序权重（制造周期/工序工时，缺省均分）分摊到每道工序——故工序时长随数量缩放。
+        BigDecimal totalHours = new BigDecimal(productionDays(item) * WORK_HOURS_PER_DAY);
+        List<SpOper> opers = new ArrayList<>();
+        List<BigDecimal> weights = new ArrayList<>();
+        BigDecimal totalWeight = BigDecimal.ZERO;
+        for (RouteStep step : steps) {
+            SpOper oper = StringUtils.isBlank(step.operId) ? null : operService.getById(step.operId);
+            BigDecimal weight = stepWeight(oper);
+            opers.add(oper);
+            weights.add(weight);
+            totalWeight = totalWeight.add(weight);
+        }
+        if (totalWeight.compareTo(BigDecimal.ZERO) <= 0) {
+            totalWeight = new BigDecimal(steps.size());
+            Collections.fill(weights, BigDecimal.ONE);
+        }
+
+        LocalDate start = parseDate(StringUtils.defaultIfBlank(item.getComputedStartDate(), item.getPlanStartDate()), LocalDate.now());
+        LocalDateTime cursor = atShiftStart(start);
+        for (int i = 0; i < steps.size(); i++) {
+            BigDecimal duration = totalHours.multiply(weights.get(i)).divide(totalWeight, 2, RoundingMode.HALF_UP);
+            if (duration.compareTo(BigDecimal.ZERO) <= 0) {
+                duration = new BigDecimal("0.10");
             }
-            return plans;
-        }
-
-        LocalDate delivery = parseDate(item.getPlanDeliveryDate(), LocalDate.now());
-        LocalDateTime cursor = subtractWorkDays(delivery, item.getLeadTimeDays()).atTime(LocalTime.of(17, 0));
-        List<SpProductionOrderOperPlan> reverse = new ArrayList<>();
-        for (int i = steps.size() - 1; i >= 0; i--) {
-            RouteStep step = steps.get(i);
-            SpProductionOrderOperPlan plan = newPlan(order, item, route.flowId, step, fallbackHours);
-            plan.setPlanEndTime(cursor.format(DT_FMT));
-            cursor = cursor.minusMinutes(plan.getDurationHours().multiply(new BigDecimal("60")).setScale(0, RoundingMode.CEILING).longValue());
+            SpProductionOrderOperPlan plan = newPlan(order, item, route.flowId, steps.get(i), opers.get(i), duration);
             plan.setPlanStartTime(cursor.format(DT_FMT));
-            reverse.add(0, plan);
+            cursor = advanceShiftHours(cursor, duration);
+            plan.setPlanEndTime(cursor.format(DT_FMT));
+            plans.add(plan);
         }
-        plans.addAll(reverse);
         return plans;
     }
 
-    private SpProductionOrderOperPlan newPlan(SpProductionOrder order, SpProductionOrderItem item,
-                                              String flowId, RouteStep step,
-                                              BigDecimal fallbackHours) {
-        SpOper oper = StringUtils.isBlank(step.operId) ? null : operService.getById(step.operId);
-        BigDecimal duration = null;
-        String source = "CAPACITY";
+    private BigDecimal stepWeight(SpOper oper) {
         if (oper != null && oper.getManuCycle() != null && oper.getManuCycle().compareTo(BigDecimal.ZERO) > 0) {
-            duration = oper.getManuCycle();
+            return oper.getManuCycle();
+        }
+        if (oper != null && oper.getOperHours() != null && oper.getOperHours().compareTo(BigDecimal.ZERO) > 0) {
+            return oper.getOperHours();
+        }
+        return BigDecimal.ONE;
+    }
+
+    private SpProductionOrderOperPlan newPlan(SpProductionOrder order, SpProductionOrderItem item,
+                                              String flowId, RouteStep step, SpOper oper,
+                                              BigDecimal duration) {
+        String source;
+        if (oper != null && oper.getManuCycle() != null && oper.getManuCycle().compareTo(BigDecimal.ZERO) > 0) {
             source = "MANU_CYCLE";
         } else if (oper != null && oper.getOperHours() != null && oper.getOperHours().compareTo(BigDecimal.ZERO) > 0) {
-            duration = oper.getOperHours();
             source = "OPER_HOURS";
-        }
-        if (duration == null) {
-            duration = fallbackHours;
+        } else {
+            source = "AVERAGE";
         }
         SpProductionOrderOperPlan plan = new SpProductionOrderOperPlan();
         plan.setOrderId(order.getId());
@@ -928,9 +931,51 @@ public class SpProductionOrderServiceImpl extends ServiceImpl<SpProductionOrderM
         plan.setDurationHours(duration.setScale(2, RoundingMode.HALF_UP));
         plan.setDurationSource(source);
         plan.setScheduleMethod(order.getSchedulingMethod());
-        plan.setCalcRemark("按" + scheduleName(order.getSchedulingMethod()) + "生成，数量" + item.getQty());
+        plan.setCalcRemark("按" + scheduleName(order.getSchedulingMethod()) + "生成，数量" + item.getQty()
+                + "，生产" + productionDays(item) + "工作日"
+                + (StringUtils.isBlank(item.getMaterialReadyDate()) ? "" : "，备料日" + item.getMaterialReadyDate()));
         plan.setDeleted("0");
         return plan;
+    }
+
+    /** 取离 date 最近（含当日）的工作日 08:00 作为班次起点。 */
+    private LocalDateTime atShiftStart(LocalDate date) {
+        LocalDate d = date;
+        while (!isWorkDay(d)) {
+            d = d.plusDays(1);
+        }
+        return d.atTime(SHIFT_START);
+    }
+
+    /** 从 cursor 起按 8h/工作日班次窗口（08:00-16:00，跳周末）推进指定工时后的时刻。 */
+    private LocalDateTime advanceShiftHours(LocalDateTime cursor, BigDecimal hours) {
+        long remaining = hours.multiply(new BigDecimal("60")).setScale(0, RoundingMode.CEILING).longValue();
+        LocalDateTime c = normalizeToShift(cursor);
+        while (remaining > 0) {
+            LocalDateTime dayEnd = c.toLocalDate().atTime(SHIFT_END);
+            long minutesLeft = Duration.between(c, dayEnd).toMinutes();
+            if (minutesLeft <= 0) {
+                c = atShiftStart(c.toLocalDate().plusDays(1));
+                continue;
+            }
+            long take = Math.min(remaining, minutesLeft);
+            c = c.plusMinutes(take);
+            remaining -= take;
+            if (remaining > 0) {
+                c = atShiftStart(c.toLocalDate().plusDays(1));
+            }
+        }
+        return c;
+    }
+
+    private LocalDateTime normalizeToShift(LocalDateTime c) {
+        if (!isWorkDay(c.toLocalDate()) || c.toLocalTime().isBefore(SHIFT_START)) {
+            return atShiftStart(c.toLocalDate());
+        }
+        if (!c.toLocalTime().isBefore(SHIFT_END)) {
+            return atShiftStart(c.toLocalDate().plusDays(1));
+        }
+        return c;
     }
 
     private RouteBinding resolveRouteBinding(SpProductionOrderItem item, SpMaterile materile) {
@@ -1072,28 +1117,35 @@ public class SpProductionOrderServiceImpl extends ServiceImpl<SpProductionOrderM
     }
 
     private void normalizeDemandDate(SpProductionOrderItem item) {
+        // 逆向：交付日给定，生产跨度=productionDays（不含备料），倒推生产开工日；
+        // 备料提前期在开工日之前，得到建议备料日。computedStart 保持=生产开工日，避免 MRP 重复扣提前期。
         LocalDate delivery = parseDate(item.getPlanDeliveryDate(), null);
         if (delivery == null) {
             return;
         }
-        int productionDays = productionDays(item);
-        LocalDate start = subtractWorkDays(delivery, item.getLeadTimeDays() + productionDays);
+        LocalDate start = subtractWorkDays(delivery, productionDays(item));
         item.setComputedStartDate(start.toString());
+        item.setComputedDeliveryDate(delivery.toString());
+        item.setMaterialReadyDate(subtractWorkDays(start, leadDays(item)).toString());
         if (StringUtils.isBlank(item.getPlanStartDate())) {
             item.setPlanStartDate(start.toString());
         }
-        item.setComputedDeliveryDate(delivery.toString());
     }
 
     private void normalizeForecastDate(SpProductionOrderItem item) {
+        // 正向：开工日给定，生产跨度=productionDays（不含备料）顺推完工/交付日；备料提前期在开工日之前。
         LocalDate start = parseDate(item.getPlanStartDate(), LocalDate.now());
-        int productionDays = productionDays(item);
-        LocalDate delivery = addWorkDays(start, item.getLeadTimeDays() + productionDays);
+        LocalDate delivery = addWorkDays(start, productionDays(item));
         item.setComputedStartDate(start.toString());
         item.setComputedDeliveryDate(delivery.toString());
+        item.setMaterialReadyDate(subtractWorkDays(start, leadDays(item)).toString());
         if (StringUtils.isBlank(item.getPlanDeliveryDate())) {
             item.setPlanDeliveryDate(delivery.toString());
         }
+    }
+
+    private int leadDays(SpProductionOrderItem item) {
+        return item.getLeadTimeDays() == null ? 0 : Math.max(0, item.getLeadTimeDays());
     }
 
     private int productionDays(SpProductionOrderItem item) {

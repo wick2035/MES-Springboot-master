@@ -111,6 +111,7 @@
     var scene, camera, renderer, controls, light, composer, transformControls, options;
     var matArrayA = []; //内墙
     var matArrayB = []; //外墙
+    var wallTex; //墙面工业墙板纹理（程序化生成）
     var group = new THREE.Group();
 
     // 初始化场景
@@ -277,7 +278,8 @@
     //墙上挖门，通过两个几何体生成BSP对象
     function createResultBsp(bsp, objects_cube) {
         var material = new THREE.MeshPhongMaterial({
-            color: 0x9cb2d1,
+            color: 0xffffff,
+            map: wallTex,
             specular: 0x9cb2d1,
             shininess: 30,
             transparent: true,
@@ -298,8 +300,47 @@
         scene.add(result);
     }
 
+    //程序化生成工业墙板纹理：浅色底 + 面板接缝 + 企业蓝横向饰带
+    function createWallTexture() {
+        var c = document.createElement('canvas');
+        c.width = 512;
+        c.height = 512;
+        var ctx = c.getContext('2d');
+        //底色
+        ctx.fillStyle = '#c2d0da';
+        ctx.fillRect(0, 0, 512, 512);
+        //竖向面板接缝
+        ctx.strokeStyle = 'rgba(120,140,155,0.55)';
+        ctx.lineWidth = 3;
+        for (var x = 0; x <= 512; x += 64) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, 512);
+            ctx.stroke();
+        }
+        //横向面板接缝
+        ctx.strokeStyle = 'rgba(120,140,155,0.30)';
+        ctx.lineWidth = 2;
+        for (var y = 0; y <= 512; y += 128) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(512, y);
+            ctx.stroke();
+        }
+        //企业蓝横向饰带
+        ctx.fillStyle = '#2f6fb0';
+        ctx.fillRect(0, 232, 512, 48);
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.fillRect(0, 232, 512, 6);
+        var tex = new THREE.CanvasTexture(c);
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(6, 1); //横向平铺，纵向保留单条饰带
+        return tex;
+    }
+
     //创建墙纹理
     function createWallMaterail() {
+        wallTex = createWallTexture();
         matArrayA.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //前  0xafc0ca :灰色
         matArrayA.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //后
         matArrayA.push(new THREE.MeshPhongMaterial({color: 0xd6e4ec}));  //上  0xd6e4ec： 偏白色
@@ -313,6 +354,69 @@
         matArrayB.push(new THREE.MeshPhongMaterial({color: 0xd6e4ec}));  //下
         matArrayB.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //左   0xafc0ca :灰色
         matArrayB.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //右
+
+        //为各面挂上墙板纹理，色调改为白色让纹理(含企业色饰带)正常呈现
+        var allMats = matArrayA.concat(matArrayB);
+        for (var i = 0; i < allMats.length; i++) {
+            allMats[i].map = wallTex;
+            allMats[i].color.set(0xffffff);
+            allMats[i].needsUpdate = true;
+        }
+    }
+
+    //踢脚线 + 顶部饰条（沿房间内周）
+    function addTrimRing(yy, hh, col, includeFront) {
+        var mat = new THREE.MeshPhongMaterial({color: col});
+        var geoX = new THREE.BoxGeometry(2590, hh, 6);
+        var back = new THREE.Mesh(geoX, mat);
+        back.position.set(0, yy, -695);
+        back.name = '装饰条';
+        scene.add(back);
+        if (includeFront) {
+            var front = new THREE.Mesh(geoX, mat);
+            front.position.set(0, yy, 695);
+            front.name = '装饰条';
+            scene.add(front);
+        }
+        var geoZ = new THREE.BoxGeometry(6, hh, 1390);
+        var left = new THREE.Mesh(geoZ, mat);
+        left.position.set(-1290, yy, 0);
+        left.name = '装饰条';
+        scene.add(left);
+        var right = new THREE.Mesh(geoZ, mat);
+        right.position.set(1290, yy, 0);
+        right.name = '装饰条';
+        scene.add(right);
+    }
+
+    function createWallTrim() {
+        addTrimRing(12, 24, 0x37474f, false);  //踢脚线（深色，前墙有门洞故省略前侧）
+        addTrimRing(188, 16, 0x2f6fb0, true);  //顶部饰条（企业蓝，四面齐全）
+    }
+
+    //墙面标牌（库房名 + 安全标语）
+    function createWallSign(text, x, y, z, rotY) {
+        var c = document.createElement('canvas');
+        c.width = 1024;
+        c.height = 256;
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#1f3a5f';
+        ctx.fillRect(0, 0, 1024, 256);
+        ctx.strokeStyle = '#ffd54f';
+        ctx.lineWidth = 12;
+        ctx.strokeRect(10, 10, 1004, 236);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 76px "Microsoft YaHei", SimHei, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, 512, 132);
+        var tex = new THREE.CanvasTexture(c);
+        var mat = new THREE.MeshBasicMaterial({map: tex, transparent: true, side: THREE.DoubleSide});
+        var mesh = new THREE.Mesh(new THREE.PlaneGeometry(400, 100), mat);
+        mesh.position.set(x, y, z);
+        mesh.rotation.y = rotY;
+        mesh.name = '标牌';
+        scene.add(mesh);
     }
 
 
@@ -349,6 +453,12 @@
         createWindow(100, 100, 2, 0, 900, 90, 700, "窗户");
         createWindow(100, 100, 2, 0, -200, 90, 700, "窗户");
         createWindow(100, 100, 2, 0, 200, 90, 700, "窗户");
+
+        //墙面设计增强：踢脚线/顶部饰条 + 滚动标语横幅 + 库房名标牌
+        createWallTrim();
+        addRollPlane(scene);
+        var signName = (window.sceneWarehouse && window.sceneWarehouse.warehouseName) ? window.sceneWarehouse.warehouseName : '智能仓库';
+        createWallSign(signName + ' · 安全生产 重地', -1289, 150, 0, Math.PI / 2);
     }
 
     // 初始化轨迹球控件
@@ -365,42 +475,82 @@
         controls.target = new THREE.Vector3(50, 50, 0);
     }
 
+    //按物料(品类)汇总真实库存数量，降序；超过 topN 合并为"其他"
+    function computeMaterielStat(topN) {
+        var invs = window.sceneInventories || [];
+        var sums = {};
+        for (var i = 0; i < invs.length; i++) {
+            var nm = invs[i].materielDesc || invs[i].materielCode || '未知物料';
+            sums[nm] = (sums[nm] || 0) + (Number(invs[i].qty) || 0);
+        }
+        var arr = [];
+        for (var k in sums) {
+            if (sums.hasOwnProperty(k)) arr.push({name: k, value: sums[k]});
+        }
+        arr.sort(function (a, b) {
+            return b.value - a.value;
+        });
+        if (topN && arr.length > topN) {
+            var top = arr.slice(0, topN);
+            var other = 0;
+            for (var r = topN; r < arr.length; r++) other += arr[r].value;
+            if (other > 0) top.push({name: '其他', value: other});
+            return top;
+        }
+        return arr;
+    }
+
+    //大屏风格调色板
+    var CHART_PALETTE = ['#00d4ff', '#37e0a0', '#ffd166', '#ff7b9c', '#a78bfa', '#5b9bff', '#ff9f43', '#4dd0e1', '#f78fb3', '#9ccc65'];
+
     function initEcharts() {
-        pieChart = echarts.init($("<canvas width='512' height='512'></canvas>")[0]);
+        var matStat = computeMaterielStat(8);
+        var whName = (window.sceneWarehouse && window.sceneWarehouse.warehouseName) ? window.sceneWarehouse.warehouseName : '';
+        var hasData = matStat.length > 0;
+
+        //柱状图：各物料(品类)库存 Top —— 横向条形，长中文名也能完整显示
+        pieChart = echarts.init($("<canvas width='1024' height='1024'></canvas>")[0]);
+        var barNames = hasData ? matStat.map(function (d) { return d.name; }) : ['暂无库存'];
+        var barVals = hasData ? matStat.map(function (d) { return d.value; }) : [0];
         option = {
-            color: ['#3398DB'],
-            tooltip: {
-                trigger: 'axis',
-                axisPointer: {
-                    type: 'shadow'
-                }
+            backgroundColor: 'rgba(8,20,38,0.82)',
+            color: CHART_PALETTE,
+            title: {
+                text: (whName ? whName + ' · ' : '') + '物料库存 Top',
+                left: 'center',
+                top: 20,
+                textStyle: {color: '#e6f3ff', fontSize: 34, fontWeight: 'bold'}
             },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '3%',
-                containLabel: true
+            grid: {left: '4%', right: '14%', top: '15%', bottom: '4%', containLabel: true},
+            tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}},
+            xAxis: {
+                type: 'value',
+                axisLabel: {color: '#bcd6ef', fontSize: 16},
+                axisLine: {show: false},
+                splitLine: {lineStyle: {color: 'rgba(120,160,200,0.15)'}}
             },
-            xAxis: [
-                {
-                    type: 'category',
-                    data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                    axisTick: {
-                        alignWithLabel: true
-                    }
-                }
-            ],
-            yAxis: [
-                {
-                    type: 'value'
-                }
-            ],
+            yAxis: {
+                type: 'category',
+                inverse: true,
+                data: barNames,
+                axisLabel: {color: '#dbe9f7', fontSize: 19},
+                axisLine: {lineStyle: {color: 'rgba(140,180,220,0.4)'}},
+                axisTick: {show: false}
+            },
             series: [
                 {
-                    name: '直接访问',
+                    name: '库存数量',
                     type: 'bar',
-                    barWidth: '60%',
-                    data: [10, 52, 200, 334, 390, 330, 220]
+                    barWidth: '58%',
+                    itemStyle: {
+                        borderRadius: [0, 8, 8, 0],
+                        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                            {offset: 0, color: '#1f6feb'},
+                            {offset: 1, color: '#00d4ff'}
+                        ])
+                    },
+                    label: {show: true, position: 'right', color: '#e6f3ff', fontSize: 18},
+                    data: barVals
                 }
             ]
         };
@@ -421,42 +571,39 @@
 
         });
 
-        pieChart2 = echarts.init($("<canvas width='512' height='512'></canvas>")[0]);
+        //饼图：各物料(品类)库存占比 —— 环形 + 名称/百分比标签
+        pieChart2 = echarts.init($("<canvas width='1024' height='1024'></canvas>")[0]);
+        var pieData = hasData ? matStat : [{value: 0, name: '暂无库存'}];
+        var pieNames = hasData ? matStat.map(function (d) { return d.name; }) : ['暂无库存'];
         option2 = {
+            backgroundColor: 'rgba(8,20,38,0.82)',
+            color: CHART_PALETTE,
             title: {
-                text: '黑科数字仿真数据',
-                subtext: '黑科MES数据',
-                x: 'center'
+                text: (whName ? whName + ' · ' : '') + '物料库存占比',
+                left: 'center',
+                top: 20,
+                textStyle: {color: '#e6f3ff', fontSize: 34, fontWeight: 'bold'}
             },
-            tooltip: {
-                trigger: 'item',
-                formatter: "{a} <br/>{b} : {c} ({d}%)"
-            },
+            tooltip: {trigger: 'item', formatter: '{b}<br/>{c} ({d}%)'},
             legend: {
-                orient: 'vertical',
-                left: 'left',
-                data: ['库区A-1', '库区A-2', '库区B-1', '库区B-2', '库区C-1']
+                type: 'scroll',
+                bottom: 16,
+                left: 'center',
+                textStyle: {color: '#bcd6ef', fontSize: 16},
+                pageTextStyle: {color: '#bcd6ef'},
+                data: pieNames
             },
             series: [
                 {
-                    name: '访问来源',
+                    name: '库存占比',
                     type: 'pie',
-                    radius: '55%',
-                    center: ['50%', '60%'],
-                    data: [
-                        {value: 335, name: '库区A-1'},
-                        {value: 310, name: '库区A-2'},
-                        {value: 234, name: '库区B-1'},
-                        {value: 135, name: '库区B-2'},
-                        {value: 1548, name: '库区C-1'}
-                    ],
-                    itemStyle: {
-                        emphasis: {
-                            shadowBlur: 10,
-                            shadowOffsetX: 0,
-                            shadowColor: 'rgba(0, 0, 0, 0.5)'
-                        }
-                    }
+                    radius: ['34%', '58%'],
+                    center: ['50%', '47%'],
+                    avoidLabelOverlap: true,
+                    itemStyle: {borderColor: 'rgba(8,20,38,0.82)', borderWidth: 3},
+                    label: {color: '#e6f3ff', fontSize: 17, formatter: '{b}\n{d}%'},
+                    labelLine: {length: 14, length2: 14, lineStyle: {color: 'rgba(180,210,240,0.55)'}},
+                    data: pieData
                 }
             ]
         };
@@ -589,6 +736,10 @@
     function startScene(sceneData) {
         var wh = sceneData.warehouse;
         var invs = sceneData.inventories || [];
+        // 暴露给图表/标牌使用（两个图表与墙面标牌均从这里取真实数据）
+        window.sceneWarehouse = wh || {};
+        window.sceneLocations = sceneData.locations || [];
+        window.sceneInventories = invs;
         if (!wh) {
             $('#wh-empty-tip').show();
             SET_SCENE_CONFIG(1, 1, []);

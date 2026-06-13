@@ -42,7 +42,7 @@
 
 <script type="text/html" id="statusTpl"><span class="chip orange">待下发</span></script>
 <script type="text/html" id="productTpl"><b>{{d.firstProductMateriel || '-'}}</b> / {{d.firstProductName || '-'}}</script>
-<script type="text/html" id="opTpl"><a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="detail">拆分任务</a></script>
+<script type="text/html" id="opTpl"><a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="detail">拆分任务</a><a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="dispatch">下发</a></script>
 
 <script>
 layui.use(['form','table','layer','spTable'],function(){
@@ -54,7 +54,7 @@ layui.use(['form','table','layer','spTable'],function(){
         {field:'firstPlanStartDate',title:'计划开工',width:120},
         {field:'firstPlanDeliveryDate',title:'计划完工',width:120},
         {field:'operationStatus',title:'计划状态',width:100,templet:'#statusTpl'},
-        {fixed:'right',title:'操作',toolbar:'#opTpl',width:100}
+        {fixed:'right',title:'操作',toolbar:'#opTpl',width:150}
     ]]});
     function query(){return form.val('queryForm')||{};}
     function reload(){tableIns.reload({where:query(),page:{curr:1}});}
@@ -65,7 +65,16 @@ layui.use(['form','table','layer','spTable'],function(){
             $.each(tasks,function(_,t){html+='<tr><td>'+esc(t.productSerialNo)+'</td><td><b>'+esc(t.taskSerialNo)+'</b></td><td>'+esc(t.productName||t.productMateriel)+'</td><td>'+esc(t.operDesc||t.oper)+'</td><td>'+esc(t.planStartTime||'-')+' 至 '+esc(t.planEndTime||'-')+'</td></tr>';});
             if(!tasks.length)html+='<tr><td colspan="5" style="text-align:center;color:#718396;">暂无任务，请检查 BOM 与工艺路线。</td></tr>';
             html+='</tbody></table></div>';
-            layer.open({type:1,title:'计划拆分任务 - '+row.orderNo,area:['1050px','560px'],content:html});
+            layer.open({type:1,title:'计划拆分任务 - '+row.orderNo,area:['1050px','560px'],content:html,
+                btn:['确认下发','关闭'],
+                yes:function(idx){postDispatch(row,function(){layer.close(idx);});},
+                btn2:function(idx){layer.close(idx);}});
+        });
+    }
+    function postDispatch(row,onSuccess){
+        $.post('${request.contextPath}/production-order/plan/dispatch',{id:row.id},function(res){
+            if(res.code===0){layer.msg(res.msg||'已下发');reload();if(onSuccess)onSuccess();}
+            else{layer.msg(res.msg||'下发失败');}
         });
     }
     form.on('submit(search)',function(){reload();return false;});
@@ -73,6 +82,12 @@ layui.use(['form','table','layer','spTable'],function(){
     table.on('tool(recordTable)',function(obj){
         var data=obj.data;
         if(obj.event==='detail')openDetail(data);
+        if(obj.event==='dispatch'){
+            layer.confirm('确认下发生产计划【'+data.orderNo+'】？下发后工单进入车间执行。',function(idx){
+                layer.close(idx);
+                postDispatch(data);
+            });
+        }
     });
     form.render();
 });

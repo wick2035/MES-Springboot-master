@@ -18,12 +18,14 @@ layui.define(['table'], function (exports) {
     }
 
     function estimateButtonWidth($button) {
+        // 与 theme.css 操作列按钮口径一致：左右内边距 10px(共 20)、
+        // 图标固定盒宽 14 + margin 4 = 18，外加每按钮 4px 安全余量。
         var text = $.trim($button.clone().children().remove().end().text()).replace(/\s+/g, '');
         var hasIcon = $button.find('.layui-icon, .fa').length > 0;
-        var padding = $button.hasClass('layui-btn-xs') ? 18 : ($button.hasClass('layui-btn-sm') ? 24 : 32);
-        var minWidth = text ? 42 : 30;
+        var padding = 20;
+        var minWidth = text ? 48 : 32;
 
-        return Math.max(minWidth, getTextWidth(text) + (hasIcon ? 20 : 0) + padding);
+        return Math.max(minWidth, getTextWidth(text) + (hasIcon ? 18 : 0) + padding + 4);
     }
 
     function estimateToolbarWidth(toolbarSelector) {
@@ -64,15 +66,16 @@ layui.define(['table'], function (exports) {
             }
         });
 
-        var total = 42;
+        // 列宽 = 各按钮宽之和 + 按钮间距(gap 6，与 CSS 一致) + 单元格左右内边距(8*2)
+        var total = 0;
         $.each(eventOrder, function (index, eventKey) {
             total += widthsByEvent[eventKey];
             if (index > 0) {
-                total += 8;
+                total += 6;
             }
         });
 
-        return Math.ceil(total + 16);
+        return Math.ceil(total + 16 + 6);
     }
 
     function isActionToolbarColumn(column) {
@@ -235,7 +238,7 @@ layui.define(['table'], function (exports) {
                 var $actionCells = $view.find('td[data-off="true"], td[data-field="operate"]');
                 $actionCells.addClass('sp-table-action-td');
                 $actionCells.find('.layui-table-cell').addClass('sp-table-action-cell').css({
-                    'overflow': 'hidden',
+                    'overflow': 'visible',
                     'text-overflow': 'clip'
                 });
                 $actionCells.find('.layui-table-grid-down').hide();

@@ -15,11 +15,11 @@ import com.wangziyang.mes.basedata.service.ISpProcessingUnitService;
 import com.wangziyang.mes.basedata.service.ISpWarehouseLocationService;
 import com.wangziyang.mes.common.Result;
 import com.wangziyang.mes.llm.service.ILlmBomWizardService;
-import com.wangziyang.mes.order.entity.SpOrder;
-import com.wangziyang.mes.order.entity.SpOrderOperAssign;
 import com.wangziyang.mes.order.service.ISpOrderOperAssignService;
-import com.wangziyang.mes.order.service.ISpOrderService;
-import com.wangziyang.mes.system.entity.SysUser;
+import com.wangziyang.mes.productionorder.entity.SpProductionOrder;
+import com.wangziyang.mes.productionorder.entity.SpProductionOrderItem;
+import com.wangziyang.mes.productionorder.request.SpProductionOrderSaveReq;
+import com.wangziyang.mes.productionorder.service.ISpProductionOrderService;
 import com.wangziyang.mes.technology.dto.SpFlowDto;
 import com.wangziyang.mes.technology.entity.SpBom;
 import com.wangziyang.mes.technology.entity.SpBomItem;
@@ -38,7 +38,6 @@ import com.wangziyang.mes.technology.service.ISpOperService;
 import com.wangziyang.mes.technology.service.ISpProcessContentService;
 import com.wangziyang.mes.technology.service.ISpProcessRouteService;
 import com.wangziyang.mes.technology.vo.SpOperVo;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,14 +45,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -69,9 +65,6 @@ import java.util.Map;
 public class LlmBomWizardServiceImpl implements ILlmBomWizardService {
 
     private static final Logger log = LoggerFactory.getLogger(LlmBomWizardServiceImpl.class);
-
-    /** 工单状态：已创建/待审批（与 SpOrderController 保持一致） */
-    private static final int STATUE_CREATED_PENDING_APPROVAL = 1;
 
     @Autowired
     private ISpMaterileService materileService;
@@ -92,7 +85,7 @@ public class LlmBomWizardServiceImpl implements ILlmBomWizardService {
     private ISpFlowOperRelationService flowOperRelationService;
 
     @Autowired
-    private ISpOrderService orderService;
+    private ISpProductionOrderService productionOrderService;
 
     @Autowired
     private ISpOrderOperAssignService assignService;
@@ -870,125 +863,93 @@ public class LlmBomWizardServiceImpl implements ILlmBomWizardService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public JSONObject createOrderWithAssign(JSONObject orderJson, JSONArray assigns, SysUser designer) {
+    public JSONObject createProductionOrder(JSONObject orderJson) {
         if (orderJson == null) {
-            throw new RuntimeException("工单信息不能为空");
+            throw new RuntimeException("生产订单信息不能为空");
         }
         Integer qty = orderJson.getInt("qty");
         if (qty == null || qty <= 0) {
-            throw new RuntimeException("工单数量必须大于 0");
+            throw new RuntimeException("订单数量必须大于 0");
         }
+        String bomId = StrUtil.trimToEmpty(orderJson.getStr("bomId"));
         String materiel = StrUtil.trimToEmpty(orderJson.getStr("materiel"));
-        String materielDesc = StrUtil.trimToEmpty(orderJson.getStr("materielDesc"));
-        if (StrUtil.isBlank(materiel) || StrUtil.isBlank(materielDesc)) {
-            throw new RuntimeException("缺少工单物料，请先完成 BOM 保存");
+        if (StrUtil.isBlank(bomId) && StrUtil.isBlank(materiel)) {
+            throw new RuntimeException("缺少产品BOM，请先完成上一步的 BOM 保存定版");
         }
-        if (materileService.count(new QueryWrapper<SpMaterile>()
-                .eq("materiel", materiel).ne("is_deleted", "1")) == 0) {
-            throw new RuntimeException("工单物料【" + materiel + "】不存在");
-        }
-        String flowId = StrUtil.trimToEmpty(orderJson.getStr("flowId"));
-        if (StrUtil.isBlank(flowId) || flowService.getById(flowId) == null) {
-            throw new RuntimeException("缺少有效的工艺路线，请先完成上一步");
-        }
-        Date start = parsePlanTime(orderJson.getStr("planStartTime"));
-        Date end = parsePlanTime(orderJson.getStr("planEndTime"));
-        if (start == null || end == null) {
-            throw new RuntimeException("请填写有效的计划开始和结束时间");
-        }
-        if (end.before(start)) {
-            throw new RuntimeException("计划结束时间不能早于计划开始时间");
-        }
+        boolean forecast = "FORECAST".equalsIgnoreCase(orderJson.getStr("sourceType"));
 
-        // 分配校验：须覆盖工艺路线全部工序且均已指定执行人
-        List<SpFlowOperRelation> relations = flowOperRelationService.list(
-                new QueryWrapper<SpFlowOperRelation>().eq("flow_id", flowId).orderByAsc("sort_num"));
-        if (relations.isEmpty()) {
-            throw new RuntimeException("工艺路线下没有工序");
-        }
-        Map<String, JSONObject> assignMap = new HashMap<>();
-        if (assigns != null) {
-            for (Object o : assigns) {
-                JSONObject a = (JSONObject) o;
-                assignMap.put(StrUtil.trimToEmpty(a.getStr("operId")), a);
+        // 组装生产订单表头（草稿）：预测订单走正向排产，需求订单走逆向排产
+        SpProductionOrder order = new SpProductionOrder();
+        order.setSourceType(forecast ? "FORECAST" : "DEMAND");
+        order.setSchedulingMethod(forecast ? "FORWARD" : "REVERSE");
+        order.setCreationMethod("MANUAL");
+        order.setBusinessType("普通销售");
+        order.setOrderDate(LocalDate.now().toString());
+        order.setRemark(StrUtil.blankToDefault(orderJson.getStr("remark"), "AI智能建模向导生成"));
+        if (!forecast) {
+            String customer = StrUtil.trimToEmpty(orderJson.getStr("customerName"));
+            if (StrUtil.isBlank(customer)) {
+                throw new RuntimeException("需求订单必须填写客户名称");
             }
+            order.setCustomerName(customer);
         }
-        for (SpFlowOperRelation rel : relations) {
-            JSONObject a = assignMap.get(rel.getOperId());
-            if (a == null || StrUtil.isBlank(a.getStr("userId"))) {
-                String name = StrUtil.blankToDefault(a == null ? null : a.getStr("operDesc"), rel.getOper());
-                throw new RuntimeException("工序【" + name + "】未指定执行人，请完成人员分配后再提交");
+
+        // 单条产品明细：复用步骤②定版的产品 BOM（saveOrder 会校验为最新定版有效BOM）
+        SpProductionOrderItem item = new SpProductionOrderItem();
+        item.setBomId(bomId);
+        item.setBomCode(StrUtil.trimToEmpty(orderJson.getStr("bomCode")));
+        item.setProductMateriel(materiel);
+        item.setProductName(StrUtil.trimToEmpty(orderJson.getStr("materielDesc")));
+        item.setQty(qty);
+        item.setConfiguration(StrUtil.trimToEmpty(orderJson.getStr("configuration")));
+        if (forecast) {
+            String startDate = trimDate(orderJson.getStr("planStartDate"));
+            if (StrUtil.isBlank(startDate)) {
+                throw new RuntimeException("预测订单请填写计划开工日期");
             }
-        }
-
-        // 工单编号服务端生成，忽略前端传入，防止重复提交产生重复单号
-        String orderCode = "WO" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        if (orderService.count(new QueryWrapper<SpOrder>().eq("order_code", orderCode)) > 0) {
-            orderCode = orderCode + RandomUtil.randomNumbers(2);
-            if (orderService.count(new QueryWrapper<SpOrder>().eq("order_code", orderCode)) > 0) {
-                throw new RuntimeException("工单编号生成冲突，请稍后重试");
+            item.setPlanStartDate(startDate);
+        } else {
+            String deliveryDate = trimDate(orderJson.getStr("planDeliveryDate"));
+            if (StrUtil.isBlank(deliveryDate)) {
+                throw new RuntimeException("需求订单请填写计划交付日期");
             }
+            item.setPlanDeliveryDate(deliveryDate);
+        }
+        BigDecimal capacity = orderJson.getBigDecimal("targetCapacity");
+        if (capacity != null && capacity.compareTo(BigDecimal.ZERO) > 0) {
+            item.setTargetCapacity(capacity);
+        }
+        Integer leadTime = orderJson.getInt("leadTimeDays");
+        if (leadTime != null && leadTime > 0) {
+            item.setLeadTimeDays(leadTime);
         }
 
-        SpOrder order = new SpOrder();
-        order.setOrderCode(orderCode);
-        order.setOrderDescription(StrUtil.trimToEmpty(orderJson.getStr("orderDescription")));
-        order.setQty(qty);
-        order.setOrderType("P");
-        order.setFlowId(flowId);
-        order.setMateriel(materiel);
-        order.setMaterielDesc(materielDesc);
-        order.setPlanStartTime(orderJson.getStr("planStartTime"));
-        order.setPlanEndTime(orderJson.getStr("planEndTime"));
-        order.setStatue(STATUE_CREATED_PENDING_APPROVAL);
-        if (designer != null) {
-            order.setDesignerId(designer.getId());
-            order.setDesignerName(StringUtils.defaultIfBlank(designer.getName(), designer.getUsername()));
-        }
-        orderService.save(order);
+        SpProductionOrderSaveReq req = new SpProductionOrderSaveReq();
+        req.setOrder(order);
+        req.getItems().add(item);
 
-        List<SpOrderOperAssign> assignEntities = new ArrayList<>();
-        for (SpFlowOperRelation rel : relations) {
-            JSONObject a = assignMap.get(rel.getOperId());
-            SpOrderOperAssign entity = new SpOrderOperAssign();
-            entity.setOrderId(order.getId());
-            entity.setOrderCode(orderCode);
-            entity.setFlowId(flowId);
-            entity.setOperId(rel.getOperId());
-            entity.setOper(rel.getOper());
-            entity.setOperDesc(a.getStr("operDesc"));
-            entity.setSortNum(rel.getSortNum());
-            entity.setUnitId(a.getStr("unitId"));
-            entity.setTeamId(a.getStr("teamId"));
-            entity.setUserId(a.getStr("userId"));
-            entity.setUserName(a.getStr("userName"));
-            entity.setStatus("0");
-            entity.setDeleted("0");
-            assignEntities.add(entity);
+        // 复用生产计划中心的保存逻辑：校验BOM/排产、生成工序排产明细（sp_production_order_oper_plan）
+        Result<?> saved = productionOrderService.saveOrder(req);
+        Object codeObj = saved.get("code");
+        if (!(codeObj instanceof Integer) || (Integer) codeObj != 0) {
+            throw new RuntimeException(String.valueOf(saved.get("msg")));
         }
-        assignService.saveBatch(assignEntities);
+        String productionOrderId = String.valueOf(saved.get("data"));
+        SpProductionOrder persisted = productionOrderService.getById(productionOrderId);
 
         JSONObject result = new JSONObject();
-        result.put("orderId", order.getId());
-        result.put("orderCode", orderCode);
-        result.put("assignCount", assignEntities.size());
+        result.put("productionOrderId", productionOrderId);
+        result.put("orderNo", persisted == null ? "" : persisted.getOrderNo());
+        result.put("sourceType", order.getSourceType());
         return result;
     }
 
-    /** 解析计划时间（与 SpOrderController 保持一致的多格式容错） */
-    private Date parsePlanTime(String value) {
+    /** 截取日期为 yyyy-MM-dd（laydate 通常已是该格式，兼容带时间的输入） */
+    private String trimDate(String value) {
         if (StrUtil.isBlank(value)) {
-            return null;
+            return "";
         }
-        List<String> patterns = Arrays.asList("yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-dd");
-        for (String pattern : patterns) {
-            try {
-                SimpleDateFormat sdf = new SimpleDateFormat(pattern);
-                sdf.setLenient(false);
-                return sdf.parse(value);
-            } catch (ParseException ignore) {
-            }
-        }
-        return null;
+        String v = value.trim();
+        return v.length() > 10 ? v.substring(0, 10) : v;
     }
 }

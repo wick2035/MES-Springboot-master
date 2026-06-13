@@ -42,9 +42,7 @@
         .erp-box textarea{width:100%;height:300px;box-sizing:border-box;resize:none;font-family:Consolas,monospace}
         .plan-page th[data-field="operate"] .layui-table-cell,
         .plan-page td[data-field="operate"] .layui-table-cell{padding:0 8px;overflow:visible;text-overflow:clip}
-        .op-actions{display:flex;align-items:center;gap:6px;white-space:nowrap}
-        .op-actions .layui-btn{height:26px;line-height:26px;margin-left:0!important;padding:0 9px;border-radius:5px}
-        .op-actions .layui-btn .fa{margin-right:4px;font-size:12px}
+        .op-actions{display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
         @media(max-width:1180px){.kpis{grid-template-columns:repeat(2,minmax(120px,1fr))}.source-grid{grid-template-columns:1fr}}
     </style>
 </head>

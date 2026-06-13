@@ -116,6 +116,12 @@ body {
 }
 .layui-btn:active {
     background-color: var(--sp-primary-active);
+    opacity: 1;
+}
+/* 选中(键盘聚焦)时给出清晰的聚焦环，避免依赖浏览器默认描边 */
+.layui-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--sp-ring);
 }
 
 /* 描边/幽灵按钮（重置、取消、下载模板等） */
@@ -483,41 +489,36 @@ body {
     border-color: transparent;
 }
 
-/* === 操作列按钮防折叠规则 === */
-
-/* 对带 toolbar 的列（LayUI 渲染时自动加 data-off="true"），
-   取消 overflow hidden，让按钮全部可见 */
-.layui-table td[data-off="true"] .layui-table-cell {
-    overflow: hidden !important;
-    text-overflow: clip;
-}
+/* === 操作列按钮统一规则（全局） ===
+   统一几何 + 宽度随文字：同高度/同内边距/图标固定盒宽，
+   使相同文字的按钮宽度一致；列宽由 spTable.js 精确估算，按钮居中，
+   不裁切、不换行。可用以下 CSS 变量微调：
+     --sp-table-action-height (默认 26px)
+     --sp-table-action-pad-x  (默认 10px)
+     --sp-table-action-gap    (默认 6px) */
 
 /* 隐藏 toolbar 列上的 grid-down 下拉图标 */
-.layui-table td[data-off="true"] .layui-table-grid-down {
-    display: none !important;
-}
-
-/* 兜底：field="operate" 或 data-field="operate" 的列同样处理 */
-.layui-table td[data-field="operate"] .layui-table-cell {
-    overflow: hidden !important;
-    text-overflow: clip;
-}
+.layui-table td[data-off="true"] .layui-table-grid-down,
 .layui-table td[data-field="operate"] .layui-table-grid-down {
     display: none !important;
 }
 
-/* Shared action-cell layout for generated toolbar columns. */
+/* 操作列单元格容器：让按钮可完整显示、居中排布 */
 .layui-table-view .sp-table-action-td,
 .layui-table-view td[data-field="operate"],
 .layui-table-view td[data-off="true"] {
-    overflow: hidden !important;
+    overflow: visible !important;
 }
 
+/* 表头与下方居中按钮视觉对齐
+   sp-table-action-th 由 spDataBus.js 按表体动作列下标动态标记，
+   兜底未设 field（th[data-field] 取数字下标）而无法被属性选择器命中的操作列表头。 */
 .layui-table-view th[data-field="operate"] .layui-table-cell,
-.layui-table-view th[data-off="true"] .layui-table-cell {
-    padding-left: 6px;
-    padding-right: 6px;
-    text-align: left;
+.layui-table-view th[data-off="true"] .layui-table-cell,
+.layui-table-view th.sp-table-action-th .layui-table-cell {
+    padding-left: 8px;
+    padding-right: 8px;
+    text-align: center;
 }
 
 .layui-table-view .sp-table-action-cell,
@@ -525,14 +526,14 @@ body {
 .layui-table-view td[data-off="true"] .layui-table-cell {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
+    flex-wrap: nowrap;
     gap: var(--sp-table-action-gap, 6px);
     width: 100%;
     max-width: 100%;
     height: auto;
-    min-height: calc(var(--sp-table-action-height, 24px) + 4px);
-    overflow: hidden !important;
-    text-overflow: clip;
+    min-height: calc(var(--sp-table-action-height, 26px) + 4px);
+    overflow: visible;
     white-space: nowrap;
     box-sizing: border-box;
     padding: 0 8px;
@@ -548,15 +549,18 @@ body {
     width: auto;
     min-width: 0;
     max-width: none;
-    height: var(--sp-table-action-height, 24px);
-    line-height: var(--sp-table-action-height, 24px);
-    padding: 0 var(--sp-table-action-pad-x, 7px);
+    height: var(--sp-table-action-height, 26px);
+    line-height: var(--sp-table-action-height, 26px);
+    padding: 0 var(--sp-table-action-pad-x, 10px);
     margin: 2px 0 !important;
+    font-size: 12px;
     box-sizing: border-box;
     white-space: nowrap;
     overflow: visible;
 }
 
+/* 图标固定盒宽：layui-icon 与 fa 两套图标占用相同宽度，
+   从而相同文字的按钮宽度必然一致 */
 .layui-table-view .sp-table-action-cell .layui-btn .layui-icon,
 .layui-table-view .sp-table-action-cell .layui-btn .fa,
 .layui-table-view td[data-field="operate"] .layui-table-cell .layui-btn .layui-icon,
@@ -564,79 +568,20 @@ body {
 .layui-table-view td[data-off="true"] .layui-table-cell .layui-btn .layui-icon,
 .layui-table-view td[data-off="true"] .layui-table-cell .layui-btn .fa {
     flex: none;
-    margin-right: 3px;
-}
-
-.layui-table-view .sp-table-action-cell .sp-table-btn-text,
-.layui-table-view td[data-field="operate"] .layui-table-cell .sp-table-btn-text,
-.layui-table-view td[data-off="true"] .layui-table-cell .sp-table-btn-text {
     display: inline-block;
-    min-width: 0;
+    width: 14px;
+    text-align: center;
+    margin-right: 4px;
+    font-size: 13px;
+}
+
+/* 运行期 spDataBus 会把按钮文字包进该 span，保证完整显示不裁切 */
+.layui-table-view .sp-table-action-cell .layui-btn .sp-table-btn-text,
+.layui-table-view td[data-field="operate"] .layui-table-cell .layui-btn .sp-table-btn-text,
+.layui-table-view td[data-off="true"] .layui-table-cell .layui-btn .sp-table-btn-text {
+    display: inline-block;
     overflow: visible;
-    text-overflow: clip;
-    vertical-align: top;
-}
-
-.layui-table-view .sp-table-action-cell.sp-action-compact,
-.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-compact,
-.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-compact {
-    gap: var(--sp-table-action-gap, 4px);
-}
-
-.layui-table-view .sp-table-action-cell.sp-action-wrap,
-.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-wrap,
-.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-wrap {
-    flex-wrap: wrap;
-    align-content: center;
-    justify-content: flex-start;
-    padding-top: 2px;
-    padding-bottom: 2px;
-}
-
-.layui-table-view .sp-table-action-cell.sp-action-compact .layui-btn,
-.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-compact .layui-btn,
-.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-compact .layui-btn {
-    flex: 1 1 0;
-    width: auto;
-    min-width: 30px;
-    padding: 0 var(--sp-table-action-pad-x, 5px);
-}
-
-.layui-table-view .sp-table-action-cell.sp-action-wrap .layui-btn,
-.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-wrap .layui-btn,
-.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-wrap .layui-btn {
-    flex: 0 1 auto;
-    max-width: 100%;
-    height: auto;
-    min-height: var(--sp-table-action-height, 24px);
-    line-height: 16px;
-    padding-top: 3px;
-    padding-bottom: 3px;
-    white-space: normal;
-}
-
-.layui-table-view .sp-table-action-cell.sp-action-wrap .layui-btn .sp-table-btn-text,
-.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-wrap .layui-btn .sp-table-btn-text,
-.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-wrap .layui-btn .sp-table-btn-text {
-    white-space: normal;
-}
-
-.layui-table-view .sp-table-action-cell.sp-action-compact .layui-btn .layui-icon,
-.layui-table-view .sp-table-action-cell.sp-action-compact .layui-btn .fa,
-.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-compact .layui-btn .layui-icon,
-.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-compact .layui-btn .fa,
-.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-compact .layui-btn .layui-icon,
-.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-compact .layui-btn .fa {
-    margin-right: 2px;
-}
-
-.layui-table-view .sp-table-action-cell.sp-action-compact .layui-btn.sp-table-button-no-icon,
-.layui-table-view td[data-field="operate"] .layui-table-cell.sp-action-compact .layui-btn.sp-table-button-no-icon,
-.layui-table-view td[data-off="true"] .layui-table-cell.sp-action-compact .layui-btn.sp-table-button-no-icon {
-    flex-basis: auto;
-    width: auto;
-    min-width: 30px;
-    padding: 0 5px;
+    white-space: nowrap;
 }
 
 .layui-table-fixed-r,
@@ -726,6 +671,18 @@ body {
 }
 .layui-layer-btn .layui-layer-btn0:hover {
     background-color: var(--sp-primary-hover);
+}
+/* 选中/按下时保持白字清晰：覆盖 layui 默认 .layui-layer-btn a:active 的 opacity:.8（会让白字发灰看不清） */
+.layui-layer-btn a:active {
+    opacity: 1;
+}
+.layui-layer-btn .layui-layer-btn0:active {
+    background-color: var(--sp-primary-active);
+}
+.layui-layer-btn .layui-layer-btn0:focus {
+    color: #fff;
+    outline: none;
+    box-shadow: var(--sp-ring);
 }
 .layui-layer-btn a {
     border-radius: var(--sp-radius);

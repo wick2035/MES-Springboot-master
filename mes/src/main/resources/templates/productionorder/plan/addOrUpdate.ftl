@@ -144,6 +144,7 @@
                             <th style="width:85px;">产能/日</th>
                             <th style="width:118px;">建议开工</th>
                             <th style="width:118px;">预计交付</th>
+                            <th style="width:118px;">建议备料</th>
                             <th style="width:150px;">配置要求</th>
                             <th style="width:44px;"></th>
                         </tr>
@@ -264,6 +265,7 @@
                 '<td><input type="number" min="0.01" step="0.01" class="layui-input i-capacity" value="' + esc(item.targetCapacity || 5) + '"></td>' +
                 '<td><div class="po-read i-computed-start">' + esc(item.computedStartDate) + '</div></td>' +
                 '<td><div class="po-read i-computed-delivery">' + esc(item.computedDeliveryDate) + '</div></td>' +
+                '<td><div class="po-read i-material-ready">' + esc(item.materialReadyDate) + '</div></td>' +
                 '<td><input class="layui-input i-configuration" value="' + esc(item.configuration) + '"></td>' +
                 '<td><button type="button" class="layui-btn layui-btn-danger layui-btn-xs po-del js-del"><i class="layui-icon layui-icon-delete"></i></button></td>' +
                 '</tr>';
@@ -284,20 +286,26 @@
                 var delivery = parseDate($tr.find('.i-delivery').val());
                 var computedStart = '';
                 var computedDelivery = '';
+                var materialReady = '';
+                // 口径与后端一致：生产跨度=prodDays(不含备料)，备料提前期在开工日之前。
                 if (method === 'FORWARD') {
                     if (start) {
                         computedStart = fmt(start);
-                        computedDelivery = fmt(addWorkDays(start, prodDays + lead));
+                        computedDelivery = fmt(addWorkDays(start, prodDays));
+                        materialReady = fmt(addWorkDays(start, -lead));
                     }
                 } else {
                     if (delivery) {
                         computedDelivery = fmt(delivery);
-                        computedStart = fmt(addWorkDays(delivery, -(prodDays + lead)));
+                        var s = addWorkDays(delivery, -prodDays);
+                        computedStart = fmt(s);
+                        materialReady = fmt(addWorkDays(s, -lead));
                     }
                 }
                 $tr.find('.i-computed-start').text(computedStart || '-');
                 $tr.find('.i-computed-delivery').text(computedDelivery || '-');
-                fragments.push('第' + (i + 1) + '行：' + (method === 'FORWARD' ? '正向' : '逆向') + '，约' + prodDays + '个工作日生产，提前期' + lead + '天，建议开工 ' + (computedStart || '-') + '，预计交付 ' + (computedDelivery || '-'));
+                $tr.find('.i-material-ready').text(materialReady || '-');
+                fragments.push('第' + (i + 1) + '行：' + (method === 'FORWARD' ? '正向' : '逆向') + '，约' + prodDays + '个工作日生产，备料提前期' + lead + '天，建议备料 ' + (materialReady || '-') + '，建议开工 ' + (computedStart || '-') + '，预计交付 ' + (computedDelivery || '-'));
             });
             $('#js-plan-preview').html('<b>排产预览：</b>' + fragments.join('；'));
         }
@@ -319,6 +327,7 @@
                     targetCapacity: $tr.find('.i-capacity').val() || 5,
                     computedStartDate: $tr.find('.i-computed-start').text(),
                     computedDeliveryDate: $tr.find('.i-computed-delivery').text(),
+                    materialReadyDate: $tr.find('.i-material-ready').text(),
                     configuration: $tr.find('.i-configuration').val()
                 });
             });
