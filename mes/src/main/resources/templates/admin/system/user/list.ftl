@@ -7,6 +7,37 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <#include "${request.contextPath}/common/common.ftl">
+    <style>
+        /* 当前角色——精致药丸标签 */
+        .role-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            height: 22px;
+            padding: 0 10px 0 9px;
+            margin: 2px 4px 2px 0;
+            font-size: 12px;
+            line-height: 22px;
+            color: #0a5ec2;
+            background: #eef4ff;
+            border-radius: 11px;
+            white-space: nowrap;
+            transition: background .15s ease;
+        }
+        .role-chip:hover { background: #e2edff; }
+        .role-chip i {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #0a84ff;
+            flex: 0 0 5px;
+        }
+        .role-chip-empty {
+            color: #b0b0b8;
+            background: #f3f3f5;
+        }
+        .role-chip-empty::before { content: none; }
+    </style>
 </head>
 <body>
 <div class="splayui-container">
@@ -79,11 +110,10 @@
                 {field: 'name', title: '姓名', width: 110},
                 {field: 'username', title: '用户名', width: 130},
                 {
-                    field: 'roleNames', title: '当前角色', minWidth: 200, templet: function (d) {
-                        if (!d.roleNames) return '<span style="color:#bbb;">未分配</span>';
-                        var arr = d.roleNames.split('、');
-                        return arr.map(function (n) {
-                            return '<span class="layui-badge layui-bg-blue" style="margin-right:4px;">' + n + '</span>';
+                    field: 'roleNames', title: '当前角色', minWidth: 220, templet: function (d) {
+                        if (!d.roleNames) return '<span class="role-chip role-chip-empty">未分配</span>';
+                        return d.roleNames.split('、').map(function (n) {
+                            return '<span class="role-chip"><i></i>' + n + '</span>';
                         }).join('');
                     }
                 },
@@ -139,7 +169,7 @@
 
             if (obj.event === 'assignRole') {
                 spLayer.open({
-                    title: '分配角色 - ' + data.name, area: ['600px', '500px'],
+                    title: '分配角色 - ' + data.name, area: ['680px', '600px'],
                     content: '${request.contextPath}/admin/sys/user/assign-role-ui?userId=' + data.id
                 });
             }
