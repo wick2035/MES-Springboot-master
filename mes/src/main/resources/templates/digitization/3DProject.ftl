@@ -513,28 +513,27 @@
         var barNames = hasData ? matStat.map(function (d) { return d.name; }) : ['暂无库存'];
         var barVals = hasData ? matStat.map(function (d) { return d.value; }) : [0];
         option = {
-            backgroundColor: 'rgba(8,20,38,0.82)',
             color: CHART_PALETTE,
             title: {
                 text: (whName ? whName + ' · ' : '') + '物料库存 Top',
                 left: 'center',
                 top: 20,
-                textStyle: {color: '#e6f3ff', fontSize: 34, fontWeight: 'bold'}
+                textStyle: {color: '#ffffff', fontSize: 34, fontWeight: 'bold', textShadowColor: 'rgba(0,0,0,0.8)', textShadowBlur: 6}
             },
             grid: {left: '4%', right: '14%', top: '15%', bottom: '4%', containLabel: true},
             tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}},
             xAxis: {
                 type: 'value',
-                axisLabel: {color: '#bcd6ef', fontSize: 16},
+                axisLabel: {color: '#dbeaff', fontSize: 16, textShadowColor: 'rgba(0,0,0,0.8)', textShadowBlur: 4},
                 axisLine: {show: false},
-                splitLine: {lineStyle: {color: 'rgba(120,160,200,0.15)'}}
+                splitLine: {lineStyle: {color: 'rgba(180,210,240,0.18)'}}
             },
             yAxis: {
                 type: 'category',
                 inverse: true,
                 data: barNames,
-                axisLabel: {color: '#dbe9f7', fontSize: 19},
-                axisLine: {lineStyle: {color: 'rgba(140,180,220,0.4)'}},
+                axisLabel: {color: '#ffffff', fontSize: 19, textShadowColor: 'rgba(0,0,0,0.85)', textShadowBlur: 5},
+                axisLine: {lineStyle: {color: 'rgba(180,210,240,0.5)'}},
                 axisTick: {show: false}
             },
             series: [
@@ -549,7 +548,7 @@
                             {offset: 1, color: '#00d4ff'}
                         ])
                     },
-                    label: {show: true, position: 'right', color: '#e6f3ff', fontSize: 18},
+                    label: {show: true, position: 'right', color: '#ffffff', fontSize: 18, textShadowColor: 'rgba(0,0,0,0.85)', textShadowBlur: 5},
                     data: barVals
                 }
             ]
@@ -557,17 +556,17 @@
         pieChart.setOption(option);
 
         pieChart.on('finished', function () {
-            var infoEchart = new THREE.TextureLoader().load(pieChart.getDataURL());
+            var spriteMap = new THREE.TextureLoader().load(pieChart.getDataURL());
 
-            var infoEchartMaterial = new THREE.MeshBasicMaterial({
+            var spriteMaterial = new THREE.SpriteMaterial({
                 transparent: true,
-                map: infoEchart,
-                side: THREE.DoubleSide
+                map: spriteMap
             });
 
-            var echartPlane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), infoEchartMaterial);
-            echartPlane.position.set(100, 150, 0);
-            scene.add(echartPlane);
+            var sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(150, 150, 1);
+            sprite.position.set(100, 150, 0);
+            scene.add(sprite);
 
         });
 
@@ -576,21 +575,20 @@
         var pieData = hasData ? matStat : [{value: 0, name: '暂无库存'}];
         var pieNames = hasData ? matStat.map(function (d) { return d.name; }) : ['暂无库存'];
         option2 = {
-            backgroundColor: 'rgba(8,20,38,0.82)',
             color: CHART_PALETTE,
             title: {
                 text: (whName ? whName + ' · ' : '') + '物料库存占比',
                 left: 'center',
                 top: 20,
-                textStyle: {color: '#e6f3ff', fontSize: 34, fontWeight: 'bold'}
+                textStyle: {color: '#ffffff', fontSize: 34, fontWeight: 'bold', textShadowColor: 'rgba(0,0,0,0.8)', textShadowBlur: 6}
             },
             tooltip: {trigger: 'item', formatter: '{b}<br/>{c} ({d}%)'},
             legend: {
                 type: 'scroll',
                 bottom: 16,
                 left: 'center',
-                textStyle: {color: '#bcd6ef', fontSize: 16},
-                pageTextStyle: {color: '#bcd6ef'},
+                textStyle: {color: '#ffffff', fontSize: 16, textShadowColor: 'rgba(0,0,0,0.8)', textShadowBlur: 4},
+                pageTextStyle: {color: '#ffffff'},
                 data: pieNames
             },
             series: [
@@ -600,9 +598,9 @@
                     radius: ['34%', '58%'],
                     center: ['50%', '47%'],
                     avoidLabelOverlap: true,
-                    itemStyle: {borderColor: 'rgba(8,20,38,0.82)', borderWidth: 3},
-                    label: {color: '#e6f3ff', fontSize: 17, formatter: '{b}\n{d}%'},
-                    labelLine: {length: 14, length2: 14, lineStyle: {color: 'rgba(180,210,240,0.55)'}},
+                    itemStyle: {borderColor: 'rgba(10,18,30,0.45)', borderWidth: 2},
+                    label: {color: '#ffffff', fontSize: 17, formatter: '{b}\n{d}%', textShadowColor: 'rgba(0,0,0,0.85)', textShadowBlur: 5},
+                    labelLine: {length: 14, length2: 14, lineStyle: {color: 'rgba(210,230,250,0.7)'}},
                     data: pieData
                 }
             ]
