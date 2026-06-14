@@ -13,6 +13,7 @@
     --sp-primary: #2563EB;
     --sp-primary-hover: #1D4ED8;
     --sp-primary-active: #1E40AF;
+    --sp-primary-light: #3B82F6;      /* 确定按钮 hover 浅蓝（白字仍清晰） */
     --sp-primary-tint: #EFF4FF;       /* 选中/hover 浅底 */
     --sp-primary-tint-2: #DCE7FB;     /* 略深浅底 */
     --sp-primary-border: #BFD3F5;
@@ -113,6 +114,7 @@ body {
 .layui-btn:hover {
     background-color: var(--sp-primary-hover);
     color: #fff;
+    opacity: 1;   /* 抵消 layui 默认 .layui-btn:hover{opacity:.8} 的白字淡化 */
 }
 .layui-btn:active {
     background-color: var(--sp-primary-active);
@@ -142,6 +144,21 @@ body {
 }
 .layui-btn-normal:hover {
     background-color: var(--sp-primary-hover);
+}
+
+/* 表单提交「确定/保存/提交」：默认深蓝、触碰浅蓝、白字始终清晰（排除搜索按钮） */
+.layui-btn[lay-submit]:not([lay-filter*="search"]) {
+    background-color: var(--sp-primary);
+    border-color: var(--sp-primary);
+    color: #fff;
+}
+.layui-btn[lay-submit]:not([lay-filter*="search"]):hover,
+.layui-btn[lay-submit]:not([lay-filter*="search"]):focus,
+.layui-btn[lay-submit]:not([lay-filter*="search"]):active {
+    background-color: var(--sp-primary-light);
+    border-color: var(--sp-primary-light);
+    color: #fff;
+    opacity: 1;
 }
 
 .layui-btn-warm {
@@ -660,43 +677,49 @@ body {
     border-top: 1px solid var(--sp-border);
     text-align: right;
 }
+/* 确定 / 取消 统一尺寸形状（仅颜色不同，保证大小一致） */
+.layui-layer-btn .layui-layer-btn0,
+.layui-layer-btn a {
+    box-sizing: border-box;
+    height: 34px;
+    line-height: 32px;          /* 34 - 上下各 1px 边框，文字垂直居中 */
+    padding: 0 16px;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: var(--sp-radius);
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 0 0 8px;
+    vertical-align: middle;
+}
+/* 取消（幽灵按钮） */
+.layui-layer-btn a {
+    background-color: var(--sp-surface);
+    border-color: var(--sp-border-strong);
+    color: var(--sp-text-secondary);
+}
+.layui-layer-btn a:hover,
+.layui-layer-btn a:active {
+    border-color: var(--sp-primary-border);
+    color: var(--sp-primary);
+    opacity: 1;                 /* 抵消 layui 默认 :hover/:active 的 opacity 淡化 */
+}
+/* 确定：默认深蓝 + 白字 */
 .layui-layer-btn .layui-layer-btn0 {
     background-color: var(--sp-primary);
     border-color: var(--sp-primary);
     color: #fff;
-    border-radius: var(--sp-radius);
-    height: 34px;
-    line-height: 34px;
-    padding: 0 16px;
 }
-.layui-layer-btn .layui-layer-btn0:hover {
-    background-color: var(--sp-primary-hover);
-}
-/* 选中/按下时保持白字清晰：覆盖 layui 默认 .layui-layer-btn a:active 的 opacity:.8（会让白字发灰看不清） */
-.layui-layer-btn a:active {
-    opacity: 1;
-}
+/* 确定：触碰/聚焦/按下 → 浅蓝 + 白字，白字始终清晰不淡化 */
+.layui-layer-btn .layui-layer-btn0:hover,
+.layui-layer-btn .layui-layer-btn0:focus,
 .layui-layer-btn .layui-layer-btn0:active {
-    background-color: var(--sp-primary-active);
-}
-.layui-layer-btn .layui-layer-btn0:focus {
+    background-color: var(--sp-primary-light);
+    border-color: var(--sp-primary-light);
     color: #fff;
+    opacity: 1;
     outline: none;
-    box-shadow: var(--sp-ring);
-}
-.layui-layer-btn a {
-    border-radius: var(--sp-radius);
-    height: 34px;
-    line-height: 34px;
-    padding: 0 16px;
-    border: 1px solid var(--sp-border-strong);
-    background-color: var(--sp-surface);
-    color: var(--sp-text-secondary);
-    margin: 0 0 0 8px;
-}
-.layui-layer-btn a:hover {
-    border-color: var(--sp-primary-border);
-    color: var(--sp-primary);
+    box-shadow: none;           /* 去掉聚焦光晕，保持干净 */
 }
 .layui-layer-page .layui-layer-content {
     background-color: var(--sp-surface);

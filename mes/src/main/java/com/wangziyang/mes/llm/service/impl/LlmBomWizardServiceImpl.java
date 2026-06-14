@@ -323,6 +323,37 @@ public class LlmBomWizardServiceImpl implements ILlmBomWizardService {
         return def.getComponentCode();
     }
 
+    /**
+     * 确保子 BOM（PG/COMP 子项）存在「类型一致且启用」的零部件定义。
+     * 匹配口径与 SpBomServiceImpl.getEnabledComponent 完全一致：
+     * is_deleted='0' 且 component_type 精确匹配 且（component_code 或 component_name 命中）；
+     * 命中则跳过，缺失则按正确类型补建。
+     *
+     * 注意：ensureComponentDefs 会因「同产品同名（不论类型）已存在」而跳过创建，
+     * 当历史/演示数据中存在同名但不同类型（含中文「半成品/组件」）的定义时，
+     * 子BOM定版会因类型不匹配而报「半成品/组件BOM必须对应已启用的零部件定义」，故在此兜底补建。
+     */
+    private void ensureChildComponentDef(String productName, String itemCode, String itemDesc, String componentType) {
+        if (StrUtil.isBlank(itemDesc) && StrUtil.isBlank(itemCode)) {
+            return;
+        }
+        long matched = componentDefService.count(new QueryWrapper<SpComponentDef>()
+                .eq("is_deleted", "0")
+                .eq("component_type", componentType)
+                .and(w -> w.eq("component_code", itemCode).or().eq("component_name", itemDesc)));
+        if (matched > 0) {
+            return;
+        }
+        SpComponentDef def = new SpComponentDef();
+        def.setProductName(StrUtil.blankToDefault(productName, itemDesc));
+        def.setComponentCode(componentDefService.nextComponentCode());
+        def.setComponentName(itemDesc);
+        def.setComponentType(componentType);
+        def.setRemark("AI智能建模向导自动创建（子BOM零部件）");
+        def.setDeleted("0");
+        componentDefService.save(def);
+    }
+
     // ==================== 步骤②：BOM 全链保存并定版 ====================
 
     @Override
@@ -334,6 +365,8 @@ public class LlmBomWizardServiceImpl implements ILlmBomWizardService {
         if (items == null || items.isEmpty()) {
             throw new RuntimeException("请至少保留一个 BOM 子项");
         }
+        String productName = StrUtil.blankToDefault(header.getStr("productName"),
+                StrUtil.trimToEmpty(header.getStr("materielDesc")));
 
         int childBomCount = 0;
         int createdMaterialCount = 0;
@@ -422,6 +455,10 @@ public class LlmBomWizardServiceImpl implements ILlmBomWizardService {
                 childItems.add(ci);
             }
 
+            // 确保该 PG/COMP 子项存在「类型一致且启用」的零部件定义，否则子BOM定版校验
+            // （getEnabledComponent 按 名称+精确类型 匹配）会报「半成品/组件BOM必须对应已启用的零部件定义」。
+            ensureChildComponentDef(productName, itemCode, itemDesc, itemType);
+
             SpBom childBom = new SpBom();
             childBom.setBomCode(childBomCodeBase + "-C" + String.format("%02d", ++childSeq));
             childBom.setMaterielCode(itemCode);
@@ -466,10 +503,20 @@ public class LlmBomWizardServiceImpl implements ILlmBomWizardService {
             pi.put("lineNo", String.valueOf(lineSeq++));
             productItems.add(pi);
         }
+        // 表头物料权威化：成品BOM(level0)的表头必须是成品(FG)物料，且与零部件定义同名，
+        // 否则 saveBomWithItems 的 validateBomHeader 会因「产品BOM必须对应成品或产品物料」失败。
+        // ensureProductMateriel 幂等，会复用步骤②已建好的同名 FG 物料，不会重复建料。
+        String headerCode = StrUtil.trimToEmpty(header.getStr("materielCode"));
+        String headerDesc = StrUtil.trimToEmpty(header.getStr("materielDesc"));
+        Integer headerLevel = header.getInt("bomLevel");
+        if (headerLevel != null && headerLevel == 0 && StrUtil.isNotBlank(productName)) {
+            headerCode = ensureProductMateriel(productName);
+            headerDesc = productName;
+        }
         SpBom bom = new SpBom();
         bom.setBomCode(StrUtil.trimToEmpty(header.getStr("bomCode")));
-        bom.setMaterielCode(StrUtil.trimToEmpty(header.getStr("materielCode")));
-        bom.setMaterielDesc(StrUtil.trimToEmpty(header.getStr("materielDesc")));
+        bom.setMaterielCode(headerCode);
+        bom.setMaterielDesc(headerDesc);
         bom.setVersionNumber(StrUtil.blankToDefault(header.getStr("versionNumber"), "1"));
         bom.setBomLevel(header.getInt("bomLevel"));
         bom.setFactory(header.getStr("factory"));

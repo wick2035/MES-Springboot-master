@@ -21,10 +21,12 @@ CJK_H = "黑体"
 LATIN = "Times New Roman"
 MONO = "Consolas"
 
-BLUE = RGBColor(0x1F, 0x4E, 0x79)
-DARKBLUE = RGBColor(0x2B, 0x6C, 0xB0)
+# 标题 / 小标题统一用黑色（原为蓝色）。架构图等图形块仍用字面量色值，不受此影响。
+BLUE = RGBColor(0x00, 0x00, 0x00)
+DARKBLUE = RGBColor(0x00, 0x00, 0x00)
 BLACK = RGBColor(0, 0, 0)
 GRAY = RGBColor(0x59, 0x59, 0x59)
+TABLE_HEADER_FILL = "D9D9D9"  # 表头浅灰底（原为蓝底白字）
 
 doc = Document()
 
@@ -156,11 +158,11 @@ def table(headers, rows, widths=None, fontsize=10, caption=None):
     t.alignment = WD_TABLE_ALIGNMENT.CENTER
     hdr = t.rows[0].cells
     for i, htext in enumerate(headers):
-        shade(hdr[i], "2B6CB0")
+        shade(hdr[i], TABLE_HEADER_FILL)
         p = hdr[i].paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r = p.add_run(htext)
-        set_run_font(r, CJK_H, LATIN, fontsize, bold=True, color=RGBColor(255, 255, 255))
+        set_run_font(r, CJK_H, LATIN, fontsize, bold=True, color=BLACK)
     for row in rows:
         cells = t.add_row().cells
         for i, val in enumerate(row):
@@ -233,6 +235,16 @@ def quote(text, size=10.5):
     r = p.add_run("【说明】" + text)
     set_run_font(r, CJK, LATIN, size, italic=False, color=GRAY)
     return p
+
+
+def corecode(java, explain, label="核心代码与说明（节选自源码）"):
+    p = doc.add_paragraph()
+    p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
+    p.paragraph_format.space_before = Pt(4)
+    r = p.add_run("▶ " + label)
+    set_run_font(r, CJK_H, LATIN, 11, bold=True, color=DARKBLUE)
+    code(java)
+    body(explain, size=11)
 
 
 def page_break():
@@ -795,10 +807,37 @@ table(["端点", "方法", "职责"],
 body("角色实体扩展了 sortNum/isSystemRole/userType/roleCategory/dataScope/businessScope 等字段，支撑分类、系统内置标识与数据权限。"
      "授权保存复用 3.8.7 节的 rebuildByRoleId 幂等重建逻辑，避免重复授权产生脏数据。登录后由 SysLoginController.tree() 调用 "
      "listIndexMenuTreeByRoleMenuIds 按角色授权菜单过滤渲染，实现“千人千面”导航。")
+corecode(
+    "@PostMapping(\"/auth-menu\")                 // 角色菜单授权\n"
+    "public Result authMenu(@RequestParam String roleId,\n"
+    "                       @RequestParam(required = false) List<String> menuIds) {\n"
+    "    sysRoleMenuService.rebuildByRoleId(roleId, menuIds);   // 先清后插，幂等重建授权\n"
+    "    return Result.success();\n"
+    "}",
+    "角色授权采用“先清后插”的幂等重建（见 3.8.7），多次授权不产生脏数据；数据权限 /data-scope 写入 dataScope 字段，"
+    "分配用户 /assign-user 维护 sp_sys_user_role 关系。这三组端点共同构成考核第①项“权限管理”的核心。")
 figure("12-role.png", "角色管理（授权菜单 / 数据权限 / 分配用户）")
+corecode(
+    "@GetMapping(\"/tree\")                        // 菜单树表格数据\n"
+    "public Result tree() throws Exception {\n"
+    "    List<TreeVO<SysMenu>> sysMenus = sysMenuService.listMenuTree();   // parent_id 自关联递归成树\n"
+    "    return Result.success(sysMenus);\n"
+    "}",
+    "菜单以 parent_id 自关联构成“目录/菜单/按钮”三级树，listMenuTree 递归组装为 TreeVO；登录后导航另由 "
+    "listIndexMenuTreeByRoleMenuIds 按当前角色已授权菜单过滤，实现“千人千面”。")
 figure("10-menu.png", "菜单管理（树形维护目录/菜单/按钮与权限标识）")
+corecode(
+    "@PostMapping(\"/page\")                       // 统一分页范式（用户/部门/菜单复用）\n"
+    "public Result page(SysUserPageReq req) { return Result.success(sysUserService.page(req)); }\n"
+    "@PostMapping(\"/add-or-update\")              // 统一增改范式\n"
+    "public Result addOrUpdate(SysUser record) {\n"
+    "    sysUserService.saveOrUpdate(record);\n"
+    "    return Result.success(record.getId());\n"
+    "}",
+    "用户管理在统一 CRUD 范式基础上扩展“分配角色”（维护 sp_sys_user_role）与“重置密码”（重置为初始加盐摘要）；"
+    "密码以 MD5 加盐（盐=用户名，迭代 3 次）存储。部门管理复用同一范式并以 parent_id 组织组织机构树。")
 figure("11-user.png", "用户管理（分配角色 / 重置密码 / 部门归属）")
-figure("13-department.png", "部门管理（组织机构树）")
+figure("13-department.png", "部门管理（组织机构树，复用统一 CRUD 范式 + parent_id 树）")
 
 # ---- 4.2 基础数据域 ----
 h2("4.2 基础数据域（对应必做②③④⑤⑥）")
@@ -808,23 +847,68 @@ body("基础数据域是所有制造活动的“资源池”，强调主从结�
 h3("4.2.1 班组员工定义（必做②）")
 body("以“班组（主表）—班组员工（从表）”两段式维护现场作业班组及成员，为“加工单元绑定班组”“员工作业派工”提供人员来源。"
      "前端采用主从联动：先选中班组行，下方从表才刷新该班组成员；新增成员通过选择弹窗从系统用户回选。")
+corecode(
+    "@Override\n"
+    "public boolean isTeamCodeDuplicate(String teamCode, String excludeId) {\n"
+    "    QueryWrapper<SpTeam> qw = new QueryWrapper<>();\n"
+    "    qw.eq(\"team_code\", teamCode).ne(\"is_deleted\", \"1\");        // 排除已删除\n"
+    "    if (StringUtils.isNotEmpty(excludeId)) qw.ne(\"id\", excludeId); // 编辑时排除自身\n"
+    "    return count(qw) > 0;\n"
+    "}",
+    "班组保存前调用唯一性校验（编辑排除自身），这是全系统统一的 isXxxCodeDuplicate 范式；班组员工（从表）经 "
+    "sp_team_employee 关联系统用户，前端主从联动按 team_id 加载该班组成员。")
 figure("20-team.png", "班组员工定义（班组—员工主从维护）")
 
 h3("4.2.2 编组设备定义（必做③）")
 body("将多台设备组织为“编组（设备组）”，以“编组（主表）—设备（从表）”维护，便于工艺/派工时以“组”为单位引用设备资源"
      "（如装配工装组、测试设备组）。设备主数据由“设备管理”维护，可被加入编组并在设备派工中引用。")
+corecode(
+    "@Transactional(rollbackFor = Exception.class)\n"
+    "public void updateGroupStatus(String id, String status) {\n"
+    "    updateById(buildStatus(id, status));               // 1. 改编组状态\n"
+    "    if (!\"2\".equals(status)) return;                    // 仅禁用时级联\n"
+    "    List<SpEquipmentGroupDevice> gds = groupDeviceService.list(\n"
+    "        new QueryWrapper<SpEquipmentGroupDevice>().eq(\"group_id\", id).eq(\"is_deleted\", \"0\"));\n"
+    "    // 2. 收集组内设备并复位为空闲(status=0)，保证资源状态一致\n"
+    "    spEquipmentService.update(new UpdateWrapper<SpEquipment>()\n"
+    "        .set(\"status\", \"0\").in(\"id\", equipmentIds).eq(\"is_deleted\", \"0\"));\n"
+    "}",
+    "编组—设备为主从结构（sp_equipment_group_device）。禁用编组时在同一事务内级联把组内设备状态复位，避免“编组禁用但设备仍占用”的"
+    "资源状态不一致；事务保证级联整体成功或回滚。")
 figure("21-equipment-group.png", "编组设备定义（编组—设备主从维护）")
 figure("23-equipment.png", "设备管理（设备/工装台账）")
 
 h3("4.2.3 加工单元定义（必做④）")
 body("加工单元是生产的最小执行单位（如电脑组装单元、整机测试单元、包装入库单元），并绑定执行班组。加工单元是工序的承载者——"
      "工序信息定义中每道工序都归属于某个加工单元。字段含标准产能(小时)、单元类型（人员/设备作业单元）、是否有线边库等，用于排产估算。")
+corecode(
+    "@Override\n"
+    "public String nextUnitCode() {                          // 自动生成 JG000001 流水编码\n"
+    "    SpProcessingUnit last = getOne(new QueryWrapper<SpProcessingUnit>()\n"
+    "        .likeRight(\"unit_code\", \"JG\").orderByDesc(\"unit_code\").last(\"limit 1\"));\n"
+    "    int next = (last == null) ? 1 : parseSeq(last.getUnitCode()) + 1;\n"
+    "    return \"JG\" + String.format(\"%06d\", next);\n"
+    "}",
+    "加工单元编码按 JG+6 位流水自动生成并做唯一校验；保存后在从表绑定执行班组（sp_processing_unit_team），"
+    "并设置标准产能、单元类型（人员/设备作业）等属性。加工单元是工序的归属载体，亦是员工派工候选人的检索起点。")
 figure("22-processing-unit.png", "加工单元定义（加工单元—绑定执行班组）")
 
 h3("4.2.4 物料信息定义（必做⑤）")
 body("维护系统全部物料主数据，是 BOM、库存、MRP 的基础。物料按四类型贯穿 BOM：FG 成品 / PG 半成品 / COMP 组件 / PART 零件；"
      "并含 mat_source（自制/采购）、lead_time（提前期，用于 MRP 需求日期推算）、safety_stock（安全库存，参与净需求计算）等字段，"
      "支持批量导入/下载模板。这些字段是 MRP 与 AI 建模能够运转的关键数据支撑。")
+corecode(
+    "@Override\n"
+    "public String nextMaterielCode() {                       // 物料编码 M+6 位，自动避让占用号\n"
+    "    int next = currentMaxMaterielSeq() + 1;               // REGEXP 仅匹配 \"M+6位\" 规范编码取最大序号\n"
+    "    String code = \"M\" + String.format(\"%06d\", next);\n"
+    "    while (existsMateriel(code)) {                        // 含禁用/已删除占用号则继续往后编\n"
+    "        next++; code = \"M\" + String.format(\"%06d\", next);\n"
+    "    }\n"
+    "    return code;\n"
+    "}",
+    "用 REGEXP 仅匹配 “M+6 位” 规范编码取最大序号，保证字典序即数值序、后缀必为纯数字可安全解析；并对含禁用/删除状态的占用号"
+    "自动避让，杜绝撞号。物料四类型（FG/PG/COMP/PART）与 lead_time（提前期）、safety_stock（安全库存）字段是 MRP 与 AI 建模运转的关键数据支撑。")
 figure("30-materile.png", "物料信息定义（四类型物料 + 提前期/安全库存/来源 + 批量导入）")
 
 h3("4.2.5 库房库位定义 + 3D 仿真联动（必做⑥，含功能拓展）")
@@ -864,6 +948,17 @@ body("工艺域是连接“产品定义”与“生产执行”的桥梁，是�
 h3("4.3.1 零部件定义（必做⑦）")
 body("定义构成产品的零部件（组件/半成品）及其与产品的归属关系，存于 sp_component_def。零部件是 BOM 行的组成元素，"
      "也是 BOM 定版的前置校验对象（成品 BOM 表头物料须在零部件定义中存在启用记录）；零部件亦可由 AI 建模向导自动批量创建。")
+corecode(
+    "@Override\n"
+    "public List<SpComponentDef> listEnabledByProductName(String productName, String type) {\n"
+    "    return baseMapper.listEnabledByProductName(trimToNull(productName), trimToNull(type));\n"
+    "}\n"
+    "@Override\n"
+    "public boolean hasEnabledComponents(String productName) {   // BOM 定版前置校验\n"
+    "    return !listEnabledByProductName(productName).isEmpty();\n"
+    "}",
+    "零部件编码按 BOM+6 位自动生成。hasEnabledComponents / isEnabledForProduct 是 BOM 定版的前置校验——成品 BOM 表头物料"
+    "必须在零部件定义中存在“启用”记录，从而保证产品结构受控、不被随意定版。")
 figure("31-component.png", "零部件定义（零部件—所属产品—类型）")
 
 h3("4.3.2 产品 BOM 管理（必做⑧）")
@@ -872,11 +967,34 @@ body("系统支持严格的三层 BOM 层级结构：产品 BOM（FG）→ 半�
 flow_row(["产品 BOM(FG)\n台式电脑主机", "半成品/组件 BOM(PG/COMP)\n主板单元/机箱单元", "零件(PART)\nCPU/内存/电源"], fill="2B6CB0")
 body("BOM 定版（lockBom）机制：要求每个 PG/COMP 子项必须关联已定版子 BOM；保存全链时自上而下建子 BOM → 锁子 BOM → "
      "产品 BOM 带 childBomId 保存 → 锁定版。定版后的 BOM 才能作为工艺规划与 MRP 的基准，避免“工艺/物料未冻结即投产”的失控风险。")
+corecode(
+    "@Transactional(rollbackFor = Exception.class)\n"
+    "public void lockBom(String bomId) {\n"
+    "    SpBom bom = getById(bomId);\n"
+    "    if (\"locked\".equals(bom.getLockStatus())) throw new RuntimeException(\"该BOM已定版\");\n"
+    "    List<SpBomItem> items = bomItemMapper.listByBomHeadId(bomId);\n"
+    "    validateBomHeader(bom);                 // 表头须为 FG 且零部件已启用\n"
+    "    validateItems(bom, items, true);        // 子项 PG/COMP 须关联“已定版”子 BOM\n"
+    "    ensureNoCycle(bomId, new HashSet<>());  // 递归检测循环引用\n"
+    "    bom.setLockStatus(\"locked\"); bom.setState(\"pass\"); bom.setValidity(\"有效\");\n"
+    "    updateById(bom);\n"
+    "}",
+    "定版前完成“表头 / 子项 / 循环引用”三重校验：子项 PG/COMP 必须关联已定版子 BOM，且整棵树无环（ensureNoCycle 以 visiting 集合"
+    "递归判重）。这从机制上保证三层 BOM 树完整、可投产，避免“物料/工艺未冻结即投产”的失控风险。")
 figure("32-bom.png", "产品 BOM 管理（三层结构 + 查看层级 + 定版）")
 
 h3("4.3.3 工序信息定义（必做⑨）")
 body("定义标准工序库（sp_oper），每道工序归属某加工单元，并设定工序工时(h)、制造周期(h)、是否生成生产计划等属性，"
      "供工艺路线/工艺流程引用。如“GX000002 主板装配作业工序”归属“电脑组装单元”。")
+corecode(
+    "@Override\n"
+    "public String nextOperCode() {                           // 工序编码 GX+6 位流水\n"
+    "    SpOper last = getOne(new QueryWrapper<SpOper>()\n"
+    "        .likeRight(\"oper\", \"GX\").orderByDesc(\"oper\").last(\"limit 1\"));\n"
+    "    int next = (last == null) ? 1 : Integer.parseInt(last.getOper().substring(2)) + 1;\n"
+    "    return \"GX\" + String.format(\"%06d\", next);\n"
+    "}",
+    "工序按 GX+6 位自动编码，每道工序归属某加工单元并设工序工时、制造周期、是否生成生产计划等属性，供工艺路线 / 工艺流程引用。")
 figure("40-oper.png", "工序信息定义（标准工序库，归属加工单元）")
 
 h3("4.3.4 工艺路线管理 / 工艺流程管理（必做⑩）")
@@ -885,6 +1003,27 @@ body("工艺路线（sp_flow + sp_flow_oper_relation）定义工序的有序集�
      "以 BOM 层级树为骨架，为每个工艺节点绑定工序、加工单元、工时、周期等，并支持初始化与锁定定版（sp_process_route 规划树）。")
 quote("实现约定：ISpFlowOperRelationService.addOrUpdate(SpFlowDto) 内部以 BeanUtils 拷贝新对象保存，不回填 dto.id，"
       "创建后须按 flow 编码反查 sp_flow 取 flowId——这是工艺路线创建的关键技术细节。")
+corecode(
+    "@Transactional(rollbackFor = Exception.class)\n"
+    "public Result addOrUpdate(SpFlowDto dto) throws Exception {\n"
+    "    List<SpOperVo> opers = dto.getSpOperVoList();\n"
+    "    if (opers == null || opers.size() <= 1) throw new Exception(\"流程下必须存在至少两个工序\");\n"
+    "    SpFlow spFlow = new SpFlow(); BeanUtils.copyProperties(dto, spFlow);\n"
+    "    if (isNotEmpty(spFlow.getId())) mapper.deleteOperRelationByFlowId(spFlow.getId());\n"
+    "    else iSpFlowService.saveOrUpdate(spFlow);              // 头表为空先建，取回 flowId\n"
+    "    for (int i = 0; i < opers.size(); i++) {               // 串成有序链：前驱/后继/序号\n"
+    "        SpFlowOperRelation rel = new SpFlowOperRelation(); rel.setFlowId(spFlow.getId());\n"
+    "        rel.setPerOperId(i == 0 ? \"\" : opers.get(i - 1).getValue());            // 前一道\n"
+    "        rel.setNextOperId(i + 1 >= opers.size() ? \"\" : opers.get(i + 1).getValue()); // 下一道\n"
+    "        rel.setOperId(opers.get(i).getValue()); rel.setSortNum(i + 1);\n"
+    "        list.add(rel);\n"
+    "    }\n"
+    "    spFlow.setProcess(processBuild.toString());            // 时序串 a->b->c\n"
+    "    iSpFlowService.saveOrUpdate(spFlow); saveOrUpdateBatch(list);\n"
+    "    return Result.success();\n"
+    "}",
+    "工艺路线把工序串成带前驱/后继指针与 sort_num 的有序链（要求至少 2 道），并生成“a->b->c”时序串用于列表直观展示。"
+    "注意：dto 不回填 id，创建后须按 flow 编码反查 sp_flow 取 flowId。该有序链正是工单执行与 SN 过站的“路线图”。")
 figure("41-flow-process.png", "工艺路线管理（工序时序串联）")
 figure("42-process-route.png", "工艺流程管理（落到 BOM 树 + 初始化 + 锁定定版）")
 
@@ -892,11 +1031,36 @@ h3("4.3.5 工艺内容编制（必做⑪）")
 body("在工艺规划锁定的基础上，为每个工艺节点编制详细工艺内容（sp_process_content：步骤说明、要求、注意事项、工艺文件、"
      "备料清单、设备/物料关系等），状态机 editing（编制中）→ completed（已完成）。checkNotLocked 仅拦截 editStatus=completed，"
      "定版锁不影响内容编制，从而允许“先锁工艺骨架、再持续完善内容”的工程节奏。")
+corecode(
+    "private void checkNotLocked(String routeId) {            // 已完成则锁定不可编辑\n"
+    "    SpProcessRoute r = ensureRouteBoundOper(routeId);\n"
+    "    if (\"completed\".equals(r.getEditStatus())) throw new RuntimeException(\"当前工序已完成编制并锁定\");\n"
+    "}\n"
+    "@Transactional(rollbackFor = Exception.class)\n"
+    "public void saveStep2Content(String routeId, String contentText, List<Map<String,Object>> imgs) {\n"
+    "    checkNotLocked(routeId);\n"
+    "    SpProcessContent c = getOrCreateByRoute(routeId);\n"
+    "    c.setContentText(contentText); updateById(c);\n"
+    "    replaceFiles(routeId, \"CONTENT_IMG\", imgs);            // 工艺图片附件\n"
+    "    markEditing(routeId);                                  // pending -> editing\n"
+    "}",
+    "工艺内容编制是按节点的多步骤向导（作业内容/要求/备料/图片等），状态机 pending → editing → completed。checkNotLocked 仅拦截 "
+    "completed 状态，定版锁不影响内容编制，支持“先锁工艺骨架、再持续完善内容”的工程节奏。")
 figure("43-process-content.png", "工艺内容编制（按节点编制作业内容，状态 editing→completed）")
 
 h3("4.3.6 产品工艺查询（必做⑫）")
 body("以只读方式按 BOM 查看产品的完整工艺规划与工艺内容，供工艺评审、现场查阅与追溯使用，不提供编辑操作。"
      "选择 BOM → 展开工艺节点树 → 查看该节点的工序与工艺内容详情。")
+corecode(
+    "@GetMapping(\"/tree-ui\")                      // 只读页面：按 BOM 查看工艺\n"
+    "public String treeUI() { return \"technology/process-query/tree\"; }\n"
+    "@PostMapping(\"/tree\") @ResponseBody          // 只读取数：复用工艺规划树与内容\n"
+    "public Result tree(@RequestParam String bomId) {\n"
+    "    return Result.success(processQueryService.listProcessTree(bomId));\n"
+    "}",
+    "产品工艺查询仅提供页面与只读取数端点，复用工艺规划树（sp_process_route）与工艺内容（sp_process_content）数据，"
+    "刻意不暴露任何增删改接口，满足工艺评审、现场查阅与追溯的“只读”诉求。",
+    label="核心代码与说明（接口模式）")
 figure("44-process-query.png", "产品工艺查询（只读查看完整工艺规划与内容）")
 # ---- 4.4 生产订单域 ----
 h2("4.4 生产订单域（扩展：生产订单 / MRP / 计划下发）")
@@ -905,11 +1069,33 @@ body("该域承接 ERP/客户订单，是 MES 的执行调度核心。订单经�
 h3("4.4.1 生产订单录入")
 body("承接客户需求/预测/ERP 订单，锁定 BOM、产品物料、数量与交期，形成 MES 可排产的计划源头。SpProductionOrder 含客户、合同、结算、"
      "运输、审核状态、MRP 状态、下发状态等丰富字段。订单提交后走审批工作流，审核通过方可后续操作。")
+corecode(
+    "@PostMapping(\"/submit\")                      // 录入并提交审批\n"
+    "public Result submit(@RequestBody SpProductionOrderSaveReq req) {\n"
+    "    return productionOrderService.submitOrder(req, currentUser());  // 保存 + 发起订单审批实例\n"
+    "}\n"
+    "@PostMapping(\"/dispatch\")                    // 计划下发：拆任务生成工单\n"
+    "public Result dispatch(@RequestParam String id) {\n"
+    "    return productionOrderService.dispatch(id);\n"
+    "}",
+    "订单录入保存后经 /submit 发起审批工作流；审核通过 → MRP 运算 → 设备/员工两级派工 → 配套出库齐套后，/dispatch 拆分由 "
+    "BOM/工艺路线展开的工序任务并下发，据此生成生产工单。")
 figure("70-po-plan.png", "生产订单录入（KPI 卡片 + 订单/审核/MRP/下发状态）")
 h3("4.4.2 MRP 物料需求计划")
 body("基于生产订单、最新定版 BOM、库存、安全库存与提前期计算净需求。其核心特征是基于 sp_inventory 实时重算可用量/净需求（available/net），"
      "库存一变即可重新齐套校验；完成判定 isProductionOrderMrpCompleted 使用库内存储净需求，支撑“曾短缺→已补足”的状态演进。"
      "对净需求行可申请并生成配套出库单，进入仓库确认。提供明细与按需求周汇总两个视图。")
+corecode(
+    "private BigDecimal calculateNetRequirement(SpMaterialRequirementPlan row, BigDecimal available) {\n"
+    "    // 净需求 = 毛需求 + 安全库存 − 可用库存，下取 0\n"
+    "    BigDecimal net = nvl(row.getGrossRequirement())\n"
+    "            .add(nvl(row.getSafetyStock()))\n"
+    "            .subtract(nvl(available));\n"
+    "    return net.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : net;\n"
+    "}\n"
+    "private BigDecimal availableStock(SpMaterile m) { /* 基于 sp_inventory 实时汇总可用量 */ }",
+    "可用量基于 sp_inventory 实时汇总，净需求按“毛需求 + 安全库存 − 可用”实时重算并下取 0——库存一变即可重新齐套校验。"
+    "完成判定 isProductionOrderMrpCompleted 另用库内存储净需求，以支撑“曾短缺 → 已补足”的状态演进。")
 figure("73-po-material-plan.png", "物料需求计划（明细）：毛需求/可用/安全库存/净需求/配送状态")
 figure("74-po-material-week.png", "物料需求计划（查询）：按需求周汇总")
 figure("75-po-inbound-request.png", "入库申请单（采购/备料到货申请，计划入库来源）")
@@ -927,12 +1113,41 @@ body("工序级双向派工：设备派工（SpOrderOperEquipmentAssign）与员
      "“工序 → 加工单元 unitId → sp_processing_unit_team → sp_team_employee”定位候选人，按 sp_order_oper_assign 未完成任务数"
      "最少者择优分配。该算法亦被 AI 建模向导第④步复用（详见第 7 章）。")
 figure("71-po-equip-dispatch.png", "设备作业派工（工序绑定设备/设备组）")
+corecode(
+    "SELECT u.id userId, IFNULL(u.name,u.username) userName, IFNULL(la.cnt,0) currentLoad\n"
+    "FROM sp_processing_unit_team ut\n"
+    "JOIN sp_team_employee te ON te.team_id = ut.team_id AND te.is_deleted='0'\n"
+    "JOIN sp_sys_user u       ON u.id = te.user_id\n"
+    "LEFT JOIN ( SELECT a.user_id, COUNT(*) cnt              -- 各员工当前未完成任务数\n"
+    "            FROM sp_order_oper_assign a JOIN sp_order o ON o.id=a.order_id\n"
+    "            WHERE a.is_deleted='0' AND a.status<>'2' AND o.statue IN (1,2)\n"
+    "            GROUP BY a.user_id ) la ON la.user_id = u.id\n"
+    "WHERE ut.unit_id = #{unitId} AND ut.is_deleted='0'\n"
+    "ORDER BY currentLoad ASC, u.id ASC                      -- 负载最少者优先",
+    "派工负载均衡的核心 SQL：沿“加工单元 → 班组 → 员工”定位候选，用左联子查询统计各候选当前未完成任务数（currentLoad），"
+    "按其升序返回，取首位即“最闲”的合格员工。人工派工页与 AI 建模向导第④步共用此排序，从机制上缓解“派工不均/技能错配”。",
+    label="核心代码与说明（MyBatis 映射 SQL）")
 figure("72-po-emp-dispatch.png", "员工作业派工（按负载排序推荐候选人）")
 h3("4.5.2 工单管理与完工交付")
 body("工单管理从工单视角集中管理审批→动工→完工→交付全生命周期，提供甘特图直观展示计划时间分布，并以 KPI 呈现已动工/已完工/待交付。"
      "工单关键字段含 statue（主状态）、workStatus（报工状态如 STARTED）、completeStatus、deliveryStatus 及一组控制位"
      "（canComplete/canDeliver/completeBlockReason）。交付成功的工单进入“已交付工单”历史只读视图，形成生产闭环。"
      "此外实现了工单变更（SpWorkOrderChange，要求 statue=5 + DISPATCHED）走变更审批。")
+corecode(
+    "@PostMapping(\"/complete\")\n"
+    "public Result complete(SpOrder req) {\n"
+    "    SpOrder order = orderService.getById(req.getId());\n"
+    "    String block = completeBlockReason(order);             // 前置门槛校验\n"
+    "    if (isNotBlank(block)) return Result.failure(block);\n"
+    "    SpOrder upd = new SpOrder();\n"
+    "    upd.setCompleteStatus(COMPLETE_STATUS_COMPLETED); upd.setCompleteTime(now());\n"
+    "    boolean ok = orderService.update(upd, new UpdateWrapper<SpOrder>().eq(\"id\", order.getId())\n"
+    "        .and(w -> w.ne(\"complete_status\", COMPLETE_STATUS_COMPLETED).or().isNull(\"complete_status\"))  // 乐观条件\n"
+    "        .and(w -> w.ne(\"delivery_status\", DELIVERY_STATUS_DELIVERED).or().isNull(\"delivery_status\")));\n"
+    "    return ok ? Result.success(null, \"工单已完工\") : Result.failure(\"工单状态已变化，请刷新后重试\");\n"
+    "}",
+    "完工/交付均先做前置门槛校验（completeBlockReason / deliveryBlockReason），再以“带状态条件的乐观更新”落库：若期间状态被并发"
+    "改变则更新 0 行并提示刷新，避免重复完工/越级交付，保证多维状态机一致。交付成功的工单进入“已交付工单”历史只读视图。")
 figure("80-order-release.png", "工单管理（审批/动工/完工/交付 + 甘特图）")
 figure("81-order-delivered.png", "已交付工单（历史只读，交付追溯）")
 
@@ -979,6 +1194,19 @@ body("实现注意：sp_warehouse_transaction 不设 is_deleted（物理留痕�
      "这是“账实相符、库存可信”的工程保证。")
 figure("50-wh-manual-in-apply.png", "手工入库申请（绑定库房/库位/物料/数量）")
 figure("51-wh-manual-in-confirm.png", "手工入库确认（核对明细 → 登账 → 生成流水）")
+corecode(
+    "KittingPlan plan = new KittingPlan(); plan.ready = true;\n"
+    "for (SpWarehouseRequestItem item : items) {                // 逐物料预检\n"
+    "    BigDecimal required  = nvl(item.getRequestQty());\n"
+    "    BigDecimal available = sum(fifoStocks(item.getMaterialId()));  // FIFO 各库位累计可用\n"
+    "    if (available.compareTo(required) < 0) {               // 任一物料不足\n"
+    "        plan.ready = false;                                // 整单置为不可出库\n"
+    "        plan.shortages.add(shortageRow(item, required.subtract(available)));\n"
+    "    } else { /* 按 FIFO 生成扣减分配明细 allocations */ }\n"
+    "}\n"
+    "// 仅当 plan.ready == true 才真正扣减库存并生成配套出库流水",
+    "配套出库按整单校验：逐物料按 FIFO 累计各库位可用量，任一不足即置 plan.ready=false、整单不出库、不扣减任何库存，并列出缺料项；"
+    "齐全时才按 FIFO 生成扣减分配与不可跳过的出库流水，确保齐套配送、账实相符——这是“配套出库失败、库存未变化”这一关键行为的根因实现。")
 figure("55-wh-kitting-out-confirm.png", "配套出库确认（整单校验库存，齐套出库）")
 figure("57-wh-transaction.png", "出入库流水查询（不可跳过的逐笔审计）")
 
@@ -990,6 +1218,23 @@ body("一套通用、配置驱动的审批工作流引擎，被生产订单审�
 flow_row(["分类", "模型", "定义", "实例", "任务", "事件"], fill="2B6CB0")
 body("关键实现：WorkflowSchemaInitializer 按开关注入分类/模型/定义基础数据（幂等）；WorkflowPermissionUtil + WorkflowConstants "
      "统一权限点与常量；业务接入示例——生产订单提交生成订单审批实例，工单变更生成变更审批实例。")
+corecode(
+    "@Transactional(rollbackFor = Exception.class)\n"
+    "public SpWorkflowInstance startOrderApproval(SpOrder order, SysUser user) {\n"
+    "    SpWorkflowInstance running = getOne(new QueryWrapper<SpWorkflowInstance>()\n"
+    "        .eq(\"business_type\", BUSINESS_ORDER_APPROVAL).eq(\"business_id\", order.getId())\n"
+    "        .in(\"status\", INSTANCE_RUNNING).last(\"limit 1\"));\n"
+    "    if (running != null) return running;                   // 幂等：已在审批中直接返回\n"
+    "    SpWorkflowDefinition def = definitionService.ensureDefaultOrderApprovalDefinition();\n"
+    "    SpWorkflowInstance inst = new SpWorkflowInstance();\n"
+    "    inst.setDefinitionId(def.getId()); inst.setBusinessType(BUSINESS_ORDER_APPROVAL);\n"
+    "    inst.setBusinessId(order.getId()); inst.setStatus(INSTANCE_RUNNING);\n"
+    "    save(inst);\n"
+    "    taskService.createFirstTask(inst);                     // 生成首个待办任务\n"
+    "    return inst;\n"
+    "}",
+    "业务触发审批只需调 startOrderApproval / startWorkOrderChangeApproval：按 business_type + business_id 幂等防重复发起，"
+    "绑定已发布定义生成运行实例并创建首个待办任务。审批节点/流转全部由数据配置驱动，业务侧零审批代码即可获得标准化、可追溯的审批流。")
 figure("60-wf-handle.png", "流程办理（待办/通过/退回，回写业务单据状态）")
 figure("64-wf-instance.png", "流程实例管理（运行状态 + 轨迹）")
 figure("62-wf-model.png", "流程模型设计（草稿→节点→发布定义）")
@@ -1000,6 +1245,21 @@ body("数字化平台提供面向管理层的可视化大屏，将分散的生�
 bullet("智慧大屏（/digitization/plan/plan-ui）：综合展示计划/订单趋势、厂区分布、出入库与人员分布的指挥中心式大屏。")
 bullet("智能制造数据中心（/digitization/dashboard/screen-ui）：基于真实业务数据、30s 自动刷新的实时态势大屏。")
 bullet("数字仿真 3D 仓库（/digital/simulation）：按库位坐标在 Three.js 中三维布局，与库房库位定义实时联动。")
+corecode(
+    "@PostMapping(\"/data\")                        // 单接口返回七分区聚合，30s 刷新\n"
+    "public Result data() {\n"
+    "    List<SpOrder> orders = orderService.list();\n"
+    "    List<SpSnProcessRecord> records = snProcessRecordService.list();\n"
+    "    Map<String,Object> data = new HashMap<>();\n"
+    "    data.put(\"overview\",    buildOverview(orders, records));\n"
+    "    data.put(\"orderStatus\", buildOrderStatus(orders));\n"
+    "    data.put(\"processFlow\", buildProcessFlow(records));\n"
+    "    data.put(\"achievement\", buildAchievement(orders, records));\n"
+    "    // defect / inventory / personnel ... 全部内存聚合，复用现有 Service\n"
+    "    return Result.success(data);\n"
+    "}",
+    "智能制造数据中心以单接口一次返回七分区聚合，全部在内存中复用现有 Service 计算（不新增重查询），前端 ECharts 4.x 渲染并"
+    "30s 自动刷新，兼顾实时性与低侵入；统计口径与 SN 过站/库存模块一致，保证全系统数据一致。")
 figure("A0-plan-screen.png", "智慧大屏（生产态势综合可视化）", width_cm=15.5)
 
 # ---- 4.10 大模型智能域 ----
@@ -1007,6 +1267,18 @@ h2("4.10 大模型智能域（扩展，创新点见第 7 章）")
 body("接入通义千问 DashScope（OpenAI 兼容接口），提供两大旗舰智能能力，本节作功能概述：")
 bullet("智能数据助手（/llm/chat）：对话式自然语言查询真实数据，SSE 流式输出 + Function Calling 工具调用。")
 bullet("AI 智能建模（/llm/bom-gen）：四步向导（产品信息→BOM 审核→工艺审核→工单与排人），AI 出草稿、人工审核、系统全链落库定版。")
+corecode(
+    "@GetMapping(\"/stream\")                       // SSE 流式对话\n"
+    "public SseEmitter stream(@RequestParam(required=false) String conversationId,\n"
+    "                         @RequestParam String message) {\n"
+    "    SseEmitter emitter = new SseEmitter(300_000L);          // 5 分钟超时\n"
+    "    emitter.send(SseEmitter.event().name(\"meta\")\n"
+    "            .data(\"{\\\"conversationId\\\":\\\"\" + convId + \"\\\"}\"));\n"
+    "    chatService.streamAnswer(emitter, convId, message, getSysUser());  // 异步两段式编排\n"
+    "    return emitter;\n"
+    "}",
+    "AI 数据助手以 SSE（SseEmitter）实现毫秒级流式逐字应答；服务端采用两段式编排（第 1 轮非流式取 tool_calls → 执行只读工具 → "
+    "第 2 轮流式作答），并由独立异步线程池隔离，避免阻塞 Web 工作线程。工具与编排细节见第 7.2 节。")
 
 # ============================================================
 # 第 5 章

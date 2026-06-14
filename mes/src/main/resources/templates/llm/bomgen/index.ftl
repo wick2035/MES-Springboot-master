@@ -527,7 +527,8 @@
                     $t.find('.badge.no').removeClass('no').addClass('ok').text(m.created === true ? '已创建' : '已匹配');
                 }
             });
-            if (data.headerMaterielCode && !$.trim($('#h-materielCode').val())) {
+            // 始终以后端补建/匹配出的成品(FG)物料编码为准，避免 AI 草稿残留的非成品编码导致保存校验失败
+            if (data.headerMaterielCode) {
                 $('#h-materielCode').val(data.headerMaterielCode);
             }
         }
@@ -588,6 +589,7 @@
                         bomCode: $('#h-bomCode').val(),
                         materielCode: $('#h-materielCode').val(),
                         materielDesc: $('#h-materielDesc').val(),
+                        productName: wizard.gen.productName,
                         versionNumber: $('#h-version').val(),
                         bomLevel: parseInt($('#h-bomLevel').val() || '0'),
                         factory: $('#h-factory').val()

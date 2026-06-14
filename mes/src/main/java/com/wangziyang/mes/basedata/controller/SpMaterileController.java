@@ -169,12 +169,15 @@ public class SpMaterileController extends BaseController {
     @PostMapping("/add-or-update")
     @ResponseBody
     public Result addOrUpdate(SpMaterile record) {
-        // 编码为空则自动生成
-        if (StringUtils.isEmpty(record.getMateriel())) {
-            record.setMateriel(iSpMaterileService.nextMaterielCode());
-        }
-        // 唯一性校验
-        if (iSpMaterileService.isMaterielCodeDuplicate(record.getMateriel(), record.getId())) {
+        boolean isNew = StringUtils.isEmpty(record.getId());
+        if (isNew) {
+            // 新增：编码为空或与已有重复，自动生成并继续往后编号
+            if (StringUtils.isEmpty(record.getMateriel())
+                    || iSpMaterileService.isMaterielCodeDuplicate(record.getMateriel(), null)) {
+                record.setMateriel(iSpMaterileService.nextMaterielCode());
+            }
+        } else if (iSpMaterileService.isMaterielCodeDuplicate(record.getMateriel(), record.getId())) {
+            // 编辑：编码重复给出提示
             return Result.failure("物料编码已存在，请更换编码");
         }
         // 物料需求提前期不可为0，至少为1天

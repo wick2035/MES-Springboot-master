@@ -21,13 +21,10 @@ import com.wangziyang.mes.productionorder.service.ISpProductionOrderService;
 import com.wangziyang.mes.productionorder.service.impl.SpProductionOrderServiceImpl;
 import com.wangziyang.mes.system.entity.SysUser;
 import com.wangziyang.mes.technology.entity.SpFlow;
-import com.wangziyang.mes.technology.entity.SpFlowOperRelation;
 import com.wangziyang.mes.technology.service.ISpFlowService;
 import com.wangziyang.mes.workflow.WorkflowPermissionUtil;
 import com.wangziyang.mes.workflow.service.ISpWorkflowInstanceService;
 import com.wangziyang.mes.workflow.service.ISpWorkflowTaskService;
-import com.wangziyang.mes.wip.entity.SpSnProcessRecord;
-import com.wangziyang.mes.wip.service.ISpSnProcessRecordService;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +37,6 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Production order release controller.
@@ -93,9 +89,6 @@ public class SpOrderController extends BaseController {
 
     @Autowired
     private ISpOrderOperAssignService employeeAssignService;
-
-    @Autowired
-    private ISpSnProcessRecordService snProcessRecordService;
 
     @ApiOperation("Production order release page")
     @GetMapping("/list-ui")
@@ -212,9 +205,6 @@ public class SpOrderController extends BaseController {
         if (order == null) {
             return Result.failure("工单不存在");
         }
-        if (order.getStatue() == null || order.getStatue() != STATUE_DISPATCHED) {
-            return Result.failure("只有已下发工单可以动工");
-        }
         if (WORK_STATUS_STARTED.equals(order.getWorkStatus())) {
             return Result.success(null, "工单已动工");
         }
@@ -245,6 +235,10 @@ public class SpOrderController extends BaseController {
         update.setCompleteStatus(COMPLETE_STATUS_COMPLETED);
         update.setCompleteTime(now());
         update.setCompleteUsername(displayUsername(currentUser()));
+        if (!WORK_STATUS_STARTED.equals(order.getWorkStatus())) {
+            update.setWorkStatus(WORK_STATUS_STARTED);
+            update.setWorkStartTime(StringUtils.defaultIfBlank(order.getWorkStartTime(), now()));
+        }
         boolean updated = orderService.update(update, new UpdateWrapper<SpOrder>()
                 .eq("id", order.getId())
                 .and(w -> w.ne("complete_status", COMPLETE_STATUS_COMPLETED)
@@ -467,19 +461,6 @@ public class SpOrderController extends BaseController {
         if (COMPLETE_STATUS_COMPLETED.equals(order.getCompleteStatus())) {
             return "工单已完工";
         }
-        if (!WORK_STATUS_STARTED.equals(order.getWorkStatus())) {
-            return "工单未动工";
-        }
-        CompletionProgress progress = completionProgress(order);
-        if (!progress.routeReady) {
-            return "工艺路线未配置";
-        }
-        if (progress.requiredQty <= 0) {
-            return "工单数量无效";
-        }
-        if (progress.completedSnCount < progress.requiredQty) {
-            return "已完成SN " + progress.completedSnCount + "/" + progress.requiredQty;
-        }
         return "";
     }
 
@@ -494,41 +475,6 @@ public class SpOrderController extends BaseController {
             return "工单未完工";
         }
         return "";
-    }
-
-    private CompletionProgress completionProgress(SpOrder order) {
-        CompletionProgress progress = new CompletionProgress();
-        progress.requiredQty = order == null || order.getQty() == null ? 0 : order.getQty();
-        if (order == null || StringUtils.isBlank(order.getId())) {
-            return progress;
-        }
-        List<SpFlowOperRelation> route = snProcessRecordService.route(order.getId());
-        Set<String> routeOperIds = route == null ? Collections.emptySet() : route.stream()
-                .map(SpFlowOperRelation::getOperId)
-                .filter(StringUtils::isNotBlank)
-                .collect(Collectors.toSet());
-        progress.routeReady = !routeOperIds.isEmpty();
-        if (!progress.routeReady) {
-            return progress;
-        }
-        List<SpSnProcessRecord> okRecords = snProcessRecordService.list(new QueryWrapper<SpSnProcessRecord>()
-                .eq("order_id", order.getId())
-                .eq("status", "OK"));
-        Map<String, Set<String>> operIdsBySn = new HashMap<>();
-        for (SpSnProcessRecord record : okRecords) {
-            if (StringUtils.isBlank(record.getSn()) || StringUtils.isBlank(record.getOperId())) {
-                continue;
-            }
-            operIdsBySn.computeIfAbsent(record.getSn(), k -> new HashSet<>()).add(record.getOperId());
-        }
-        int completed = 0;
-        for (Set<String> operIds : operIdsBySn.values()) {
-            if (operIds.containsAll(routeOperIds)) {
-                completed++;
-            }
-        }
-        progress.completedSnCount = completed;
-        return progress;
     }
 
     private Result validate(SpOrder record) {
@@ -665,11 +611,5 @@ public class SpOrderController extends BaseController {
 
     private boolean canApproveOrder() {
         return WorkflowPermissionUtil.canApproveProduction(currentUser());
-    }
-
-    private static class CompletionProgress {
-        private boolean routeReady;
-        private int requiredQty;
-        private int completedSnCount;
     }
 }

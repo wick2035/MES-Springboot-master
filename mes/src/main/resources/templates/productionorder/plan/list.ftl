@@ -97,7 +97,8 @@
     <div class="op-actions">
         {{# if(d.approvalStatus !== 'APPROVING' && d.operationStatus !== 'DISPATCHED'){ }}<a class="layui-btn layui-btn-xs" lay-event="edit"><i class="fa fa-pencil"></i>修改</a>{{# } }}
         {{# if(d.approvalStatus === 'DRAFT' || d.approvalStatus === 'REJECTED' || !d.approvalStatus){ }}<a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="submit"><i class="fa fa-check-square-o"></i>提交</a>{{# } }}
-        {{# if(d.approvalStatus === 'APPROVED' && d.operationStatus === 'ASSIGNED'){ }}<a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="mrp" title="{{d.mrpPlanCount ? '重新运算并作废旧批次' : '生成物料需求计划'}}"><i class="fa fa-calculator"></i>运算</a>{{# } }}
+        {{# if(d.mrpStatus !== 'COMPLETED'){ }}<a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="mrp" title="{{d.mrpPlanCount ? '重新运算并作废旧批次' : '生成物料需求计划'}}"><i class="fa fa-calculator"></i>运算</a>{{# } }}
+        {{# if(d.operationStatus !== 'DISPATCHED'){ }}<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="dispatch" title="生产计划下发"><i class="fa fa-paper-plane"></i>下发</a>{{# } }}
     </div>
 </script>
 
@@ -121,7 +122,7 @@ layui.use(['form','table','layer','spLayer','spTable','upload'],function(){
             {field:'mrpCalcTime',title:'MRP运算时间',width:165},
             {field:'operationStatus',title:'下发状态',width:105,templet:'#operationTpl'},
             {field:'creationMethod',title:'来源方式',width:96},
-            {field:'operate',fixed:'right',title:'操作',toolbar:'#opTpl',width:240}
+            {field:'operate',fixed:'right',title:'操作',toolbar:'#opTpl',width:290}
         ]],
         done:function(){loadDashboard();}
     });
@@ -192,6 +193,15 @@ layui.use(['form','table','layer','spLayer','spTable','upload'],function(){
                 spUtil.ajax({url:contextPath + '/production-order/material-plan/calculate',type:'POST',serializable:false,data:{id:data.id},showLoading:true,success:function(res){
                     layer.close(index);
                     layer.msg(res.msg || 'MRP 运算完成');
+                    reload();
+                }});
+            });
+        }
+        if(obj.event==='dispatch'){
+            layer.confirm('确认下发生产计划【'+data.orderNo+'】？下发后工单进入车间执行。',function(index){
+                spUtil.ajax({url:contextPath + '/production-order/plan/dispatch',type:'POST',serializable:false,data:{id:data.id},showLoading:true,success:function(res){
+                    layer.close(index);
+                    layer.msg(res.msg || '已下发');
                     reload();
                 }});
             });

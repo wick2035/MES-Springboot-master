@@ -23,18 +23,42 @@ public class SpMaterileServiceImpl extends ServiceImpl<SpMaterileMapper, SpMater
 
     @Override
     public String nextMaterielCode() {
+        int next = currentMaxMaterielSeq() + 1;
+        String code = PREFIX + String.format("%06d", next);
+        // 与已有编码（含禁用/已删除）重复则自动继续往后编号，确保唯一
+        while (existsMateriel(code)) {
+            next++;
+            code = PREFIX + String.format("%06d", next);
+        }
+        return code;
+    }
+
+    /**
+     * 取已有「M+6位数字」规范编码中的最大序号，无则返回 0。
+     * 用 REGEXP 仅匹配规范编码（排除 MB001、MEM-1 等非规范 M 编码），保证字典序即数值序、
+     * 后缀必为纯数字可安全解析，避免取到非数字后缀解析失败而退回 0、与已有编码撞号。
+     */
+    private int currentMaxMaterielSeq() {
         QueryWrapper<SpMaterile> qw = new QueryWrapper<>();
-        qw.likeRight("materiel", PREFIX).orderByDesc("materiel").last("limit 1");
+        qw.apply("materiel REGEXP {0}", "^" + PREFIX + "[0-9]{6}$")
+                .orderByDesc("materiel").last("limit 1");
         SpMaterile last = getOne(qw, false);
-        int next = 1;
-        if (last != null && StringUtils.isNotEmpty(last.getMateriel())
-                && last.getMateriel().length() > PREFIX.length()) {
+        if (last != null && StringUtils.isNotEmpty(last.getMateriel())) {
             try {
-                next = Integer.parseInt(last.getMateriel().substring(PREFIX.length())) + 1;
+                return Integer.parseInt(last.getMateriel().substring(PREFIX.length()));
             } catch (NumberFormatException ignore) {
             }
         }
-        return PREFIX + String.format("%06d", next);
+        return 0;
+    }
+
+    /**
+     * 编码是否已被占用（不区分删除状态，避免编号被重复使用）
+     */
+    private boolean existsMateriel(String materiel) {
+        QueryWrapper<SpMaterile> qw = new QueryWrapper<>();
+        qw.eq("materiel", materiel);
+        return count(qw) > 0;
     }
 
     @Override
