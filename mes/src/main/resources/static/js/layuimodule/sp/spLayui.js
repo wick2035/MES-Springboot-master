@@ -703,6 +703,12 @@ layui.define(["element", "jquery"], function (exports) {
             href = $(this).attr('data-tab'),
             title = $(this).html(),
             target = $(this).attr('target');
+        // 防御：目录占位节点(url 为空或'#')不应作为页面打开，
+        // 否则 iframe 会加载当前首页造成整页递归嵌套
+        if (!href || href === '#') {
+            layer.close(loading);
+            return false;
+        }
         if (target == '_blank') {
             layer.close(loading);
             window.open(href, "_blank");

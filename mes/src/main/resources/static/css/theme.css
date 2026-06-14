@@ -672,15 +672,16 @@ body {
     padding: 16px 20px 16px 54px;
     text-align: left;
 }
-.layui-layer-btn {
+body .layui-layer .layui-layer-btn {
     padding: 12px 18px 18px;
     border-top: 1px solid var(--sp-border);
     text-align: right;
 }
 /* 确定 / 取消 统一尺寸形状（仅颜色不同，保证大小一致） */
-.layui-layer-btn .layui-layer-btn0,
-.layui-layer-btn a {
+body .layui-layer .layui-layer-btn .layui-layer-btn0,
+body .layui-layer .layui-layer-btn a {
     box-sizing: border-box;
+    display: inline-block;
     height: 34px;
     line-height: 32px;          /* 34 - 上下各 1px 边框，文字垂直居中 */
     padding: 0 16px;
@@ -691,29 +692,33 @@ body {
     font-weight: 500;
     margin: 0 0 0 8px;
     vertical-align: middle;
+    cursor: pointer;
+    text-decoration: none;
 }
 /* 取消（幽灵按钮） */
-.layui-layer-btn a {
+body .layui-layer .layui-layer-btn a {
     background-color: var(--sp-surface);
     border-color: var(--sp-border-strong);
     color: var(--sp-text-secondary);
 }
-.layui-layer-btn a:hover,
-.layui-layer-btn a:active {
+body .layui-layer .layui-layer-btn a:hover,
+body .layui-layer .layui-layer-btn a:focus,
+body .layui-layer .layui-layer-btn a:active {
     border-color: var(--sp-primary-border);
     color: var(--sp-primary);
     opacity: 1;                 /* 抵消 layui 默认 :hover/:active 的 opacity 淡化 */
+    text-decoration: none;
 }
 /* 确定：默认深蓝 + 白字 */
-.layui-layer-btn .layui-layer-btn0 {
+body .layui-layer .layui-layer-btn .layui-layer-btn0 {
     background-color: var(--sp-primary);
     border-color: var(--sp-primary);
     color: #fff;
 }
 /* 确定：触碰/聚焦/按下 → 浅蓝 + 白字，白字始终清晰不淡化 */
-.layui-layer-btn .layui-layer-btn0:hover,
-.layui-layer-btn .layui-layer-btn0:focus,
-.layui-layer-btn .layui-layer-btn0:active {
+body .layui-layer .layui-layer-btn .layui-layer-btn0:hover,
+body .layui-layer .layui-layer-btn .layui-layer-btn0:focus,
+body .layui-layer .layui-layer-btn .layui-layer-btn0:active {
     background-color: var(--sp-primary-light);
     border-color: var(--sp-primary-light);
     color: #fff;

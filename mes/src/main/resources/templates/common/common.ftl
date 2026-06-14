@@ -2,7 +2,7 @@
 <link rel="stylesheet" href="${request.contextPath}/lib/layui/css/layui.css" media="all">
 <link rel="stylesheet" href="${request.contextPath}/lib/font-awesome-4.7.0/css/font-awesome.min.css" media="all">
 <link rel="stylesheet" href="${request.contextPath}/css/public.css" media="all">
-<link rel="stylesheet" href="${request.contextPath}/css/theme.css?v=1.1.8" media="all">
+<link rel="stylesheet" href="${request.contextPath}/css/theme.css?v=1.1.9" media="all">
 <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
 <!--[if lt IE 9]>
 <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>

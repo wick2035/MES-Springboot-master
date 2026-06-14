@@ -25,6 +25,11 @@
         .pick-btn { padding: 0 6px; height: 26px; line-height: 26px; font-size: 11px; margin-right: 2px; }
         .item-cell-flex { display: flex; align-items: center; gap: 2px; }
         .bom-readonly-tip { margin-top:12px; padding:10px 16px; background:#FFFAEB; border:1px solid #D97706; border-radius:4px; color:#D97706; font-size:13px; }
+        .bom-version-control { display: flex; align-items: center; }
+        .bom-version-stepper { display: flex; flex-direction: column; justify-content: space-between; width: 30px; height: 36px; margin-left: 4px; }
+        .bom-version-stepper .layui-btn.bom-version-btn { display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 30px; height: 17px; line-height: 17px; padding: 0; margin: 0; border-radius: 4px; }
+        .bom-version-stepper .layui-btn + .layui-btn { margin-left: 0; }
+        .bom-version-stepper .bom-version-btn .layui-icon { margin-right: 0; font-size: 13px; line-height: 1; }
     </style>
 </head>
 <body>
@@ -71,18 +76,16 @@
                 </div>
                 <div class="layui-form-item" style="margin-bottom:8px;">
                     <label class="layui-form-label sp-required" style="width:90px;">版本号</label>
-                    <div style="display:flex; align-items:center;">
+                    <div class="bom-version-control">
                         <input type="text" id="js-versionNumber" readonly name="versionNumber"
                                lay-verify="required" autocomplete="off" class="layui-input sp-readonly"
                                style="width:90px;"
                                value="${(result.versionNumber)!'1'}">
-                        <div style="display:flex; flex-direction:column; margin-left:2px;">
-                            <button onclick="FN('plus')" type="button" style="height:18px; padding:0 6px;"
-                                    class="layui-btn layui-btn-xs">
+                        <div class="bom-version-stepper">
+                            <button onclick="FN('plus')" type="button" class="layui-btn layui-btn-xs bom-version-btn">
                                 <i class="layui-icon layui-icon-up"></i>
                             </button>
-                            <button onclick="FN('minus')" type="button" style="height:18px; padding:0 6px;"
-                                    class="layui-btn layui-btn-xs">
+                            <button onclick="FN('minus')" type="button" class="layui-btn layui-btn-xs bom-version-btn">
                                 <i class="layui-icon layui-icon-down"></i>
                             </button>
                         </div>

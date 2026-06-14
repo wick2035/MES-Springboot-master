@@ -3,3 +3,6 @@
 /sparchetype/.mvn/
 /.idea/
 /.idea/
+/.m2/
+/.agents/
+/.vscode/

@@ -235,7 +235,11 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         }
         List<TreeVO<SysMenu>> treeVOS = TreeUtil.buildList(menus, "0");
         for (TreeVO<SysMenu> mTree : treeVOS) {
-            if (CollectionUtils.isNotEmpty(mTree.getChildren())) {
+            // 递归剔除"没有任何已授权叶子菜单"的空目录分支：
+            // 目录节点(url='#')会因 isDir 始终通过上面的过滤，若其子菜单
+            // 全部被权限过滤掉，就会沦为可点击的空叶子，点击后 iframe 加载
+            // '#'(即当前首页)从而导致整页递归嵌套。这里递归裁掉这类分支。
+            if (pruneEmptyDirs(mTree) && CollectionUtils.isNotEmpty(mTree.getChildren())) {
                 menuInfo.put(mTree.getCode(), mTree);
             }
         }
@@ -245,5 +249,32 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         result.put("logoInfo", logoInfo);
         result.put("menuInfo", menuInfo);
         return result;
+    }
+
+    /**
+     * 递归剔除空目录分支。
+     * <p>
+     * 目录节点(url 为空或'#')若过滤后没有任何子节点则应被移除；
+     * 真实菜单(带 url 的叶子)始终保留。
+     *
+     * @param node 当前节点
+     * @return 该节点是否应保留
+     */
+    private boolean pruneEmptyDirs(TreeVO<SysMenu> node) {
+        List<TreeVO<SysMenu>> children = node.getChildren();
+        if (CollectionUtils.isNotEmpty(children)) {
+            Iterator<TreeVO<SysMenu>> it = children.iterator();
+            while (it.hasNext()) {
+                if (!pruneEmptyDirs(it.next())) {
+                    it.remove();
+                }
+            }
+        }
+        String url = node.getUrl();
+        boolean isDir = url == null || url.isEmpty() || "#".equals(url);
+        if (isDir) {
+            return CollectionUtils.isNotEmpty(node.getChildren());
+        }
+        return true;
     }
 }
