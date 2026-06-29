@@ -624,6 +624,250 @@
         });
     }
 
+    // ======================= 巡游 AGV（载货循环巡游） =======================
+    // 设计：沿货架巷道的圆角矩形闭合路线平滑巡游；车体载货箱、顶部旋转琥珀警示灯、
+    // 车下软阴影盘、地面发光路径带。整页重载即重建，无需额外清理。
+    // 命名以 AGV_ 前缀，避开 init() 中按"货物$"收集拖拽对象的逻辑。
+    var AGV = {
+        group: null,
+        wheels: [],
+        beacon: null,
+        shadow: null,
+        path: [],     // [{x,z}]
+        seg: [],      // 每段长度
+        total: 0,
+        dist: 0,
+        speed: 95,    // 巡游速度（单位/秒）
+        heading: 0,
+        lastT: 0
+    };
+
+    // 由货架包围盒生成绕行巷道路线（圆角矩形闭合环），自适应任意库房规格
+    function buildAgvRoute() {
+        var list = (typeof GET_SHELF_LIST === 'function') ? GET_SHELF_LIST() : [];
+        var minX = -260, maxX = 260, minZ = -180, maxZ = 180; // 无货架时的默认巡游框
+        if (list && list.length > 0) {
+            minX = Infinity; maxX = -Infinity; minZ = Infinity; maxZ = -Infinity;
+            for (var i = 0; i < list.length; i++) {
+                if (list[i].x < minX) minX = list[i].x;
+                if (list[i].x > maxX) maxX = list[i].x;
+                if (list[i].z < minZ) minZ = list[i].z;
+                if (list[i].z > maxZ) maxZ = list[i].z;
+            }
+            var margin = 58; // 越过货架半深(约27)+巷道余量
+            minX -= margin; maxX += margin; minZ -= margin; maxZ += margin;
+        }
+        // 保底舒适尺寸，并夹在墙体内（墙在 x=±1295, z=±700）
+        minX = Math.max(-1240, Math.min(minX, -200));
+        maxX = Math.min(1240, Math.max(maxX, 200));
+        minZ = Math.max(-650, Math.min(minZ, -160));
+        maxZ = Math.min(650, Math.max(maxZ, 160));
+
+        var r = Math.min(70, (maxX - minX) / 2 - 1, (maxZ - minZ) / 2 - 1);
+        if (r < 8) r = 8;
+        return roundedRectPath(minX, maxX, minZ, maxZ, r, 6);
+    }
+
+    // 圆角矩形 -> 顺时针路径点数组
+    function roundedRectPath(minX, maxX, minZ, maxZ, r, segPerCorner) {
+        var pts = [];
+        function arc(cx, cz, a0, a1) {
+            for (var s = 0; s <= segPerCorner; s++) {
+                var a = a0 + (a1 - a0) * (s / segPerCorner);
+                pts.push({x: cx + Math.cos(a) * r, z: cz + Math.sin(a) * r});
+            }
+        }
+        arc(maxX - r, minZ + r, -Math.PI / 2, 0);          // 右上角
+        arc(maxX - r, maxZ - r, 0, Math.PI / 2);           // 右下角
+        arc(minX + r, maxZ - r, Math.PI / 2, Math.PI);     // 左下角
+        arc(minX + r, minZ + r, Math.PI, Math.PI * 1.5);   // 左上角
+        return pts;
+    }
+
+    function computeAgvLengths() {
+        AGV.seg = [];
+        AGV.total = 0;
+        var p = AGV.path;
+        for (var i = 0; i < p.length; i++) {
+            var n = p[(i + 1) % p.length];
+            var dx = n.x - p[i].x, dz = n.z - p[i].z;
+            var len = Math.sqrt(dx * dx + dz * dz);
+            AGV.seg.push(len);
+            AGV.total += len;
+        }
+    }
+
+    // 沿闭合路线按累计弧长取点与切向
+    function agvPointAt(d) {
+        var p = AGV.path;
+        d = ((d % AGV.total) + AGV.total) % AGV.total;
+        var i = 0;
+        while (i < AGV.seg.length && d > AGV.seg[i]) { d -= AGV.seg[i]; i++; }
+        if (i >= AGV.seg.length) i = AGV.seg.length - 1;
+        var a = p[i], b = p[(i + 1) % p.length];
+        var t = AGV.seg[i] > 0 ? d / AGV.seg[i] : 0;
+        return {
+            x: a.x + (b.x - a.x) * t,
+            z: a.z + (b.z - a.z) * t,
+            dx: b.x - a.x,
+            dz: b.z - a.z
+        };
+    }
+
+    // 构建 AGV 车体（前进方向 = +X）
+    function buildAGVMesh() {
+        var g = new THREE.Group();
+        g.name = 'AGV';
+
+        // 车体
+        var bodyMat = new THREE.MeshStandardMaterial({color: 0xeef2f6, metalness: 0.35, roughness: 0.45});
+        var body = new THREE.Mesh(new THREE.BoxGeometry(34, 9, 22), bodyMat);
+        body.position.y = 8;
+        g.add(body);
+
+        // 橙色腰线上盖
+        var deckMat = new THREE.MeshStandardMaterial({color: 0xff8a3d, metalness: 0.3, roughness: 0.5, emissive: 0x582000, emissiveIntensity: 0.35});
+        var deck = new THREE.Mesh(new THREE.BoxGeometry(34.4, 2.6, 22.4), deckMat);
+        deck.position.y = 13;
+        g.add(deck);
+
+        // 托盘
+        var palletMat = new THREE.MeshStandardMaterial({color: 0xc8d0d8, metalness: 0.15, roughness: 0.8});
+        var pallet = new THREE.Mesh(new THREE.BoxGeometry(20, 1.6, 18), palletMat);
+        pallet.position.y = 15.3;
+        g.add(pallet);
+
+        // 载货箱（沿用货物观感）
+        var bs = (typeof GET_BOX_SIZE === 'function') ? GET_BOX_SIZE() : 16;
+        var cargoMat = new THREE.MeshStandardMaterial({color: 0xc69a5b, metalness: 0.1, roughness: 0.85});
+        var cargo = new THREE.Mesh(new THREE.BoxGeometry(bs, bs, bs), cargoMat);
+        cargo.position.y = 16.1 + bs / 2;
+        cargo.name = 'AGV_cargo';
+        g.add(cargo);
+
+        // 四个轮子（轴沿 Z，绕局部 Z 滚动）
+        var wheelMat = new THREE.MeshStandardMaterial({color: 0x222a33, metalness: 0.25, roughness: 0.7});
+        var wgeo = new THREE.CylinderGeometry(5, 5, 3, 20);
+        wgeo.rotateX(Math.PI / 2);
+        var wx = [12, -12], wz = [10, -10];
+        AGV.wheels = [];
+        for (var a = 0; a < wx.length; a++) {
+            for (var b = 0; b < wz.length; b++) {
+                var w = new THREE.Mesh(wgeo, wheelMat);
+                w.position.set(wx[a], 5, wz[b]);
+                g.add(w);
+                AGV.wheels.push(w);
+            }
+        }
+
+        // 警示灯：桅杆 + 旋转灯罩 + 光扇 + 点光源
+        var mastMat = new THREE.MeshStandardMaterial({color: 0x8a949c, metalness: 0.6, roughness: 0.4});
+        var mast = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 8, 12), mastMat);
+        mast.position.set(-13, 18, -8);
+        g.add(mast);
+
+        var beacon = new THREE.Group();
+        beacon.position.set(-13, 23, -8);
+        var domeMat = new THREE.MeshStandardMaterial({color: 0xffb300, emissive: 0xff9800, emissiveIntensity: 1.2, metalness: 0.2, roughness: 0.4, transparent: true, opacity: 0.92});
+        beacon.add(new THREE.Mesh(new THREE.SphereGeometry(2.6, 16, 12), domeMat));
+        var bladeMat = new THREE.MeshBasicMaterial({color: 0xffd166, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false});
+        var blade = new THREE.Mesh(new THREE.PlaneGeometry(11, 3), bladeMat);
+        blade.position.set(5.5, 0, 0);
+        beacon.add(blade);
+        beacon.add(new THREE.PointLight(0xffa726, 0.9, 170, 2));
+        g.add(beacon);
+        AGV.beacon = beacon;
+
+        // 前照灯（两枚发光点）
+        var headMat = new THREE.MeshBasicMaterial({color: 0xeaf6ff});
+        var h1 = new THREE.Mesh(new THREE.SphereGeometry(1.4, 10, 8), headMat);
+        h1.position.set(17.4, 8, 7);
+        var h2 = h1.clone();
+        h2.position.set(17.4, 8, -7);
+        g.add(h1);
+        g.add(h2);
+
+        return g;
+    }
+
+    function setupAGV(scene) {
+        try {
+            AGV.path = buildAgvRoute();
+            if (!AGV.path || AGV.path.length < 2) return;
+            computeAgvLengths();
+            if (AGV.total <= 0) return;
+
+            // 地面发光路径带
+            var geo = new THREE.Geometry();
+            for (var i = 0; i <= AGV.path.length; i++) {
+                var p = AGV.path[i % AGV.path.length];
+                geo.vertices.push(new THREE.Vector3(p.x, 1.2, p.z));
+            }
+            var line = new THREE.Line(geo, new THREE.LineBasicMaterial({color: 0x36c2ff, transparent: true, opacity: 0.45}));
+            line.name = 'AGV_path';
+            scene.add(line);
+
+            // 软阴影盘
+            var shadow = new THREE.Mesh(
+                new THREE.CircleGeometry(20, 28),
+                new THREE.MeshBasicMaterial({color: 0x0a1622, transparent: true, opacity: 0.22, depthWrite: false})
+            );
+            shadow.rotation.x = -Math.PI / 2;
+            shadow.position.y = 0.6;
+            shadow.name = 'AGV_shadow';
+            scene.add(shadow);
+            AGV.shadow = shadow;
+
+            // 车体
+            var mesh = buildAGVMesh();
+            scene.add(mesh);
+            AGV.group = mesh;
+
+            AGV.dist = 0;
+            AGV.lastT = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            var s = agvPointAt(0);
+            AGV.heading = Math.atan2(-s.dz, s.dx);
+            mesh.rotation.y = AGV.heading;
+            mesh.position.set(s.x, 0, s.z);
+        } catch (e) {
+            if (window.console) console.warn('AGV 初始化失败：', e);
+        }
+    }
+
+    function updateAGV() {
+        if (!AGV.group || AGV.total <= 0) return;
+        var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        var dt = (now - AGV.lastT) / 1000;
+        AGV.lastT = now;
+        if (dt > 0.1) dt = 0.1; // 切后台回来防止瞬移
+
+        AGV.dist += AGV.speed * dt;
+        var s = agvPointAt(AGV.dist);
+        AGV.group.position.x = s.x;
+        AGV.group.position.z = s.z;
+
+        // 朝向：最短角差缓动
+        var target = Math.atan2(-s.dz, s.dx);
+        var diff = target - AGV.heading;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        AGV.heading += diff * Math.min(1, dt * 6);
+        AGV.group.rotation.y = AGV.heading;
+
+        // 车轮滚动（半径 5）
+        var roll = AGV.speed * dt / 5;
+        for (var i = 0; i < AGV.wheels.length; i++) {
+            AGV.wheels[i].rotation.z -= roll;
+        }
+        // 警示灯旋转
+        if (AGV.beacon) AGV.beacon.rotation.y += dt * 6;
+        // 阴影跟随
+        if (AGV.shadow) {
+            AGV.shadow.position.x = s.x;
+            AGV.shadow.position.z = s.z;
+        }
+    }
+
     // 初始化
     function init() {
         initMat();
@@ -655,6 +899,9 @@
                 }
             }
         }
+
+        // 巡游 AGV（载货循环巡游，纯展示，不参与拖拽）
+        setupAGV(scene);
 
         //添加选中时的蒙版
         composer = new THREE.ThreeJs_Composer(renderer, scene, camera, options);
@@ -702,6 +949,7 @@
         controls.update();
         TWEEN.update();
         RollTexture.offset.x += 0.001;
+        updateAGV();
     }
 
     // ======================= 数据驱动启动 =======================
