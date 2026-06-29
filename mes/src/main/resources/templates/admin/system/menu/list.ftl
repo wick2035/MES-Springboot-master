@@ -33,10 +33,11 @@
            lay-text="正常|锁定" {{d.state==0?'checked':''}}/>
 </script>
 <script>
-    layui.use(['table', 'treeTable', 'spLayer'], function () {
+    layui.use(['table', 'treeTable', 'spLayer', 'form'], function () {
         var table = layui.table,
             treeTable = layui.treeTable,
-            spLayer = layui.spLayer;
+            spLayer = layui.spLayer,
+            form = layui.form;
 
         // 渲染表格
         var insTb = treeTable.render({
@@ -86,6 +87,31 @@
                 });
             },
             style: 'margin-top:0;'
+        });
+
+        // 监听状态开关：勾选=正常(0)，关闭=锁定(1)。锁定的菜单将不在用户导航中显示。
+        form.on('switch(ckState)', function (obj) {
+            var newState = this.checked ? 0 : 1;
+            var that = this;
+            $.ajax({
+                type: 'POST',
+                url: "${request.contextPath}/admin/sys/menu/update-state",
+                data: {id: obj.value, state: newState},
+                success: function (res) {
+                    if (res.code === 0) {
+                        layer.msg(newState === 1 ? '已锁定，该菜单将不在导航中显示' : '已恢复正常', {icon: 1});
+                    } else {
+                        layer.msg(res.msg || '操作失败', {icon: 2});
+                        that.checked = !that.checked;
+                        form.render('checkbox');
+                    }
+                },
+                error: function () {
+                    layer.msg('请求失败', {icon: 2});
+                    that.checked = !that.checked;
+                    form.render('checkbox');
+                }
+            });
         });
 
         /**

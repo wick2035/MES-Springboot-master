@@ -21,7 +21,10 @@ import com.wangziyang.mes.productionorder.service.ISpProductionOrderService;
 import com.wangziyang.mes.productionorder.service.impl.SpProductionOrderServiceImpl;
 import com.wangziyang.mes.system.entity.SysUser;
 import com.wangziyang.mes.technology.entity.SpFlow;
+import com.wangziyang.mes.technology.entity.SpFlowOperRelation;
 import com.wangziyang.mes.technology.service.ISpFlowService;
+import com.wangziyang.mes.wip.entity.SpSnProcessRecord;
+import com.wangziyang.mes.wip.service.ISpSnProcessRecordService;
 import com.wangziyang.mes.workflow.WorkflowPermissionUtil;
 import com.wangziyang.mes.workflow.service.ISpWorkflowInstanceService;
 import com.wangziyang.mes.workflow.service.ISpWorkflowTaskService;
@@ -37,6 +40,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Production order release controller.
@@ -89,6 +93,9 @@ public class SpOrderController extends BaseController {
 
     @Autowired
     private ISpOrderOperAssignService employeeAssignService;
+
+    @Autowired
+    private ISpSnProcessRecordService snProcessRecordService;
 
     @ApiOperation("Production order release page")
     @GetMapping("/list-ui")
@@ -205,6 +212,9 @@ public class SpOrderController extends BaseController {
         if (order == null) {
             return Result.failure("工单不存在");
         }
+        if (order.getStatue() == null || order.getStatue() != STATUE_DISPATCHED) {
+            return Result.failure("工单未下发，不能动工");
+        }
         if (WORK_STATUS_STARTED.equals(order.getWorkStatus())) {
             return Result.success(null, "工单已动工");
         }
@@ -235,10 +245,6 @@ public class SpOrderController extends BaseController {
         update.setCompleteStatus(COMPLETE_STATUS_COMPLETED);
         update.setCompleteTime(now());
         update.setCompleteUsername(displayUsername(currentUser()));
-        if (!WORK_STATUS_STARTED.equals(order.getWorkStatus())) {
-            update.setWorkStatus(WORK_STATUS_STARTED);
-            update.setWorkStartTime(StringUtils.defaultIfBlank(order.getWorkStartTime(), now()));
-        }
         boolean updated = orderService.update(update, new UpdateWrapper<SpOrder>()
                 .eq("id", order.getId())
                 .and(w -> w.ne("complete_status", COMPLETE_STATUS_COMPLETED)
@@ -460,6 +466,23 @@ public class SpOrderController extends BaseController {
         }
         if (COMPLETE_STATUS_COMPLETED.equals(order.getCompleteStatus())) {
             return "工单已完工";
+        }
+        if (!WORK_STATUS_STARTED.equals(order.getWorkStatus())) {
+            return "工单未动工，请先动工后再完工";
+        }
+        // SN通用过程采集全部通过校验（口径：工艺路线每道工序都至少有一条 OK 采集记录）
+        List<SpFlowOperRelation> route = snProcessRecordService.route(order.getId());
+        if (!route.isEmpty()) {
+            Set<String> okOperIds = snProcessRecordService.list(new QueryWrapper<SpSnProcessRecord>()
+                    .eq("order_id", order.getId())
+                    .eq("status", "OK"))
+                    .stream()
+                    .map(SpSnProcessRecord::getOperId)
+                    .collect(Collectors.toSet());
+            boolean allPassed = route.stream().allMatch(r -> okOperIds.contains(r.getOperId()));
+            if (!allPassed) {
+                return "SN通用过程采集未全部通过，不能完工";
+            }
         }
         return "";
     }

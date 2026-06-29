@@ -1,6 +1,7 @@
 package com.wangziyang.mes.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wangziyang.mes.common.util.TreeUtil;
 import com.wangziyang.mes.system.dto.SysMenuDTO;
@@ -73,6 +74,10 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
 
         List<TreeVO<SysMenu>> menus = new ArrayList<>();
         for (SysMenu m : sysMenus) {
+            // 锁定的菜单不在导航中显示；锁定目录时其子菜单会因找不到父节点而被 TreeUtil 丢弃
+            if (isLocked(m)) {
+                continue;
+            }
             TreeVO<SysMenu> tree = new TreeVO<>();
             tree.setId(m.getId());
             tree.setPid(m.getParentId());
@@ -112,6 +117,10 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         List<SysMenu> sysMenus = sysMenuMapper.listBySearchByName(menuName);
         List<TreeVO<SysMenu>> menus = new ArrayList<>();
         for (SysMenu m : sysMenus) {
+            // 锁定的菜单不出现在全局搜索结果中
+            if (isLocked(m)) {
+                continue;
+            }
             TreeVO<SysMenu> tree = new TreeVO<>();
             tree.setId(m.getId());
             tree.setPid(m.getParentId());
@@ -153,6 +162,8 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
             tree.setIcon(m.getIcon());
             tree.setType(m.getType());
             tree.setPermission(m.getPermission());
+            // 菜单管理列表需展示锁定状态（不在此处过滤，锁定的菜单仍要显示以便解锁）
+            tree.setState(m.getState());
             menus.add(tree);
         }
         return TreeUtil.buildList(menus, "0");
@@ -208,9 +219,12 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         qw.orderByAsc("sort_num");
         List<SysMenu> allMenus = sysMenuMapper.selectList(qw);
 
-        // 只保留目录节点(url为'#'或空)或已授权的菜单
+        // 只保留目录节点(url为'#'或空)或已授权的菜单；锁定的菜单一律排除
         List<SysMenu> filteredMenus = new ArrayList<>();
         for (SysMenu m : allMenus) {
+            if (isLocked(m)) {
+                continue;
+            }
             String url = m.getUrl();
             boolean isDir = url == null || url.isEmpty() || "#".equals(url);
             if (isDir || allowedMenuIds.contains(m.getId())) {
@@ -276,5 +290,22 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
             return CollectionUtils.isNotEmpty(node.getChildren());
         }
         return true;
+    }
+
+    /**
+     * 菜单是否被锁定（锁定的菜单不在导航中显示）。
+     *
+     * @param m 菜单
+     * @return state==1 表示锁定
+     */
+    private boolean isLocked(SysMenu m) {
+        return m.getState() != null && m.getState() == 1;
+    }
+
+    @Override
+    public void updateState(String id, Integer state) {
+        UpdateWrapper<SysMenu> uw = new UpdateWrapper<>();
+        uw.set("state", state).eq("id", id);
+        this.update(uw);
     }
 }

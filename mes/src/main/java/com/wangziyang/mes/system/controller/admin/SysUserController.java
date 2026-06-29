@@ -68,6 +68,7 @@ public class SysUserController extends BaseController {
     @ResponseBody
     public Result page(SysUserPageReq req) throws Exception {
         QueryWrapper<SysUser> qw = new QueryWrapper<>();
+        qw.ne("is_deleted", "1");   // 排除已删除（软删除）用户
         if (StringUtils.isNotEmpty(req.getNameLike())) qw.likeRight("name", req.getNameLike());
         if (StringUtils.isNotEmpty(req.getUsernameLike())) qw.likeRight("username", req.getUsernameLike());
         qw.orderByDesc(req.getOrderBy());

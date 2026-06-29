@@ -142,10 +142,18 @@
 </script>
 <script type="text/html" id="js-record-table-toolbar-right">
     {{# if(d.workStatus !== 'STARTED'){ }}
-    <a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="startWork"><i class="fa fa-play"></i> 动工</a>
+        {{# if(Number(d.statue) === 5){ }}
+        <a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="startWork"><i class="fa fa-play"></i> 动工</a>
+        {{# } else { }}
+        <a class="layui-btn layui-btn-primary layui-btn-xs order-btn-disabled" lay-event="startWorkBlocked"><i class="fa fa-play"></i> 动工</a>
+        {{# } }}
     {{# } }}
     {{# if(d.completeStatus !== 'COMPLETED' && d.deliveryStatus !== 'DELIVERED'){ }}
-    <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="complete"><i class="fa fa-check"></i> 完工</a>
+        {{# if(d.canComplete === true){ }}
+        <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="complete"><i class="fa fa-check"></i> 完工</a>
+        {{# } else { }}
+        <a class="layui-btn layui-btn-primary layui-btn-xs order-btn-disabled" lay-event="completeBlocked"><i class="fa fa-check"></i> 完工</a>
+        {{# } }}
     {{# } }}
     {{# if(d.canDeliver === true){ }}
     <a class="layui-btn layui-btn-xs" lay-event="deliver"><i class="fa fa-send"></i> 交付</a>
@@ -264,6 +272,8 @@
         table.on('tool(js-record-table-filter)', function(obj){
             var data = obj.data;
             if (obj.event === 'edit') openEdit(data.id);
+            if (obj.event === 'startWorkBlocked') layer.msg('工单未下发，不能动工');
+            if (obj.event === 'completeBlocked') layer.msg(data.completeBlockReason || '当前工单暂不可完工');
             if (obj.event === 'deliverBlocked') layer.msg(data.deliveryBlockReason || '当前工单暂不可交付');
             if (obj.event === 'startWork') {
                 layer.confirm('确认该工单开始动工吗？', function(index){

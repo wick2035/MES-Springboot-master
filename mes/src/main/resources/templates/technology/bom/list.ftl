@@ -7,12 +7,16 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <#include "${request.contextPath}/common/common.ftl">
+    <style>
+        .bom-search .layui-form-label{width:110px}
+        .bom-search .layui-input-inline{width:220px}
+    </style>
 </head>
 <body>
 <div class="splayui-container">
     <div class="splayui-main">
         <!--查询参数-->
-        <form id="js-search-form" class="layui-form" lay-filter="js-q-form-filter">
+        <form id="js-search-form" class="layui-form bom-search" lay-filter="js-q-form-filter">
             <div class="layui-form-item">
                 <div class="layui-inline">
                     <label class="layui-form-label">产品物料编码</label>

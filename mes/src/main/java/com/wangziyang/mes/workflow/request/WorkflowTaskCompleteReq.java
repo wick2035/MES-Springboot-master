@@ -6,6 +6,7 @@ public class WorkflowTaskCompleteReq {
     private String opinion;
     private String action;
     private String targetUserId;
+    private String targetUsername;
 
     public String getTaskId() {
         return taskId;
@@ -37,5 +38,13 @@ public class WorkflowTaskCompleteReq {
 
     public void setTargetUserId(String targetUserId) {
         this.targetUserId = targetUserId;
+    }
+
+    public String getTargetUsername() {
+        return targetUsername;
+    }
+
+    public void setTargetUsername(String targetUsername) {
+        this.targetUsername = targetUsername;
     }
 }

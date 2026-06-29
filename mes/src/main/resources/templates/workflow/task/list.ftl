@@ -205,17 +205,60 @@
             });
         }
 
+        var reassignUsers = null;
+        function loadReassignUsers(cb) {
+            if (reassignUsers) { cb(reassignUsers); return; }
+            spUtil.ajax({
+                url:'${request.contextPath}/admin/sys/user/page',
+                type:'POST',
+                data:{current:1, size:999},
+                success:function(res){
+                    var d = res.data || {};
+                    reassignUsers = d.records || [];
+                    cb(reassignUsers);
+                }
+            });
+        }
         function submitReassign(taskId, action, label) {
-            layer.prompt({title:'请输入目标用户ID', formType:0}, function(userId, idx1){
-                layer.close(idx1);
-                layer.prompt({title:'请输入' + label + '说明', value:label, formType:2}, function(opinion, idx2){
-                    spUtil.ajax({
-                        url:'${request.contextPath}/workflow/task/' + action,
-                        type:'POST',
-                        serializable:true,
-                        data:{taskId:taskId, targetUserId:userId, opinion:opinion},
-                        success:function(){ reloadTable(getSearch()); layer.close(idx2); }
-                    });
+            loadReassignUsers(function(users){
+                var opts = '<option value="">请选择用户（可输入姓名/用户名搜索）</option>';
+                $.each(users, function(_, u){
+                    var nm = u.name || u.username || '';
+                    opts += '<option value="'+u.id+'">'+escapeHtml(nm)+'（'+escapeHtml(u.username||'')+'）</option>';
+                });
+                var html = ''
+                    + '<div class="layui-form" lay-filter="js-reassign-form" style="padding:20px 22px 6px;">'
+                    + '  <div class="layui-form-item">'
+                    + '    <label class="layui-form-label">目标用户</label>'
+                    + '    <div class="layui-input-block">'
+                    + '      <select id="js-reassign-user" lay-search>'+opts+'</select>'
+                    + '    </div>'
+                    + '  </div>'
+                    + '  <div class="layui-form-item">'
+                    + '    <label class="layui-form-label">'+label+'说明</label>'
+                    + '    <div class="layui-input-block">'
+                    + '      <textarea id="js-reassign-opinion" class="layui-textarea" placeholder="请输入'+label+'说明">'+label+'</textarea>'
+                    + '    </div>'
+                    + '  </div>'
+                    + '</div>';
+                layer.open({
+                    type:1,
+                    title:label,
+                    area:['480px','330px'],
+                    btn:['确定','取消'],
+                    content:html,
+                    success:function(){ form.render('select', 'js-reassign-form'); },
+                    yes:function(index){
+                        var userId = $('#js-reassign-user').val();
+                        if (!userId) { layer.msg('请选择目标用户'); return; }
+                        spUtil.ajax({
+                            url:'${request.contextPath}/workflow/task/' + action,
+                            type:'POST',
+                            serializable:true,
+                            data:{taskId:taskId, targetUserId:userId, opinion:$('#js-reassign-opinion').val()},
+                            success:function(){ reloadTable(getSearch()); layer.close(index); }
+                        });
+                    }
                 });
             });
         }

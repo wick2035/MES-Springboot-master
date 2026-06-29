@@ -72,4 +72,12 @@ public interface ISysMenuService extends IService<SysMenu> {
      * @throws Exception 异常
      */
     Map<String, Object> listIndexMenuTreeByRoleMenuIds(Set<String> allowedMenuIds) throws Exception;
+
+    /**
+     * 更新菜单状态（0正常 1锁定）。锁定的菜单不在导航中显示。
+     *
+     * @param id    菜单ID
+     * @param state 状态：0正常 1锁定
+     */
+    void updateState(String id, Integer state);
 }

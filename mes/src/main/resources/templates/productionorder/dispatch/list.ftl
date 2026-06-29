@@ -13,7 +13,7 @@
         .card,.panel{border:1px solid #d8e5ee;border-radius:8px;background:rgba(255,255,255,.96);box-shadow:0 14px 34px rgba(31,65,92,.08)}
         .card{padding:18px 20px}.card h1{margin:0 0 9px;font-size:25px;color:#111827;font-family:"SimHei","Microsoft YaHei","PingFang SC",sans-serif;font-weight:700}.card p{margin:0;color:#374151;font-size:13px;line-height:1.75}
         .panel{overflow:hidden}.search{padding:12px 12px 0;background:#f8fbfd;border-bottom:1px solid #e4edf4}.search .layui-form-label{width:76px;color:#536b7f}.search .layui-input-inline{width:168px}
-        .chip{display:inline-flex;align-items:center;height:23px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap}.orange{color:#8b5700;background:#fff1c7}.green{color:#0c684c;background:#ddf7e9}.blue{color:#1456a0;background:#e5f0ff}
+        .chip{display:inline-flex;align-items:center;height:23px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap}.orange{color:#8b5700;background:#fff1c7}.green{color:#0c684c;background:#ddf7e9}.blue{color:#1456a0;background:#e5f0ff}.gray{color:#536b7f;background:#eef2f6}
         .task-table{width:100%;border-collapse:collapse}.task-table th{height:36px;padding:0 8px;border-bottom:1px solid #dfe8ef;background:#f7fafc;color:#617385;text-align:left}.task-table td{padding:9px 8px;border-bottom:1px solid #edf2f6;color:#263b4e}
     </style>
 </head>
@@ -41,8 +41,9 @@
 </div>
 
 <script type="text/html" id="statusTpl"><span class="chip orange">待下发</span></script>
+<script type="text/html" id="mrpTpl">{{# var m={NONE:['未运算','gray'],CALCULATED:['已运算','blue'],COMPLETED:['已完成','green']}; var x=m[d.mrpStatus]||m.NONE; }}<span class="chip {{x[1]}}">{{x[0]}}</span>{{# if(d.mrpPlanCount){ }}<span style="margin-left:5px;color:#718396;">{{d.mrpPlanCount}}项</span>{{# } }}</script>
 <script type="text/html" id="productTpl"><b>{{d.firstProductMateriel || '-'}}</b> / {{d.firstProductName || '-'}}</script>
-<script type="text/html" id="opTpl"><a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="detail">拆分任务</a><a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="dispatch">下发</a></script>
+<script type="text/html" id="opTpl"><a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="detail">拆分任务</a>{{# if(d.mrpStatus === 'COMPLETED'){ }}<a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="dispatch">下发</a>{{# } else { }}<a class="layui-btn layui-btn-disabled layui-btn-xs" title="MRP未完成：需先完成配套出库确认">下发</a>{{# } }}</script>
 
 <script>
 layui.use(['form','table','layer','spTable'],function(){
@@ -53,6 +54,7 @@ layui.use(['form','table','layer','spTable'],function(){
         {field:'totalQty',title:'需求数量',width:90},
         {field:'firstPlanStartDate',title:'计划开工',width:120},
         {field:'firstPlanDeliveryDate',title:'计划完工',width:120},
+        {field:'mrpStatus',title:'MRP状态',width:120,templet:'#mrpTpl'},
         {field:'operationStatus',title:'计划状态',width:100,templet:'#statusTpl'},
         {fixed:'right',title:'操作',toolbar:'#opTpl',width:150}
     ]]});
@@ -65,9 +67,10 @@ layui.use(['form','table','layer','spTable'],function(){
             $.each(tasks,function(_,t){html+='<tr><td>'+esc(t.productSerialNo)+'</td><td><b>'+esc(t.taskSerialNo)+'</b></td><td>'+esc(t.productName||t.productMateriel)+'</td><td>'+esc(t.operDesc||t.oper)+'</td><td>'+esc(t.planStartTime||'-')+' 至 '+esc(t.planEndTime||'-')+'</td></tr>';});
             if(!tasks.length)html+='<tr><td colspan="5" style="text-align:center;color:#718396;">暂无任务，请检查 BOM 与工艺路线。</td></tr>';
             html+='</tbody></table></div>';
+            var canDispatch=row.mrpStatus==='COMPLETED';
             layer.open({type:1,title:'计划拆分任务 - '+row.orderNo,area:['1050px','560px'],content:html,
-                btn:['确认下发','关闭'],
-                yes:function(idx){postDispatch(row,function(){layer.close(idx);});},
+                btn:canDispatch?['确认下发','关闭']:['关闭'],
+                yes:canDispatch?function(idx){postDispatch(row,function(){layer.close(idx);});}:function(idx){layer.close(idx);},
                 btn2:function(idx){layer.close(idx);}});
         });
     }

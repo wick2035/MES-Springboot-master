@@ -36,12 +36,33 @@
                     <div class="layui-input-block"><input name="modelCode" lay-verify="required" class="layui-input" value="${(result.modelCode)!}" placeholder="order_approval"></div>
                 </div>
                 <div class="layui-form-item">
+                    <label class="layui-form-label">处理人类型</label>
+                    <div class="layui-input-block">
+                        <select id="js-assignee-type" lay-filter="js-assignee-type-filter">
+                            <option value="role">角色</option>
+                            <option value="user">指定用户</option>
+                            <option value="initiator">发起人</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-form-item" id="js-role-item">
                     <label class="layui-form-label">处理角色</label>
                     <div class="layui-input-block">
                         <select id="js-role" lay-filter="js-role-filter">
                             <option value="">请选择</option>
                             <#list roles as role>
                                 <option value="${role.code}" data-name="${role.name}">${role.name} / ${role.code}</option>
+                            </#list>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-form-item layui-hide" id="js-user-item">
+                    <label class="layui-form-label">指定用户</label>
+                    <div class="layui-input-block">
+                        <select id="js-user" lay-search lay-filter="js-user-filter">
+                            <option value="">请选择</option>
+                            <#list users as u>
+                                <option value="${u.id}" data-name="${(u.name)!u.username}">${(u.name)!u.username} / ${u.username}</option>
                             </#list>
                         </select>
                     </div>
@@ -74,31 +95,50 @@
 <script>
     layui.use(['form'], function () {
         var form = layui.form;
+        function currentAssignee() {
+            var type = $('#js-assignee-type').val() || 'role';
+            if (type === 'user') {
+                return {type:'user', id:$('#js-user').val() || '', name:$('#js-user option:selected').data('name') || ''};
+            }
+            if (type === 'initiator') {
+                return {type:'initiator', id:'', name:'发起人'};
+            }
+            return {type:'role', id:$('#js-role').val() || 'warehouseManagerRole', name:$('#js-role option:selected').data('name') || '生产/仓储管理角色'};
+        }
         function buildDefaultJson() {
-            var role = $('#js-role').val() || 'warehouseManagerRole';
-            var roleName = $('#js-role option:selected').data('name') || '生产/仓储管理角色';
+            var a = currentAssignee();
             return JSON.stringify([
                 {nodeKey:'start', nodeName:'订单提交', nodeType:'start'},
-                {nodeKey:'order_approve', nodeName:'生产订单审批', nodeType:'approval', assigneeType:'role', assigneeId:role, assigneeName:roleName, events:[{eventType:'complete', actionCode:'ORDER_APPROVE', actionName:'订单审批通过'}]},
+                {nodeKey:'order_approve', nodeName:'生产订单审批', nodeType:'approval', assigneeType:a.type, assigneeId:a.id, assigneeName:a.name, events:[{eventType:'complete', actionCode:'ORDER_APPROVE', actionName:'订单审批通过'}]},
                 {nodeKey:'end', nodeName:'审批完成', nodeType:'end'}
             ], null, 2);
         }
+        toggleAssigneeInputs($('#js-assignee-type').val());
+        backfillAssigneeFromJson();
         if (!$('#js-node-json').val()) $('#js-node-json').val(buildDefaultJson());
         renderPreview();
         $('#js-default-json').on('click', function(){ $('#js-node-json').val(buildDefaultJson()); renderPreview(); });
         $('#js-preview-json').on('click', renderPreview);
-        form.on('select(js-role-filter)', function(data){
-            applySelectedRoleToJson(data.value, $(data.elem).find('option:selected').data('name'));
+        form.on('select(js-assignee-type-filter)', function(data){
+            toggleAssigneeInputs(data.value);
+            applyAssigneeToJson();
         });
-        function applySelectedRoleToJson(role, roleName) {
-            if (!role) return;
+        form.on('select(js-role-filter)', function(){ applyAssigneeToJson(); });
+        form.on('select(js-user-filter)', function(){ applyAssigneeToJson(); });
+        function toggleAssigneeInputs(type) {
+            $('#js-role-item').toggleClass('layui-hide', type !== 'role');
+            $('#js-user-item').toggleClass('layui-hide', type !== 'user');
+        }
+        function applyAssigneeToJson() {
+            var a = currentAssignee();
             try {
                 var nodes = JSON.parse($('#js-node-json').val() || '[]');
+                if (!nodes.length) { $('#js-node-json').val(buildDefaultJson()); renderPreview(); return; }
                 $.each(nodes, function(i, n){
                     if (n && n.nodeType === 'approval') {
-                        n.assigneeType = 'role';
-                        n.assigneeId = role;
-                        n.assigneeName = roleName || role;
+                        n.assigneeType = a.type;
+                        n.assigneeId = a.id;
+                        n.assigneeName = a.name;
                         return false;
                     }
                 });
@@ -108,6 +148,22 @@
                 $('#js-node-json').val(buildDefaultJson());
                 renderPreview();
             }
+        }
+        function backfillAssigneeFromJson() {
+            var node;
+            try {
+                var nodes = JSON.parse($('#js-node-json').val() || '[]');
+                $.each(nodes, function(i, n){ if (n && n.nodeType === 'approval') { node = n; return false; } });
+            } catch(e) { return; }
+            if (!node || !node.assigneeType) return;
+            $('#js-assignee-type').val(node.assigneeType);
+            if (node.assigneeType === 'user') {
+                $('#js-user').val(node.assigneeId || '');
+            } else if (node.assigneeType === 'role') {
+                $('#js-role').val(node.assigneeId || '');
+            }
+            toggleAssigneeInputs(node.assigneeType);
+            form.render('select');
         }
         function renderPreview() {
             var $wrap = $('#js-flow-preview').empty();

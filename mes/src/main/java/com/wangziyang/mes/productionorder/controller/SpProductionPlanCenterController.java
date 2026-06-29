@@ -487,11 +487,10 @@ public class SpProductionPlanCenterController extends BaseController {
 
     private List<Map<String, Object>> buildDispatchRows(SpProductionDispatchReq req) {
         List<Map<String, Object>> rows = new ArrayList<>();
-        for (SpProductionOrder order : productionOrders(req, SpProductionOrderServiceImpl.OP_ASSIGNED)) {
+        List<SpProductionOrder> orders = productionOrders(req, SpProductionOrderServiceImpl.OP_ASSIGNED);
+        materialPlanService.enrichProductionOrders(orders);
+        for (SpProductionOrder order : orders) {
             if (!SpProductionOrderServiceImpl.APPROVAL_APPROVED.equals(order.getApprovalStatus())) {
-                continue;
-            }
-            if (!materialPlanService.isProductionOrderMrpCompleted(order.getId())) {
                 continue;
             }
             List<SpProductionOrderItem> items = productionOrderService.listItems(order.getId());
@@ -520,6 +519,8 @@ public class SpProductionPlanCenterController extends BaseController {
             row.put("schedulingMethod", order.getSchedulingMethod());
             row.put("approvalStatus", order.getApprovalStatus());
             row.put("operationStatus", order.getOperationStatus());
+            row.put("mrpStatus", order.getMrpStatus());
+            row.put("mrpPlanCount", order.getMrpPlanCount());
             row.put("totalQty", totalQty);
             row.put("itemCount", items.size());
             row.put("firstProductName", first.getProductName());

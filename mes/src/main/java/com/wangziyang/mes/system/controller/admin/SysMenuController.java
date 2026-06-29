@@ -63,6 +63,14 @@ public class SysMenuController extends BaseController {
         return Result.success(record.getId());
     }
 
+    @ApiOperation("更新菜单状态：0正常 1锁定（锁定的菜单不在导航中显示）")
+    @PostMapping("/update-state")
+    @ResponseBody
+    public Result updateState(String id, Integer state) {
+        sysMenuService.updateState(id, state);
+        return Result.success();
+    }
+
     @ApiOperation("系统管理菜单树表格数据")
     @GetMapping("/tree")
     @ResponseBody

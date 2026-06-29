@@ -69,7 +69,7 @@
             <div class="layui-form-item">
                 <div class="layui-inline"><label class="layui-form-label">关键字</label><div class="layui-input-inline"><input type="text" name="keyword" placeholder="订单 / BOM / 产品" autocomplete="off" class="layui-input"></div></div>
                 <div class="layui-inline"><label class="layui-form-label">订单类型</label><div class="layui-input-inline"><select name="sourceType"><option value="">全部</option><option value="DEMAND">需求订单</option><option value="FORECAST">预测订单</option></select></div></div>
-                <div class="layui-inline"><label class="layui-form-label">审核状态</label><div class="layui-input-inline"><select name="approvalStatus"><option value="">全部</option><option value="DRAFT">未审核</option><option value="APPROVING">审核中</option><option value="APPROVED">已完成</option><option value="REJECTED">已驳回</option></select></div></div>
+                <div class="layui-inline"><label class="layui-form-label">审核状态</label><div class="layui-input-inline"><select name="approvalStatus"><option value="">全部</option><option value="DRAFT">未审核</option><option value="APPROVING">审核中</option><option value="APPROVED">已完成</option><option value="REJECTED">已退回</option></select></div></div>
                 <div class="layui-inline"><label class="layui-form-label">下发状态</label><div class="layui-input-inline"><select name="operationStatus"><option value="">全部</option><option value="NONE">未下发</option><option value="WAIT_CALC">未下发</option><option value="WAIT_ASSIGN">未下发</option><option value="ASSIGNED">未下发</option><option value="DISPATCHED">已下发</option></select></div></div>
                 <div class="layui-inline">
                     <button class="layui-btn" lay-submit lay-filter="search"><i class="layui-icon layui-icon-search"></i> 查询</button>
@@ -89,16 +89,16 @@
     </div>
 </script>
 <script type="text/html" id="sourceTpl">{{# if(d.sourceType === 'FORECAST'){ }}<span class="chip purple">预测订单</span>{{# } else { }}<span class="chip blue">需求订单</span>{{# } }}</script>
-<script type="text/html" id="approvalTpl">{{# var m={DRAFT:['未审核','gray'],APPROVING:['审核中','orange'],APPROVED:['已完成','green'],REJECTED:['已驳回','red'],CANCELLED:['已撤销','gray']}; var x=m[d.approvalStatus]||m.DRAFT; }}<span class="chip {{x[1]}}">{{x[0]}}</span></script>
+<script type="text/html" id="approvalTpl">{{# var m={DRAFT:['未审核','gray'],APPROVING:['审核中','orange'],APPROVED:['已完成','green'],REJECTED:['已退回','red'],CANCELLED:['已撤销','gray']}; var x=m[d.approvalStatus]||m.DRAFT; }}<span class="chip {{x[1]}}">{{x[0]}}</span></script>
 <script type="text/html" id="operationTpl">{{# var m={NONE:['未下发','gray'],WAIT_CALC:['未下发','gray'],WAIT_ASSIGN:['未下发','gray'],ASSIGNED:['未下发','blue'],DISPATCHED:['已下发','green']}; var x=m[d.operationStatus]||m.NONE; }}<span class="chip {{x[1]}}">{{x[0]}}</span></script>
 <script type="text/html" id="mrpTpl">{{# var m={NONE:['未运算','gray'],CALCULATED:['已运算','blue'],COMPLETED:['已完成','green']}; var x=m[d.mrpStatus]||m.NONE; }}<span class="chip {{x[1]}}">{{x[0]}}</span>{{# if(d.mrpPlanCount){ }}<span style="margin-left:5px;color:#718396;">{{d.mrpPlanCount}}项</span>{{# } }}</script>
 <script type="text/html" id="productTpl"><div class="product-cell"><b>{{d.firstProductMateriel || '-'}}</b> / {{d.firstProductName || '-'}}<span>BOM: {{d.firstBomCode || '-'}}　版本: {{d.firstBomVersion || '-'}}</span></div></script>
 <script type="text/html" id="opTpl">
     <div class="op-actions">
-        {{# if(d.approvalStatus !== 'APPROVING' && d.operationStatus !== 'DISPATCHED'){ }}<a class="layui-btn layui-btn-xs" lay-event="edit"><i class="fa fa-pencil"></i>修改</a>{{# } }}
-        {{# if(d.approvalStatus === 'DRAFT' || d.approvalStatus === 'REJECTED' || !d.approvalStatus){ }}<a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="submit"><i class="fa fa-check-square-o"></i>提交</a>{{# } }}
+        {{# if(d.approvalStatus !== 'APPROVING' && d.approvalStatus !== 'APPROVED' && d.approvalStatus !== 'REJECTED' && d.operationStatus !== 'DISPATCHED'){ }}<a class="layui-btn layui-btn-xs" lay-event="edit"><i class="fa fa-pencil"></i>修改</a>{{# } }}
+        {{# if(d.approvalStatus === 'DRAFT' || !d.approvalStatus){ }}<a class="layui-btn layui-btn-warm layui-btn-xs" lay-event="submit"><i class="fa fa-check-square-o"></i>提交</a>{{# } }}
         {{# if(d.mrpStatus !== 'COMPLETED'){ }}<a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="mrp" title="{{d.mrpPlanCount ? '重新运算并作废旧批次' : '生成物料需求计划'}}"><i class="fa fa-calculator"></i>运算</a>{{# } }}
-        {{# if(d.operationStatus !== 'DISPATCHED'){ }}<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="dispatch" title="生产计划下发"><i class="fa fa-paper-plane"></i>下发</a>{{# } }}
+        {{# if(d.approvalStatus !== 'APPROVING' && d.approvalStatus !== 'APPROVED'){ }}<a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del" title="删除订单并级联清除派工/需求/工单"><i class="fa fa-trash"></i>删除</a>{{# } else { }}<a class="layui-btn layui-btn-danger layui-btn-xs layui-btn-disabled" lay-event="delBlocked" title="审核中或审核通过的订单不可删除"><i class="fa fa-trash"></i>删除</a>{{# } }}
     </div>
 </script>
 
@@ -122,7 +122,7 @@ layui.use(['form','table','layer','spLayer','spTable','upload'],function(){
             {field:'mrpCalcTime',title:'MRP运算时间',width:165},
             {field:'operationStatus',title:'下发状态',width:105,templet:'#operationTpl'},
             {field:'creationMethod',title:'来源方式',width:96},
-            {field:'operate',fixed:'right',title:'操作',toolbar:'#opTpl',width:290}
+            {field:'operate',fixed:'right',title:'操作',toolbar:'#opTpl',width:300}
         ]],
         done:function(){loadDashboard();}
     });
@@ -197,11 +197,12 @@ layui.use(['form','table','layer','spLayer','spTable','upload'],function(){
                 }});
             });
         }
-        if(obj.event==='dispatch'){
-            layer.confirm('确认下发生产计划【'+data.orderNo+'】？下发后工单进入车间执行。',function(index){
-                spUtil.ajax({url:contextPath + '/production-order/plan/dispatch',type:'POST',serializable:false,data:{id:data.id},showLoading:true,success:function(res){
+        if(obj.event==='delBlocked'){layer.msg('审核中或审核通过的订单不可删除');return;}
+        if(obj.event==='del'){
+            layer.confirm('确认删除生产订单【'+data.orderNo+'】？将同时删除该订单的派工、需求计划、配套出库及工单，且不可恢复。',{icon:0,title:'删除确认'},function(index){
+                spUtil.ajax({url:contextPath + '/production-order/plan/delete',type:'POST',serializable:false,data:{id:data.id},showLoading:true,success:function(res){
                     layer.close(index);
-                    layer.msg(res.msg || '已下发');
+                    layer.msg(res.msg || '已删除');
                     reload();
                 }});
             });

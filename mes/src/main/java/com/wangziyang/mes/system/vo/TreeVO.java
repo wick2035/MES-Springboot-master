@@ -58,6 +58,11 @@ public class TreeVO<T> {
     private String code;
 
     /**
+     * 状态：0 正常；1 锁定（锁定的菜单不在导航中显示）
+     */
+    private Integer state;
+
+    /**
      * 是否有父节点
      */
     private boolean haveParent = false;
@@ -174,5 +179,13 @@ public class TreeVO<T> {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public Integer getState() {
+        return state;
+    }
+
+    public void setState(Integer state) {
+        this.state = state;
     }
 }

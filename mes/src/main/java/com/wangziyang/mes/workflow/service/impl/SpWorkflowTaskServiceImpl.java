@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wangziyang.mes.common.Result;
+import com.wangziyang.mes.productionorder.service.ISpProductionOrderService;
 import com.wangziyang.mes.productionorder.service.ISpWorkOrderChangeService;
 import com.wangziyang.mes.system.entity.SysUser;
 import com.wangziyang.mes.system.service.ISysUserService;
@@ -48,6 +49,9 @@ public class SpWorkflowTaskServiceImpl extends ServiceImpl<SpWorkflowTaskMapper,
 
     @Autowired
     private ISpWorkOrderChangeService workOrderChangeService;
+
+    @Autowired
+    private ISpProductionOrderService productionOrderService;
 
     @Override
     public void createFirstTask(SpWorkflowInstance instance) {
@@ -128,6 +132,8 @@ public class SpWorkflowTaskServiceImpl extends ServiceImpl<SpWorkflowTaskMapper,
         }
         if (WorkflowConstants.BUSINESS_WORK_ORDER_CHANGE.equals(task.getBusinessType())) {
             workOrderChangeService.rejectChange(task.getBusinessId());
+        } else if (WorkflowConstants.BUSINESS_ORDER_APPROVAL.equals(task.getBusinessType())) {
+            productionOrderService.rejectSubmittedOrder(task.getBusinessId());
         }
         return Result.success();
     }
@@ -174,6 +180,10 @@ public class SpWorkflowTaskServiceImpl extends ServiceImpl<SpWorkflowTaskMapper,
         instance.setEndTime(now());
         instance.setRemark(StringUtils.defaultIfBlank(opinion, "撤回流程"));
         instanceService.updateById(instance);
+
+        if (WorkflowConstants.BUSINESS_ORDER_APPROVAL.equals(task.getBusinessType())) {
+            productionOrderService.revokeSubmittedOrder(task.getBusinessId());
+        }
         return Result.success();
     }
 

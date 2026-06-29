@@ -77,7 +77,13 @@ public class SpWorkflowModelServiceImpl extends ServiceImpl<SpWorkflowModelMappe
                 }
                 if (WorkflowConstants.NODE_APPROVAL.equals(node.getNodeType())) {
                     approvalCount++;
-                    if (StringUtils.isBlank(node.getAssigneeType()) || StringUtils.isBlank(node.getAssigneeId())) {
+                    if (StringUtils.isBlank(node.getAssigneeType())) {
+                        return Result.failure("审批节点必须配置处理人类型");
+                    }
+                    // 发起人(initiator)无需指定 assigneeId；角色/指定用户必须有 assigneeId
+                    boolean needId = WorkflowConstants.ASSIGNEE_USER.equals(node.getAssigneeType())
+                            || WorkflowConstants.ASSIGNEE_ROLE.equals(node.getAssigneeType());
+                    if (needId && StringUtils.isBlank(node.getAssigneeId())) {
                         return Result.failure("审批节点必须配置处理人或角色");
                     }
                 }

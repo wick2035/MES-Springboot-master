@@ -276,12 +276,12 @@ ON DUPLICATE KEY UPDATE `bom_head_id`=VALUES(`bom_head_id`),`materiel_item_code`
 -- ============================================================
 INSERT INTO `sp_processing_unit`
 (`id`,`unit_code`,`unit_name`,`unit_type`,`description`,`std_capacity`,`has_edge_warehouse`,`status`,`is_deleted`,`create_time`,`create_username`,`update_time`,`update_username`) VALUES
-('demo_unit_board','DEMO-U-BOARD','演示主板装配单元','staff','主板元件装配与自检',20,1,'1','0',NOW(),'admin',NOW(),'admin'),
-('demo_unit_case','DEMO-U-CASE','演示机箱装配单元','staff','机箱、电源、风扇装配',20,1,'1','0',NOW(),'admin',NOW(),'admin'),
-('demo_unit_final','DEMO-U-FINAL','演示整机总装单元','staff','主板单元与机箱单元总装',20,1,'1','0',NOW(),'admin',NOW(),'admin'),
-('demo_unit_test','DEMO-U-TEST','演示整机测试单元','device','整机老化与功能测试',20,1,'1','0',NOW(),'admin',NOW(),'admin'),
-('demo_unit_pack','DEMO-U-PACK','演示包装入库单元','staff','包装贴标与成品入库',20,1,'1','0',NOW(),'admin',NOW(),'admin'),
-('demo_unit_iot','DEMO-U-IOT','演示工业终端试制单元','staff','工业采集终端草稿BOM试制准备',10,1,'1','0',NOW(),'admin',NOW(),'admin')
+('demo_unit_board','DEMO-U-BOARD','演示主板装配单元','person','主板元件装配与自检',20,1,'0','0',NOW(),'admin',NOW(),'admin'),
+('demo_unit_case','DEMO-U-CASE','演示机箱装配单元','person','机箱、电源、风扇装配',20,1,'0','0',NOW(),'admin',NOW(),'admin'),
+('demo_unit_final','DEMO-U-FINAL','演示整机总装单元','person','主板单元与机箱单元总装',20,1,'0','0',NOW(),'admin',NOW(),'admin'),
+('demo_unit_test','DEMO-U-TEST','演示整机测试单元','device','整机老化与功能测试',20,1,'0','0',NOW(),'admin',NOW(),'admin'),
+('demo_unit_pack','DEMO-U-PACK','演示包装入库单元','person','包装贴标与成品入库',20,1,'0','0',NOW(),'admin',NOW(),'admin'),
+('demo_unit_iot','DEMO-U-IOT','演示工业终端试制单元','person','工业采集终端草稿BOM试制准备',10,1,'0','0',NOW(),'admin',NOW(),'admin')
 ON DUPLICATE KEY UPDATE `unit_code`=VALUES(`unit_code`),`unit_name`=VALUES(`unit_name`),`unit_type`=VALUES(`unit_type`),`description`=VALUES(`description`),`std_capacity`=VALUES(`std_capacity`),`has_edge_warehouse`=VALUES(`has_edge_warehouse`),`status`=VALUES(`status`),`is_deleted`=VALUES(`is_deleted`),`update_time`=NOW();
 
 INSERT INTO `sp_processing_unit_team`

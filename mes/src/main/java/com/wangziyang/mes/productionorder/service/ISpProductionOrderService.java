@@ -37,6 +37,10 @@ public interface ISpProductionOrderService extends IService<SpProductionOrder> {
 
     Result createWorkOrder(String id, SysUser user);
 
+    Result revokeSubmittedOrder(String workOrderId);
+
+    Result rejectSubmittedOrder(String workOrderId);
+
     Result dispatch(String id);
 
     Result importOrders(List<SpProductionOrderImportDTO> rows, SysUser user);

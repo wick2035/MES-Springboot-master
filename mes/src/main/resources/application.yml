@@ -24,7 +24,7 @@ mes:
 llm:
   provider: dashscope
   base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
-  api-key: sk-94d930e22f834b968587ea6687fbbeb2
+  api-key: sk-ws-H.RXMLPLL.Acfe.MEQCIARWoW7pRdnYtyseMdADFvfHUXVfI_Ma5Ny8pLHHuqs_AiBjZHegHJ6sycQbgygcmJC8HaW5-hbu81stsAR6_5LbhQ
   model: qwen3.6-plus
   timeout: 600000
 

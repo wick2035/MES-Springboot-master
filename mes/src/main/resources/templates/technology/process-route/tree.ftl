@@ -12,8 +12,6 @@
         .gen-yes { color: #16BAAA; font-weight: bold; }
         .layui-table .lock-icon { color: #D97706; font-size: 16px; }
         .layui-table .edit-icon { color: #16BAAA; font-size: 16px; cursor: pointer; }
-        .content-btn { background-color: #E74C3C; border-radius: 4px; }
-        .content-btn:hover { opacity: .9; color: #fff; }
     </style>
 </head>
 <body>
@@ -44,8 +42,6 @@
     <a class="layui-icon edit-icon" lay-event="edit" title="编辑工艺规划">&#xe642;</a>
     {{# } else if (d.operId && d.editStatus === 'completed') { }}
     <a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="viewContent">查看工艺</a>
-    {{# } else if (d.operId) { }}
-    <a class="layui-btn layui-btn-xs layui-btn-danger content-btn" lay-event="content">工艺内容编制</a>
     {{# } else { }}
     <i class="layui-icon lock-icon" title="已锁定">&#xe673;</i>
     {{# } }}
@@ -180,13 +176,6 @@
                 layer.open({
                     type: 2, title: '编辑工艺规划', area: ['80%', '80%'],
                     content: '${request.contextPath}/technology/process-route/edit-ui?routeId=' + obj.data.routeId,
-                    end: function () { loadTree(); }
-                });
-            }
-            if (obj.event === 'content') {
-                layer.open({
-                    type: 2, title: '工艺内容编制', area: ['95%', '92%'],
-                    content: '${request.contextPath}/technology/process-content/wizard-ui?routeId=' + obj.data.routeId,
                     end: function () { loadTree(); }
                 });
             }

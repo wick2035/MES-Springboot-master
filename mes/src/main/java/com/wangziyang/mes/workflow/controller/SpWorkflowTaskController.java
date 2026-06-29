@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.wangziyang.mes.common.Result;
 import com.wangziyang.mes.system.entity.SysUser;
+import com.wangziyang.mes.system.service.ISysUserService;
 import com.wangziyang.mes.workflow.WorkflowConstants;
 import com.wangziyang.mes.workflow.entity.SpWorkflowTask;
 import com.wangziyang.mes.workflow.request.WorkflowPageReq;
@@ -30,6 +31,9 @@ public class SpWorkflowTaskController extends WorkflowBaseController {
 
     @Autowired
     private ISpWorkflowFormService formService;
+
+    @Autowired
+    private ISysUserService userService;
 
     @GetMapping("/list-ui")
     public String listUI() {
@@ -82,13 +86,35 @@ public class SpWorkflowTaskController extends WorkflowBaseController {
     @PostMapping("/transfer")
     @ResponseBody
     public Result transfer(@RequestBody WorkflowTaskCompleteReq req) {
-        return taskService.transfer(req.getTaskId(), req.getTargetUserId(), req.getOpinion(), currentUser());
+        return taskService.transfer(req.getTaskId(), resolveTargetUserId(req), req.getOpinion(), currentUser());
     }
 
     @PostMapping("/entrust")
     @ResponseBody
     public Result entrust(@RequestBody WorkflowTaskCompleteReq req) {
-        return taskService.entrust(req.getTaskId(), req.getTargetUserId(), req.getOpinion(), currentUser());
+        return taskService.entrust(req.getTaskId(), resolveTargetUserId(req), req.getOpinion(), currentUser());
+    }
+
+    /**
+     * 解析转办/委托的目标用户：优先用 targetUserId，否则按 targetUsername 反查。
+     * 查不到时返回空，交给 service 统一报「目标处理人不存在/请选择目标处理人」。
+     */
+    private String resolveTargetUserId(WorkflowTaskCompleteReq req) {
+        if (req == null) {
+            return null;
+        }
+        if (StringUtils.isNotBlank(req.getTargetUserId())) {
+            return req.getTargetUserId();
+        }
+        if (StringUtils.isNotBlank(req.getTargetUsername())) {
+            SysUser target = userService.getOne(new QueryWrapper<SysUser>()
+                    .eq("username", req.getTargetUsername().trim())
+                    .last("limit 1"));
+            if (target != null) {
+                return target.getId();
+            }
+        }
+        return req.getTargetUserId();
     }
 
     @PostMapping("/revoke")

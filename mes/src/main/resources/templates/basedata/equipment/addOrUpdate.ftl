@@ -54,7 +54,7 @@
             </div>
             <div class="layui-form-item layui-hide">
                 <input name="id" value="${result.id!''}"/>
-                <button class="layui-btn" lay-submit lay-filter="js-submit-filter">确定</button>
+                <button id="js-submit" class="layui-btn" lay-submit lay-filter="js-submit-filter">确定</button>
             </div>
         </form>
     </div>

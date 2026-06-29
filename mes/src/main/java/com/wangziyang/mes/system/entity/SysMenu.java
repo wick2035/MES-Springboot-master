@@ -66,6 +66,11 @@ public class SysMenu extends BaseEntity {
      */
     private String descr;
 
+    /**
+     * 状态：0 正常；1 锁定（锁定的菜单不在导航中显示）
+     */
+    private Integer state;
+
 	public String getName() {
 		return name;
 	}
@@ -144,5 +149,13 @@ public class SysMenu extends BaseEntity {
 
 	public void setCode(String code) {
 		this.code = code;
+	}
+
+	public Integer getState() {
+		return state;
+	}
+
+	public void setState(Integer state) {
+		this.state = state;
 	}
 }
